@@ -1,0 +1,74 @@
+<mxfile host="app.diagrams.net" modified="2026-01-01T00:00:00.000Z" agent="ProyecTwin" version="24.0.0" type="device">
+  <diagram name="ProyecTwin GET" id="ptwin-get">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="1500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="u" value="Usuario&#10;(aprendiz)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="protected" value="&lt;b&gt;ProtectedRoute&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;App.jsx&lt;br&gt;allowedRoles={['aprendiz']}&lt;br&gt;+ SafeRoute (sanea sesión)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="120" y="260" width="210" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="comp" value="&lt;b&gt;Componente — Propuestas.jsx&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;const { data, cargando, error, recargar }&lt;br&gt;&#160;&#160;= useApi(&lt;br&gt;&#160;&#160;() =&gt; proyectos.listar({&lt;br&gt;&#160;&#160;&#160;&#160;included: INCLUDE_PROYECTOS }),&lt;br&gt;&#160;&#160;[], { inicial: [] }&lt;br&gt;)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#1e1e2e;fontColor=#e6e6e6;strokeColor=#444444;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="360" y="180" width="330" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="useapi" value="&lt;b&gt;Hook — useApi.js&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;export function useApi(fn, deps = [],&lt;br&gt;&#160;&#160;{ inicial = null } = {}) {&lt;br&gt;&#160;&#160;const [estado, setEstado] = useState({&lt;br&gt;&#160;&#160;&#160;&#160;data: inicial, cargando: true, error: null })&lt;br&gt;&#160;&#160;const recargar = useCallback(async () =&gt; { ... })&lt;br&gt;&#160;&#160;return { data, cargando, error, recargar }&lt;br&gt;}&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#1e1e2e;fontColor=#e6e6e6;strokeColor=#444444;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="360" y="470" width="330" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="recursos" value="&lt;b&gt;Recurso — recursos.js&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;export const proyectos = {&lt;br&gt;&#160;&#160;listar: (filtros = {}) =&gt;&lt;br&gt;&#160;&#160;&#160;&#160;apiFetch(`/projects${qs({&lt;br&gt;&#160;&#160;&#160;&#160;&#160;&#160;included: '...', ...filtros })}`)&lt;br&gt;&#160;&#160;&#160;&#160;&#160;&#160;.then(lista),&lt;br&gt;}&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#1e1e2e;fontColor=#e6e6e6;strokeColor=#444444;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="740" y="180" width="330" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="apifetch" value="&lt;b&gt;Cliente HTTP — api.js&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;export async function apiFetch(path,&lt;br&gt;&#160;&#160;{ method = 'GET', auth = true } = {}) {&lt;br&gt;&#160;&#160;const headers = { Accept: 'application/json' }&lt;br&gt;&#160;&#160;const token = auth ? getToken() : null&lt;br&gt;&#160;&#160;if (token) headers.Authorization = `Bearer ${token}`&lt;br&gt;&#160;&#160;const res = await fetch(`${BASE}${path}`,&lt;br&gt;&#160;&#160;&#160;&#160;{ method, headers })&lt;br&gt;&#160;&#160;if (!res.ok) throw new Error(...)&lt;br&gt;&#160;&#160;return res.json()&lt;br&gt;}&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#1e1e2e;fontColor=#e6e6e6;strokeColor=#444444;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="150" width="340" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proxy" value="&lt;b&gt;Proxy — vite.config.js&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;const API = 'http://127.0.0.1:8000'&lt;br&gt;const proxy = {&lt;br&gt;&#160;&#160;'/v1': { target: API, changeOrigin: true }&lt;br&gt;}&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="520" width="340" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ruta" value="&lt;b&gt;Ruta — routes/api-v1.php&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;Route::get('projects',&lt;br&gt;&#160;&#160;[ProjectController::class, 'index']);&lt;br&gt;// middleware: auth:sanctum, cuenta.activa&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="180" width="320" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mw" value="&lt;b&gt;Middleware — Kernel.php&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;'cuenta.activa' =&gt; CuentaActiva::class&lt;br&gt;'rol' =&gt; RolMiddleware::class&lt;br&gt;// CuentaActiva: suspendidos =&gt; 403&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="420" width="320" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ctrl" value="&lt;b&gt;Controlador — ProjectController@index&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;return Project::included()&lt;br&gt;&#160;&#160;-&gt;paraUsuario($request-&gt;user())&lt;br&gt;&#160;&#160;-&gt;search($request-&gt;query('search'))&lt;br&gt;&#160;&#160;-&gt;byEstado($request-&gt;query('estado'))&lt;br&gt;&#160;&#160;-&gt;get();&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#1e1e2e;fontColor=#e6e6e6;strokeColor=#444444;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1860" y="160" width="340" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="model" value="&lt;b&gt;Modelo — Project.php (Eloquent)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div style='font-family:Courier New;font-size:10px'&gt;scopeParaUsuario($q, $user)&lt;br&gt;&#160;&#160;admin&#160;&#160;&#160;&#160;&#160;&#160;=&gt; todas&lt;br&gt;&#160;&#160;instructor =&gt; sus fichas&lt;br&gt;&#160;&#160;aprendiz&#160;&#160;&#160;=&gt; propias + su ficha&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#1e1e2e;fontColor=#e6e6e6;strokeColor=#444444;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="2240" y="160" width="320" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db" value="MySQL&#10;projects&#10;class_groups&#10;apprentices" style="shape=cylinder3;whiteSpace=wrap;html=1;bordered=1;backgroundOutline=1;size=15;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="2600" y="210" width="150" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="entra" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="u" target="protected"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" value="renderiza" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="protected" target="comp"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="usa hook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="comp" target="useapi"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" value="proyectos.listar()" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="comp" target="recursos"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="apiFetch('/projects')" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="recursos" target="apifetch"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="GET /v1/projects + Bearer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="apifetch" target="proxy"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" value="mismo origen" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="proxy" target="ruta"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="auth:sanctum · cuenta.activa" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="ruta" target="mw"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="index()" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="mw" target="ctrl"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" value="paraUsuario()" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="ctrl" target="model"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" value="SELECT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="model" target="db"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" value="filas" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;dashed=1;" edge="1" parent="1" source="db" target="model"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" value="JSON 200" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;dashed=1;" edge="1" parent="1" source="ctrl" target="apifetch"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" value="data → render HTML" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;dashed=1;" edge="1" parent="1" source="apifetch" target="comp"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" value="render" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;dashed=1;" edge="1" parent="1" source="comp" target="u"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

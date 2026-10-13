@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ProyecTwin — Recorrido de la petición</title>
+<style>
+  :root{
+    --bg1:#0f172a; --bg2:#111827;
+    --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --fe:#61dafb; --vite:#646cff; --laravel:#ff2d20; --php:#777bb4; --mysql:#4479a1;
+    --green:#39a900; --blue:#1e40af;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:48px 24px; min-height:100vh;
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+    color:var(--ink);
+    background:radial-gradient(1200px 600px at 20% -10%,#1e293b,transparent),linear-gradient(135deg,var(--bg1),var(--bg2));
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{color:#fff;text-align:center;font-size:28px;margin:0 0 6px;letter-spacing:-.02em}
+  .sub{color:#94a3b8;text-align:center;margin:0 0 40px;font-size:14px}
+  .sub code{background:#1e293b;color:#e2e8f0;padding:2px 6px;border-radius:6px;font-size:12px}
+
+  .flow{display:flex;align-items:stretch;justify-content:center;gap:0;flex-wrap:wrap}
+  .node{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:18px 20px;width:230px;display:flex;flex-direction:column;gap:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.28);position:relative;
+  }
+  .node::before{content:'';position:absolute;inset:0 0 auto 0;height:6px;border-radius:18px 18px 0 0}
+  .node.user::before{background:#94a3b8}
+  .node.fe::before{background:linear-gradient(90deg,var(--fe),var(--vite))}
+  .node.api::before{background:linear-gradient(90deg,var(--laravel),var(--php))}
+  .node.db::before{background:var(--mysql)}
+  .node h2{margin:4px 0 0;font-size:15px;letter-spacing:-.01em}
+  .node p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+  .logos{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:42px}
+  .logos img{height:34px;width:34px;object-fit:contain}
+  .chip{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#334155;
+        background:#f1f5f9;border:1px solid var(--line);border-radius:8px;padding:6px 8px;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;
+         width:96px;gap:4px;color:#cbd5e1}
+  .arrow .top{font-size:11px;color:#e2e8f0;background:#334155;padding:3px 8px;border-radius:999px}
+  .arrow svg{width:70px;height:20px}
+  .arrow .bot{font-size:10px;color:#94a3b8}
+
+  .legend{display:flex;gap:24px;justify-content:center;margin-top:34px;color:#94a3b8;font-size:12px}
+  .legend span{display:inline-flex;align-items:center;gap:8px}
+  .dot{width:22px;height:0;border-top:3px solid #e2e8f0}
+  .dot.dash{border-top:3px dashed #94a3b8}
+
+  .foot{text-align:center;color:#64748b;font-size:11px;margin-top:30px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>ProyecTwin — Recorrido de la petición</h1>
+    <p class="sub">Ejemplo: el aprendiz abre <strong>“Mis Propuestas”</strong> → <code>GET /v1/projects</code></p>
+
+    <div class="flow">
+      <!-- Usuario -->
+      <div class="node user">
+        <div class="logos"><span style="font-size:34px">🧑‍🎓</span></div>
+        <h2>1 · Usuario</h2>
+        <p>Aprendiz abre la pantalla “Mis Propuestas”.</p>
+      </div>
+
+      <div class="arrow">
+        <span class="top">acción</span>
+        <svg viewBox="0 0 70 20"><line x1="0" y1="10" x2="56" y2="10" stroke="#e2e8f0" stroke-width="2"/><polygon points="56,4 70,10 56,16" fill="#e2e8f0"/></svg>
+      </div>
+
+      <!-- Frontend -->
+      <div class="node fe">
+        <div class="logos">
+          <img src="https://cdn.simpleicons.org/react/61DAFB" alt="React" title="React" />
+          <img src="https://cdn.simpleicons.org/vite/646CFF" alt="Vite" title="Vite" />
+        </div>
+        <h2>2 · Frontend (React + Vite)</h2>
+        <p>Componente + hook <code>useApi</code>; el cliente HTTP hace <code>fetch</code> con el token Bearer. Vite proxya <code>/v1</code>.</p>
+        <span class="chip">await fetch('/v1/projects')</span>
+      </div>
+
+      <div class="arrow">
+        <span class="top">petición</span>
+        <svg viewBox="0 0 70 20"><line x1="0" y1="10" x2="56" y2="10" stroke="#e2e8f0" stroke-width="2"/><polygon points="56,4 70,10 56,16" fill="#e2e8f0"/></svg>
+        <span class="bot">Bearer token</span>
+      </div>
+
+      <!-- API -->
+      <div class="node api">
+        <div class="logos">
+          <img src="https://cdn.simpleicons.org/laravel/FF2D20" alt="Laravel" title="Laravel" />
+          <img src="https://cdn.simpleicons.org/php/777BB4" alt="PHP" title="PHP" />
+        </div>
+        <h2>3 · API (Laravel /v1)</h2>
+        <p>Ruta + middleware (<code>auth:sanctum</code>, <code>cuenta.activa</code>) → controlador con validación y reglas por rol.</p>
+        <span class="chip">ProjectController@index</span>
+      </div>
+
+      <div class="arrow">
+        <span class="top">consulta</span>
+        <svg viewBox="0 0 70 20"><line x1="0" y1="10" x2="56" y2="10" stroke="#e2e8f0" stroke-width="2"/><polygon points="56,4 70,10 56,16" fill="#e2e8f0"/></svg>
+      </div>
+
+      <!-- Datos -->
+      <div class="node db">
+        <div class="logos">
+          <img src="https://cdn.simpleicons.org/mysql/4479A1" alt="MySQL" title="MySQL" />
+        </div>
+        <h2>4 · Base de datos</h2>
+        <p>Eloquent consulta MySQL (<code>projects</code>, <code>class_groups</code>, <code>apprentices</code>).</p>
+        <span class="chip">SELECT ... FROM projects</span>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot"></span> ida de la petición</span>
+      <span><span class="dot dash"></span> respuesta (JSON 200 → data → render)</span>
+    </div>
+
+    <p class="foot">Logos: Simple Icons. Se abren con conexión a internet. Exporta a PDF/PNG con Ctrl+P.</p>
+  </div>
+</body>
+</html>
