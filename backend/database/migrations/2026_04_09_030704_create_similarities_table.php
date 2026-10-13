@@ -19,8 +19,13 @@ return new class extends Migration
             $table->foreignId('id_proyecto_1')->constrained('projects')->onDelete('cascade');
             $table->foreignId('id_proyecto_2')->constrained('projects')->onDelete('cascade');
 
-            $table->unique(['id_proyecto_1', 'id_proyecto_2']);
+            // Índice normal (no unique): se conservan varias versiones del
+            // mismo par (contenido actual vs evidencia histórica) y sigue
+            // cubriendo la FK de id_proyecto_1.
+            $table->index(['id_proyecto_1', 'id_proyecto_2']);
             $table->timestamps();
+            // Vigente = par del contenido actual; false = evidencia histórica.
+            $table->boolean('vigente')->default(true)->index();
         });
     }
 
