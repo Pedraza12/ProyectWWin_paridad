@@ -27,7 +27,7 @@ class ClassGroupController extends Controller
         }
 
         if ($user && $user->rol === 'instructor') {
-            $instructorId = Instructor::where('id_usuario', $user->id)->value('id');
+            $instructorId = $user->instructor()->value('id');
             return $instructorId ? $query->where('id_instructor', $instructorId)->get() : collect();
         }
 
@@ -58,10 +58,10 @@ class ClassGroupController extends Controller
             'aprendices.*' => 'integer|exists:general_users,id',
         ]);
 
-        $datos = $request->all();
-        unset($datos['aprendices']);
+        // Whitelist: `aprendices` se sincroniza aparte (relación aprendiz-ficha).
+        $datos = $request->only(['numero', 'nombre', 'estado', 'id_programa', 'id_instructor']);
         // El código de unión lo genera el servidor: el cliente no lo elige.
-        $datos['codigo'] = $this->codigoDisponible();
+        $datos['codigo'] = ClassGroup::codigoDisponible();
         // Un instructor solo crea fichas a su nombre (el admin asigna a quien sea).
         if ($mio) {
             $datos['id_instructor'] = $mio->id;
@@ -153,7 +153,7 @@ class ClassGroupController extends Controller
                 && (int) $aprendizExistente->id_class_group !== (int) $class_group->id
                 && optional($request->user())->rol !== 'admin') {
                 $origen = ClassGroup::find($aprendizExistente->id_class_group);
-                $miInstructor = Instructor::where('id_usuario', $request->user()->id)->first();
+                $miInstructor = $request->user()->instructor()->first();
                 $esSuya = $origen && $miInstructor && (int) $origen->id_instructor === (int) $miInstructor->id;
                 if (!$esSuya) {
                     return response()->json([
@@ -258,9 +258,9 @@ class ClassGroupController extends Controller
             'aprendices.*' => 'integer|exists:general_users,id',
         ]);
 
-        $datos = $request->all();
-        unset($datos['codigo']); // El código de unión es inmutable.
-        unset($datos['aprendices']); // Se sincronizan aparte (relación aprendiz-ficha).
+        // Whitelist: el código de unión es inmutable y `aprendices` se
+        // sincroniza aparte (relación aprendiz-ficha).
+        $datos = $request->only(['numero', 'nombre', 'estado', 'id_programa', 'id_instructor']);
         // Un instructor no puede reasignar su propia ficha a otro (eso es del admin).
         if ($request->user()->rol === 'instructor') {
             $datos['id_instructor'] = $class_group->id_instructor;
@@ -414,22 +414,7 @@ class ClassGroupController extends Controller
     // auto-crea: la verificación se resuelve en el registro, no al usar la API.
     private function miFilaInstructor(Request $request): ?Instructor
     {
-        return Instructor::where('id_usuario', $request->user()->id)->first();
-    }
-
-    // Código de unión generado por el servidor (formato xxx-xxxx en minúsculas).
-    private function codigoDisponible(): string
-    {
-        $letras = 'abcdefghijklmnopqrstuvwxyz';
-        do {
-            $codigo = '';
-            for ($i = 0; $i < 7; $i++) {
-                if ($i === 3) $codigo .= '-';
-                $codigo .= $letras[random_int(0, 25)];
-            }
-        } while (ClassGroup::where('codigo', $codigo)->exists());
-
-        return $codigo;
+        return $request->user()->instructor()->first();
     }
 
     // Aprendiz seleccionado que pertenece a una ficha ajena (bloquea a
@@ -439,9 +424,7 @@ class ClassGroupController extends Controller
     {
         $user = $request->user();
         if (!$user || $user->rol === 'admin') return null;
-        $miInstructor = $user->rol === 'instructor'
-            ? Instructor::where('id_usuario', $user->id)->first()
-            : null;
+        $miInstructor = $user->rol === 'instructor' ? $user->instructor()->first() : null;
 
         foreach (collect($ids)->map(fn ($id) => (int) $id)->filter()->unique() as $idUsuario) {
             $usuario = GeneralUser::find($idUsuario);

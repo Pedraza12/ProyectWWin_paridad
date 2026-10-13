@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\GeneralUser;
 use App\Models\Admin;
-use App\Models\Apprentice;
 use App\Models\ApprenticeProject;
 use App\Models\ClassGroup;
 use App\Models\Instructor;
@@ -247,7 +246,7 @@ class GeneralUserController extends Controller
         // Un instructor con fichas a cargo no puede dejar de ser instructor: las
         // fichas quedarían sin responsable. Se exige reasignarlas primero.
         if ($cambiaRol && $general_user->rol === 'instructor' && $request->rol !== 'instructor') {
-            $instructor = Instructor::where('id_usuario', $general_user->id)->first();
+            $instructor = $general_user->instructor;
             $fichas = $instructor ? ClassGroup::where('id_instructor', $instructor->id)->count() : 0;
             if ($fichas > 0) {
                 return response()->json([
@@ -363,10 +362,10 @@ class GeneralUserController extends Controller
     {
         if ($yo->rol === 'admin' || (int) $yo->id === (int) $objetivo->id) return true;
 
-        $miAprendiz = Apprentice::where('id_usuario', $yo->id)->first();
-        $suAprendiz = Apprentice::where('id_usuario', $objetivo->id)->first();
-        $miInstructor = Instructor::where('id_usuario', $yo->id)->first();
-        $suInstructor = Instructor::where('id_usuario', $objetivo->id)->first();
+        $miAprendiz = $yo->apprentice()->first();
+        $suAprendiz = $objetivo->apprentice;
+        $miInstructor = $yo->instructor()->first();
+        $suInstructor = $objetivo->instructor;
 
         // Compañeros de la misma ficha.
         if ($miAprendiz && $suAprendiz
@@ -415,14 +414,14 @@ class GeneralUserController extends Controller
         }
 
         if ($usuario->rol !== 'instructor') {
-            $instructor = Instructor::where('id_usuario', $usuario->id)->first();
+            $instructor = $usuario->instructor;
             if ($instructor && !ClassGroup::where('id_instructor', $instructor->id)->exists()) {
                 $instructor->delete();
             }
         }
 
         if ($usuario->rol !== 'aprendiz') {
-            $aprendiz = Apprentice::where('id_usuario', $usuario->id)->first();
+            $aprendiz = $usuario->apprentice;
             if ($aprendiz) {
                 // Deja de ser aprendiz: sale del roster de su ficha (la fila se
                 // conserva para el historial de sus propuestas). Sin ficha no hay

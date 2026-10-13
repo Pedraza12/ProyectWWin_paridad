@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Models\Apprentice;
 use App\Models\ClassGroup;
 use App\Models\GeneralUser;
-use App\Models\Instructor;
 use App\Models\Notification;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -56,7 +55,9 @@ class NotificationController extends Controller
             return response()->json(['message' => 'No puedes crear notificaciones para otro usuario.'], 403);
         }
 
-        $item = Notification::create($request->all());
+        $item = Notification::create($request->only([
+            'titulo', 'descripcion', 'tipo', 'enlace', 'leida', 'fecha', 'id_usuario',
+        ]));
         return $item;
     }
 
@@ -110,7 +111,7 @@ class NotificationController extends Controller
     // El instructor solo avisa a aprendices de sus fichas.
     private function destinoEnAlcance(GeneralUser $instructorUser, int $idDestino): bool
     {
-        $instructor = Instructor::where('id_usuario', $instructorUser->id)->first();
+        $instructor = $instructorUser->instructor()->first();
         if (!$instructor) return false;
 
         $aprendiz = Apprentice::where('id_usuario', $idDestino)->first();

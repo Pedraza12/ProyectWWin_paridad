@@ -150,14 +150,7 @@ class SimilarityController extends Controller
             return response()->json(['message' => 'No puedes analizar una propuesta que no es tuya.'], 403);
         }
 
-        return response()->json(['detectadas' => $this->detectarProyecto($propio)]);
-    }
-
-    // Detección reutilizable (envío de la propuesta, endpoint manual, etc.):
-    // delega en el orquestador único del motor (`Recomputador`).
-    public function detectarProyecto(Project $propio): int
-    {
-        return app(Recomputador::class)->detectar($propio);
+        return response()->json(['detectadas' => app(Recomputador::class)->detectar($propio)]);
     }
 
     // Recalibra toda la base con el umbral/ventana vigentes: purga los pares

@@ -46,6 +46,15 @@ class InstructorController extends Controller
             ['id_usuario' => $request->id_usuario],
             ['fecha_ingreso' => $request->fecha_ingreso]
         );
+
+        // Alta real del perfil (no un no-op del firstOrCreate): queda en la bitácora.
+        if ($item->wasRecentlyCreated) {
+            \App\Support\Auditoria::registrar('crear_instructor', 'instructors', $item->id, [
+                'id_usuario' => $item->id_usuario,
+                'fecha_ingreso' => $item->fecha_ingreso,
+            ]);
+        }
+
         return response()->json($item, 201);
     }
 

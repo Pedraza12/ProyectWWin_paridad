@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Models\Apprentice;
 use App\Models\ClassGroup;
 use App\Models\GeneralUser;
-use App\Models\Instructor;
 use App\Services\NotificacionesService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -29,12 +28,12 @@ class ApprenticeController extends Controller
 
         $fichaIds = collect();
         if ($user && $user->rol === 'instructor') {
-            $instructorId = Instructor::where('id_usuario', $user->id)->value('id');
+            $instructorId = $user->instructor()->value('id');
             $fichaIds = $instructorId
                 ? ClassGroup::where('id_instructor', $instructorId)->pluck('id')
                 : collect();
         } elseif ($user) {
-            $fichaIds = Apprentice::where('id_usuario', $user->id)->pluck('id_class_group')->filter();
+            $fichaIds = $user->apprentice()->pluck('id_class_group')->filter();
         }
 
         return Apprentice::included()->whereIn('id_class_group', $fichaIds)->where($soloAprendices)->get();
@@ -71,7 +70,7 @@ class ApprenticeController extends Controller
             }
         }
 
-        $data = $request->all();
+        $data = $request->only(['codigo', 'id_class_group', 'id_usuario', 'id_programa']);
         // Invariante: el programa del aprendiz es el de su ficha (o null sin ficha).
         if ($request->filled('id_class_group')) {
             $data['id_programa'] = ClassGroup::findOrFail($request->id_class_group)->id_programa;
@@ -106,7 +105,7 @@ class ApprenticeController extends Controller
             }
         }
         if ($user && $user->rol === 'aprendiz') {
-            $propio = Apprentice::where('id_usuario', $user->id)->first();
+            $propio = $user->apprentice()->first();
             if ($propio && ((int) $propio->id === (int) $item->id
                 || ($propio->id_class_group && (int) $propio->id_class_group === (int) $item->id_class_group))) {
                 return $item;
@@ -151,7 +150,7 @@ class ApprenticeController extends Controller
             }
         }
 
-        $data = $request->all();
+        $data = $request->only(['codigo', 'id_class_group', 'id_usuario', 'id_programa']);
         // Invariante: el programa del aprendiz es el de su ficha (o null sin ficha).
         if ($request->filled('id_class_group')) {
             $data['id_programa'] = ClassGroup::findOrFail($request->id_class_group)->id_programa;
@@ -296,7 +295,7 @@ class ApprenticeController extends Controller
 
     private function miAprendiz(Request $request): ?Apprentice
     {
-        return Apprentice::where('id_usuario', $request->user()->id)->first();
+        return $request->user()->apprentice()->first();
     }
 
     // Admin cualquiera; instructor solo sus fichas (mismo criterio que fichas).
@@ -305,7 +304,7 @@ class ApprenticeController extends Controller
         if (optional($user)->rol === 'admin') return true;
         if (!$user || $user->rol !== 'instructor') return false;
 
-        $instructorId = Instructor::where('id_usuario', $user->id)->value('id');
+        $instructorId = $user->instructor()->value('id');
         return $instructorId && ClassGroup::where('id', $fichaId)
             ->where('id_instructor', $instructorId)
             ->exists();

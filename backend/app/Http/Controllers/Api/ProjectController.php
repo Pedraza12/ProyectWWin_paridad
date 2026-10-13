@@ -7,7 +7,6 @@ use App\Models\ApprenticeProject;
 use App\Models\ClassGroup;
 use App\Models\Comment;
 use App\Models\GeneralUser;
-use App\Models\Instructor;
 use App\Models\Notification;
 use App\Models\Project;
 use App\Models\ProjectHistory;
@@ -56,9 +55,13 @@ class ProjectController extends Controller
 
         $usuario = $request->user();
         $rol = optional($usuario)->rol;
-        $datos = $request->all();
-        // La huella de envío la calcula el servidor al enviar: nunca llega del cliente.
-        unset($datos['huella_envio']);
+        // Whitelist: la huella de envío la calcula el servidor al enviar:
+        // nunca llega del cliente.
+        $datos = $request->only([
+            'titulo', 'resumen', 'palabras_clave', 'area_aplicacion',
+            'objetivo_general', 'objetivos_especificos', 'estado',
+            'id_creador', 'id_instructor_asignado', 'id_class_group',
+        ]);
 
         if ($rol === 'aprendiz') {
             // La propuesta vive en la ficha ACTUAL del aprendiz (activa) y con
@@ -280,10 +283,13 @@ class ProjectController extends Controller
             return response()->json(['message' => 'Sin permiso para editar propuestas.'], 403);
         }
 
-        $datos = $request->all();
-        unset($datos['observacion']);
-        // La huella de envío la fija el servidor en `enviar`: no se edita a mano.
-        unset($datos['huella_envio']);
+        // Whitelist: `observacion` no es columna (alimenta el rechazo) y la
+        // huella de envío la fija el servidor en `enviar`: no se edita a mano.
+        $datos = $request->only([
+            'titulo', 'resumen', 'palabras_clave', 'area_aplicacion',
+            'objetivo_general', 'objetivos_especificos', 'estado',
+            'id_creador', 'id_instructor_asignado', 'id_class_group',
+        ]);
 
         // La propuesta no cambia de ficha ni de creador por esta vía
         // (trazabilidad histórica); se conservan los valores actuales.
@@ -447,7 +453,7 @@ class ProjectController extends Controller
     {
         if ((int) $project->id_creador === (int) $usuario->id) return true;
 
-        $filaAprendiz = Apprentice::where('id_usuario', $usuario->id)->first();
+        $filaAprendiz = $usuario->apprentice()->first();
         if (!$filaAprendiz) return false;
 
         return ApprenticeProject::where('id_proyecto', $project->id)
@@ -458,7 +464,7 @@ class ProjectController extends Controller
     // ¿El instructor está asignado a la propuesta o es el de su ficha?
     private function esInstructorDeLaPropuesta(Project $project, $usuario): bool
     {
-        $instructor = Instructor::where('id_usuario', $usuario->id)->first();
+        $instructor = $usuario->instructor()->first();
         if (!$instructor) return false;
 
         if ((int) $project->id_instructor_asignado === (int) $instructor->id) return true;

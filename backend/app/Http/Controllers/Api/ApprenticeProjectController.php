@@ -134,7 +134,7 @@ class ApprenticeProjectController extends Controller
         }
 
         if ($user->rol === 'instructor') {
-            $instructor = Instructor::where('id_usuario', $user->id)->first();
+            $instructor = $user->instructor()->first();
             if (!$instructor) return false;
             return (int) $project->id_instructor_asignado === (int) $instructor->id
                 || (int) optional($project->classGroup)->id_instructor === (int) $instructor->id;

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Support\Included;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,11 +15,57 @@ class ClassGroup extends Model
 
     protected $fillable = ['codigo', 'numero', 'nombre', 'estado', 'id_programa', 'id_instructor'];
 
-    public $allowIncluded = ['program', 'instructor', 'instructor.generalUser', 'apprentices', 'apprentices.generalUser'];
+    protected $allowIncluded = [
+        'program',
+        'instructor',
+        'instructor.generalUser',
+        'apprentices',
+        'apprentices.generalUser',
+    ];
 
+    // Filtra el parámetro `included` contra la lista blanca del modelo.
     public function scopeIncluded(Builder $query)
     {
-        Included::aplicar($query, $this, request('included'));
+        $included = request('included');
+
+        if (
+            empty($this->allowIncluded) ||
+            !is_string($included) ||
+            $included === ''
+        ) {
+            return;
+        }
+
+        $relations = explode(',', $included);
+        $allowIncluded = collect($this->allowIncluded);
+
+        foreach ($relations as $key => $relationship) {
+            $relationship = trim($relationship);
+
+            if (
+                $relationship === '' ||
+                !$allowIncluded->contains($relationship)
+            ) {
+                unset($relations[$key]);
+            }
+        }
+
+        $query->with($relations);
+    }
+
+    // Código de unión generado por el servidor (formato xxx-xxxx en minúsculas).
+    public static function codigoDisponible(): string
+    {
+        $letras = 'abcdefghijklmnopqrstuvwxyz';
+        do {
+            $codigo = '';
+            for ($i = 0; $i < 7; $i++) {
+                if ($i === 3) $codigo .= '-';
+                $codigo .= $letras[random_int(0, 25)];
+            }
+        } while (static::where('codigo', $codigo)->exists());
+
+        return $codigo;
     }
 
     public function program()

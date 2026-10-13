@@ -91,7 +91,10 @@ class BugReportController extends Controller
         ]);
 
         $estadoAnterior = $bug_report->estado;
-        $bug_report->update($request->all());
+        $bug_report->update($request->only([
+            'titulo', 'numero_ficha', 'motivo', 'descripcion', 'tipo', 'estado',
+            'respuesta', 'fecha', 'id_usuario',
+        ]));
 
         // Cierre de la solicitud (resuelta/rechazada): bitácora + aviso al
         // solicitante. Solo cuenta la primera transición hacia el cierre.

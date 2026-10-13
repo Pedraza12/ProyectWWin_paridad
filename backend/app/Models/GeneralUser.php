@@ -6,7 +6,6 @@ use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
-use App\Support\Included;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -73,11 +72,44 @@ class GeneralUser extends Model implements AuthenticatableContract, CanResetPass
         $this->notify(new \App\Notifications\ResetPasswordNotification($token));
     }
 
-    public $allowIncluded = ['apprentice', 'instructor', 'admin', 'projects', 'notifications', 'comments', 'bugReports'];
+    protected $allowIncluded = [
+        'apprentice',
+        'instructor',
+        'admin',
+        'projects',
+        'notifications',
+        'comments',
+        'bugReports',
+    ];
 
+    // Filtra el parámetro `included` contra la lista blanca del modelo.
     public function scopeIncluded(Builder $query)
     {
-        Included::aplicar($query, $this, request('included'));
+        $included = request('included');
+
+        if (
+            empty($this->allowIncluded) ||
+            !is_string($included) ||
+            $included === ''
+        ) {
+            return;
+        }
+
+        $relations = explode(',', $included);
+        $allowIncluded = collect($this->allowIncluded);
+
+        foreach ($relations as $key => $relationship) {
+            $relationship = trim($relationship);
+
+            if (
+                $relationship === '' ||
+                !$allowIncluded->contains($relationship)
+            ) {
+                unset($relations[$key]);
+            }
+        }
+
+        $query->with($relations);
     }
 
     // ---------------------------------------------------------------- Filtros de listado

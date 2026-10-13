@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Support\Included;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,11 +15,41 @@ class Apprentice extends Model
 
     protected $fillable = ['codigo', 'id_class_group', 'id_usuario', 'id_programa'];
 
-    public $allowIncluded = ['generalUser', 'classGroup', 'program', 'projects'];
+    protected $allowIncluded = [
+        'generalUser',
+        'classGroup',
+        'program',
+        'projects',
+    ];
 
+    // Filtra el parámetro `included` contra la lista blanca del modelo.
     public function scopeIncluded(Builder $query)
     {
-        Included::aplicar($query, $this, request('included'));
+        $included = request('included');
+
+        if (
+            empty($this->allowIncluded) ||
+            !is_string($included) ||
+            $included === ''
+        ) {
+            return;
+        }
+
+        $relations = explode(',', $included);
+        $allowIncluded = collect($this->allowIncluded);
+
+        foreach ($relations as $key => $relationship) {
+            $relationship = trim($relationship);
+
+            if (
+                $relationship === '' ||
+                !$allowIncluded->contains($relationship)
+            ) {
+                unset($relations[$key]);
+            }
+        }
+
+        $query->with($relations);
     }
 
     // Código correlativo del aprendiz (AP-001…), generado por el servidor.

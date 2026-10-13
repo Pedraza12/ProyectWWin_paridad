@@ -21,7 +21,7 @@ class TrainingProgramController extends Controller
             'knowledge_network_id' => 'required|exists:knowledge_networks,id',
         ]);
 
-        $item = TrainingProgram::create($request->all());
+        $item = TrainingProgram::create($request->only(['nombre', 'nivel', 'knowledge_network_id']));
         return response()->json($item, 201);
     }
 
@@ -38,7 +38,7 @@ class TrainingProgramController extends Controller
             'knowledge_network_id' => 'required|exists:knowledge_networks,id',
         ]);
 
-        $training_program->update($request->all());
+        $training_program->update($request->only(['nombre', 'nivel', 'knowledge_network_id']));
         return $training_program;
     }
 
