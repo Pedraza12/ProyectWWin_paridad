@@ -43,11 +43,15 @@ class AuthRepositoryImpl @Inject constructor(
         )
         val respuesta = safeApiCall { api.login(credenciales) }.getOrElse { return Result.failure(it) }
 
+        // El token va primero: el enriquecimiento llama endpoints autenticados
+        // (/general-users y /apprentices) y en un login reciente el interceptor
+        // aún no tenía Bearer, por lo que la ficha/documento llegaban vacíos.
+        tokenProvider.update(respuesta.token)
+
         // Enriquece con perfil/ficha; si falla, la sesión se arma con lo del login.
         val cuenta = enriquecerCuenta(respuesta.user.id) ?: respuesta.user.toDomain()
         val sesion = cuenta.copy(token = respuesta.token)
         sessionManager.saveUser(sesion)
-        tokenProvider.update(respuesta.token)
         return Result.success(sesion)
     }
 

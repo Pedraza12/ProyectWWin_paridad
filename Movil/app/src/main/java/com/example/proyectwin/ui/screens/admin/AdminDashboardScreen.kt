@@ -226,6 +226,13 @@ fun AdminDashboardScreen(
                         onClick = { onNavigate(AppNavigation.ADMIN_USERS) }
                     )
                     ManagementActionCard(
+                        title = "Propuestas",
+                        desc = "Todas las propuestas y su estado",
+                        icon = Icons.Default.FolderSpecial,
+                        color = senaColors().success,
+                        onClick = { onNavigate(AppNavigation.ADMIN_PROJECTS) }
+                    )
+                    ManagementActionCard(
                         title = "Similitudes Globales",
                         desc = "Auditoría de originalidad",
                         icon = Icons.Default.Plagiarism,

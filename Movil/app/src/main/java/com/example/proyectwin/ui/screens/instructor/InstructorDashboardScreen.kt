@@ -30,6 +30,7 @@ import com.example.proyectwin.data.model.ProjectStatus
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
+import com.example.proyectwin.ui.util.formatearFechaHoraLocal
 import com.example.proyectwin.ui.viewmodel.AuthUiState
 import com.example.proyectwin.ui.viewmodel.AuthViewModel
 import com.example.proyectwin.ui.viewmodel.DashboardUiState
@@ -83,7 +84,14 @@ fun InstructorDashboardScreen(
         containerColor = senaColors().background,
         bottomBar = bottomBar
     ) { paddingValues ->
-        SenaPullRefresh(
+        when (val state = dashState) {
+            is DashboardUiState.Loading -> SenaLoadingState(modifier = Modifier.padding(paddingValues))
+            is DashboardUiState.Error -> SenaErrorState(
+                message = state.message,
+                modifier = Modifier.padding(paddingValues),
+                onRetry = { user?.let { dashboardViewModel.loadInstructorDashboard(it.id) } },
+            )
+            is DashboardUiState.Success -> SenaPullRefresh(
             isRefreshing = isRefreshing,
             onRefresh = { isRefreshing = true; refreshTrigger++ },
             modifier = Modifier.padding(paddingValues)
@@ -198,12 +206,13 @@ fun InstructorDashboardScreen(
                                 subtitle = "Coincidencias del motor",
                                 icon = Icons.Default.Compare,
                                 color = senaColors().warning,
-                                onClick = { onNavigate(AppNavigation.INSTRUCTOR_SIMILITUDES) }
+                                onClick = { onNavigate(AppNavigation.INSTRUCTOR_SIMILITUDES_BASE) }
                             )
                         }
                     }
                 }
             }
+        }
         }
         }
     }
@@ -241,7 +250,7 @@ fun ProductivityInboxCard(project: Project, onClick: () -> Unit) {
                 Text("Aprendiz: ${project.studentName ?: "Desconocido"}", style = MaterialTheme.typography.bodySmall, color = senaColors().textLight)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(project.createdAt ?: "", style = MaterialTheme.typography.labelSmall, color = senaColors().textMuted)
+                Text(formatearFechaHoraLocal(project.createdAt), style = MaterialTheme.typography.labelSmall, color = senaColors().textMuted)
                 Spacer(Modifier.height(8.dp))
                 Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = senaColors().border, modifier = Modifier.size(12.dp))
             }

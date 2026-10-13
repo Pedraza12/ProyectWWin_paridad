@@ -18,14 +18,14 @@ interface CatalogsRepository {
 
     suspend fun crearPrograma(
         nombre: String,
-        nivel: String?,
+        nivel: String,
         redId: Int,
     ): Result<TrainingProgram>
 
     suspend fun actualizarPrograma(
         id: Int,
         nombre: String,
-        nivel: String?,
+        nivel: String,
         redId: Int,
     ): Result<TrainingProgram>
 

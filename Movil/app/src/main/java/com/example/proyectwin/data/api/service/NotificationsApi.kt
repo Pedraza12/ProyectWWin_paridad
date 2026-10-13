@@ -1,6 +1,7 @@
 package com.example.proyectwin.data.api.service
 
 import com.example.proyectwin.data.api.dto.NotificationDto
+import com.example.proyectwin.data.api.dto.NotificationReadRequest
 import com.example.proyectwin.data.api.dto.NotificationRequest
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -25,9 +26,9 @@ interface NotificationsApi {
     @POST("notifications")
     suspend fun crear(@Body body: NotificationRequest): NotificationDto
 
-    /** Marcar como leída = PUT con la notificación completa (como el frontend). */
+    /** Marcar como leída = PUT parcial `{leida}` (contrato del backend). */
     @PUT("notifications/{id}")
-    suspend fun actualizar(@Path("id") id: Int, @Body body: NotificationRequest): NotificationDto
+    suspend fun actualizar(@Path("id") id: Int, @Body body: NotificationReadRequest): NotificationDto
 
     @DELETE("notifications/{id}")
     suspend fun eliminar(@Path("id") id: Int): NotificationDto

@@ -23,7 +23,9 @@ data class FichasActionState(
     val codigoValido: Boolean? = null,
     val joinSuccess: Boolean = false,
     val leftSuccess: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    /** Eliminación/anulación en curso (bloquea doble toque). */
+    val eliminando: Boolean = false,
 )
 
 @HiltViewModel
@@ -144,6 +146,37 @@ class FichasViewModel @Inject constructor(
                 onFailure = { e ->
                     _actionState.value = _actionState.value.copy(
                         message = e.message ?: "Error al unirse a la ficha",
+                    )
+                },
+            )
+        }
+    }
+
+    /**
+     * Elimina o anula la ficha (admin cualquiera; instructor solo las suyas).
+     * El backend decide: con aprendices/propuestas queda anulada; sin ellos se
+     * borra físicamente. La lista se refresca con el resultado real.
+     */
+    fun eliminarFicha(fichaId: Int) {
+        if (_actionState.value.eliminando) return // doble toque
+        viewModelScope.launch {
+            _actionState.value = _actionState.value.copy(eliminando = true, message = null)
+            fichasRepository.eliminar(fichaId).fold(
+                onSuccess = { resultado ->
+                    _actionState.value = _actionState.value.copy(
+                        eliminando = false,
+                        message = if (resultado.anulada) {
+                            "La ficha tenía aprendices o propuestas: quedó anulada."
+                        } else {
+                            "Ficha eliminada."
+                        },
+                    )
+                    refrescar()
+                },
+                onFailure = { e ->
+                    _actionState.value = _actionState.value.copy(
+                        eliminando = false,
+                        message = e.message ?: "No se pudo eliminar la ficha.",
                     )
                 },
             )

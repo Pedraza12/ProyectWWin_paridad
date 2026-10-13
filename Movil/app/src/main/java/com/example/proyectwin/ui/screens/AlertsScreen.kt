@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectwin.data.model.Notification
 import com.example.proyectwin.data.model.NotificationType
+import com.example.proyectwin.navigation.NotificationRoutes
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
 import com.example.proyectwin.ui.util.formatearFechaLocal
@@ -83,8 +84,8 @@ fun AlertsScreen(
     } else {
         allAlerts.filter { alert ->
             val category = when (alert.notifType) {
-                NotificationType.INFO, NotificationType.SUCCESS, NotificationType.SISTEMA -> "Sistema"
-                NotificationType.WARNING, NotificationType.ERROR, NotificationType.SIMILITUD -> "Similitud"
+                NotificationType.SISTEMA -> "Sistema"
+                NotificationType.SIMILITUD -> "Similitud"
                 NotificationType.OBSERVACION, NotificationType.REVISION, NotificationType.MENSAJE -> "Instructor"
             }
             category == selectedFilter
@@ -200,35 +201,16 @@ fun AlertsScreen(
                     NotificationCard(alert, onClick = {
                         notificationsViewModel.marcarComoLeida(alert)
                         refreshTrigger++
-                        val category = when (alert.notifType) {
-                            NotificationType.INFO, NotificationType.SUCCESS, NotificationType.SISTEMA -> "Sistema"
-                            NotificationType.WARNING, NotificationType.ERROR, NotificationType.SIMILITUD -> "Similitud"
-                            NotificationType.OBSERVACION, NotificationType.REVISION, NotificationType.MENSAJE -> "Instructor"
-                        }
-                        val enlaceId = alert.enlaceId
-                        when {
-                            category == "Similitud" &&
-                                alert.enlaceModulo == "proyecto" && enlaceId != null &&
-                                similitudesRoute.isNotEmpty() ->
-                                onNavigate(similitudesRoute.replace("{proyectoId}", enlaceId.toString()))
-
-                            alert.enlaceModulo == "proyecto" && enlaceId != null ->
-                                onNavigate(detailRoute.replace("{id}", enlaceId.toString()))
-
-                            alert.enlaceModulo == "ficha" && enlaceId != null && fichaRoute.isNotEmpty() ->
-                                onNavigate(
-                                    if (fichaRoute.contains("{fichaId}")) {
-                                        fichaRoute.replace("{fichaId}", enlaceId.toString())
-                                    } else {
-                                        fichaRoute
-                                    },
-                                )
-
-                            alert.enlaceModulo == "reporte" && enlaceId != null && reporteRoute.isNotEmpty() ->
-                                onNavigate(reporteRoute.replace("{bugId}", enlaceId.toString()))
-
-                            else -> {}
-                        }
+                        // Enlace inválido/antiguo → null: solo se marca leída.
+                        NotificationRoutes.resolverDestino(
+                            tipo = alert.notifType,
+                            enlaceModulo = alert.enlaceModulo,
+                            enlaceId = alert.enlaceId,
+                            similitudesRoute = similitudesRoute,
+                            detailRoute = detailRoute,
+                            fichaRoute = fichaRoute,
+                            reporteRoute = reporteRoute,
+                        )?.let(onNavigate)
                     }, onDelete = if (esAdmin) {
                         { notificationsViewModel.eliminar(alert.id) }
                     } else {
@@ -256,10 +238,8 @@ fun AlertsScreen(
 @Composable
 fun NotificationCard(alert: Notification, onClick: () -> Unit, onDelete: (() -> Unit)? = null) {
     val alertType = when (alert.notifType) {
-        NotificationType.INFO, NotificationType.REVISION, NotificationType.MENSAJE, NotificationType.SISTEMA -> AlertType.INFO
-        NotificationType.WARNING, NotificationType.SIMILITUD, NotificationType.OBSERVACION -> AlertType.WARNING
-        NotificationType.SUCCESS -> AlertType.SUCCESS
-        NotificationType.ERROR -> AlertType.URGENT
+        NotificationType.REVISION, NotificationType.MENSAJE, NotificationType.SISTEMA -> AlertType.INFO
+        NotificationType.SIMILITUD, NotificationType.OBSERVACION -> AlertType.WARNING
     }
     val (icon, color) = when (alertType) {
         AlertType.URGENT -> Icons.Default.Warning to senaColors().danger
@@ -269,16 +249,12 @@ fun NotificationCard(alert: Notification, onClick: () -> Unit, onDelete: (() -> 
     }
 
     val category = when (alert.notifType) {
-        NotificationType.INFO, NotificationType.SUCCESS, NotificationType.SISTEMA -> "Sistema"
-        NotificationType.WARNING, NotificationType.ERROR, NotificationType.SIMILITUD -> "Similitud"
+        NotificationType.SISTEMA -> "Sistema"
+        NotificationType.SIMILITUD -> "Similitud"
         NotificationType.OBSERVACION, NotificationType.REVISION, NotificationType.MENSAJE -> "Instructor"
     }
 
     val title = when (alert.notifType) {
-        NotificationType.INFO -> "Novedad"
-        NotificationType.WARNING -> "Advertencia"
-        NotificationType.SUCCESS -> "Logro"
-        NotificationType.ERROR -> "Urgente"
         NotificationType.SIMILITUD -> "Similitud detectada"
         NotificationType.OBSERVACION -> "Observación"
         NotificationType.REVISION -> "Revisión"

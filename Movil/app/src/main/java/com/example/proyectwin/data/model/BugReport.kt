@@ -12,7 +12,6 @@ data class BugReport(
     val tipo: String = BugReportType.OTRO.value,
     val estado: String = BugReportStatus.PENDIENTE.value,
     val respuesta: String? = null,
-    val projectId: Int? = null,
     val reporterId: Int? = null,
     val reporterName: String? = null,
     val createdAt: String? = null,

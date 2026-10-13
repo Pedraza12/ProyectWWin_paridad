@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   Configuración de red para distribución: solo HTTPS.
+   Las excepciones HTTP del backend local de desarrollo viven únicamente en
+   src/debug/res/xml/network_security_config.xml (nunca llegan al APK final).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

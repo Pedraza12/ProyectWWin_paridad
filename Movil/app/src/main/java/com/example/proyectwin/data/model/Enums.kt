@@ -57,11 +57,8 @@ enum class BugReportType(val value: String) {
     }
 }
 
+/** Tipos reales de `notifications.tipo` (validación de Laravel). */
 enum class NotificationType(val value: String) {
-    INFO("info"),
-    WARNING("warning"),
-    SUCCESS("success"),
-    ERROR("error"),
     SIMILITUD("similitud"),
     OBSERVACION("observacion"),
     REVISION("revision"),
@@ -69,8 +66,9 @@ enum class NotificationType(val value: String) {
     SISTEMA("sistema");
 
     companion object {
+        /** Un tipo desconocido/legado cae al genérico real, nunca rompe. */
         fun fromValue(value: String): NotificationType =
-            entries.find { it.value == value } ?: INFO
+            entries.find { it.value == value } ?: SISTEMA
     }
 }
 

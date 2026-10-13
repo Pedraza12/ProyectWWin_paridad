@@ -18,6 +18,13 @@ private data class ErrorPayload(
 private val errorJson = Json { ignoreUnknownKeys = true }
 
 /**
+ * Mensaje exacto con el que el backend rechaza una cuenta suspendida
+ * (middleware `cuenta.activa` y `AuthController::login`). El backend no envía
+ * un flag para diferenciarlo de otros 403, así que se compara el mensaje.
+ */
+private const val MENSAJE_CUENTA_SUSPENDIDA = "Cuenta suspendida. Contacta al administrador."
+
+/**
  * Errores de red tipados con mensajes en español, equivalentes a los `status`
  * del frontend web: `0` sin conexión o timeout, `4xx/5xx` HTTP.
  *
@@ -48,6 +55,8 @@ sealed class ApiException(
         val fieldErrors: Map<String, String> = emptyMap(),
         /** El backend bloquea la API hasta cambiar la contraseña temporal. */
         val mustChangePassword: Boolean = false,
+        /** 403 del middleware `cuenta.activa`: la sesión ya no es válida. */
+        val cuentaSuspendida: Boolean = false,
     ) : ApiException(message, status)
 
     class Formato(cause: Throwable) : ApiException(
@@ -91,6 +100,8 @@ private fun HttpException.toApiException(): ApiException {
         message = message,
         fieldErrors = fieldErrors,
         mustChangePassword = payload?.mustChangePassword == true,
+        // Solo este 403 invalida la sesión; los demás son permisos puntuales.
+        cuentaSuspendida = code == 403 && mensajeServidor == MENSAJE_CUENTA_SUSPENDIDA,
     )
 }
 
@@ -106,6 +117,8 @@ suspend fun <T> safeApiCall(apiCall: suspend () -> T): Result<T> = try {
     if (error is ApiException.Http) {
         when {
             error.status == 401 -> SessionEvents.notifyExpired()
+            // Cuenta suspendida: la sesión ya no sirve; se cierra como un 401.
+            error.cuentaSuspendida -> SessionEvents.notifyExpired()
             // 403 con la marca del middleware: la app debe ir al cambio obligatorio.
             error.status == 403 && error.mustChangePassword -> SessionEvents.notifyMustChangePassword()
         }

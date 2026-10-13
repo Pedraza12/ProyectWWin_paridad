@@ -1,9 +1,17 @@
 package com.example.proyectwin.data.mapper
 
+import com.example.proyectwin.data.api.dto.BugReportCreateRequest
+import com.example.proyectwin.data.api.dto.ClassGroupCreateRequest
+import com.example.proyectwin.data.api.dto.ClassGroupUpdateRequest
 import com.example.proyectwin.data.api.dto.GeneralUserDto
 import com.example.proyectwin.data.api.dto.NotificationDto
+import com.example.proyectwin.data.api.dto.NotificationReadRequest
+import com.example.proyectwin.data.api.dto.NotificationRequest
 import com.example.proyectwin.data.api.dto.ProjectDto
 import com.example.proyectwin.data.api.dto.SimilarityDto
+import com.example.proyectwin.data.api.dto.TrainingProgramRequest
+import com.example.proyectwin.data.model.NotificationType
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
@@ -22,6 +30,17 @@ class DtoSerializationTest {
         assertFalse(dto.toDomain().leido)
         assertEquals("proyecto", dto.toDomain().enlaceModulo)
         assertEquals(5, dto.toDomain().enlaceId)
+    }
+
+    @Test
+    fun notification_tipoDesconocido_noRompeYUsaElGenerico() {
+        // El backend no emite `info` (valor legado): no debe romper ni quedar
+        // como un tipo inexistente.
+        val dto = json.decodeFromString<NotificationDto>(
+            """{"id":2,"titulo":"Aviso","tipo":"info","leida":1,"fecha":"2026-10-02"}""",
+        )
+        assertEquals(NotificationType.SISTEMA, dto.toDomain().notifType)
+        assertTrue(dto.toDomain().leido)
     }
 
     @Test
@@ -125,5 +144,81 @@ class DtoSerializationTest {
         assertEquals("CC", dominio.tipoDocumento)
         assertEquals("1098", dominio.documentoIdentidad)
         assertNotNull(dominio.credencialesEnviadasEn)
+    }
+
+    // ------------------------------------------------- Contratos de request (Fase 1)
+
+    @Test
+    fun trainingProgramRequest_incluyeNivelObligatorio() {
+        // El backend exige `nivel => required`; el request no debe omitirlo.
+        val texto = json.encodeToString(
+            TrainingProgramRequest(nombre = "ADSO", nivel = "Tecnólogo", knowledgeNetworkId = 1),
+        )
+        assertTrue(texto.contains("\"nivel\":\"Tecnólogo\""))
+    }
+
+    @Test
+    fun classGroupCreateRequest_enviaNumeroYSinCodigo() {
+        // El backend genera `codigo`; el cliente solo envía `numero`.
+        val texto = json.encodeToString(
+            ClassGroupCreateRequest(
+                numero = "3067030",
+                nombre = "Ficha ADSO",
+                estado = "activo",
+                idPrograma = 1,
+                idInstructor = 2,
+            ),
+        )
+        assertTrue(texto.contains("\"numero\":\"3067030\""))
+        assertFalse(texto.contains("codigo"))
+    }
+
+    @Test
+    fun classGroupUpdateRequest_enviaNumeroYSinCodigo() {
+        val texto = json.encodeToString(
+            ClassGroupUpdateRequest(
+                numero = "3067030",
+                nombre = "Ficha ADSO",
+                estado = "finalizado",
+                idPrograma = 1,
+                idInstructor = 2,
+            ),
+        )
+        assertTrue(texto.contains("\"numero\":\"3067030\""))
+        assertFalse(texto.contains("codigo"))
+    }
+
+    @Test
+    fun notificationReadRequest_soloEnviaLeida() {
+        // El PUT del dueño solo cambia `leida`: sin destinatario ni 0.
+        val texto = json.encodeToString(NotificationReadRequest(leida = true))
+        assertEquals("{\"leida\":true}", texto)
+        assertFalse(texto.contains("id_usuario"))
+    }
+
+    @Test
+    fun notificationRequest_sinDestinatarioNoSerializaCero() {
+        val texto = json.encodeToString(
+            NotificationRequest(
+                titulo = "Aviso",
+                descripcion = null,
+                tipo = "sistema",
+                enlace = null,
+                leida = false,
+                fecha = "2026-10-07",
+            ),
+        )
+        assertFalse(texto.contains("id_usuario"))
+        assertFalse(texto.contains(":0"))
+    }
+
+    @Test
+    fun bugReportCreateRequest_noEnviaCamposDelServidor() {
+        // `estado` e `id_usuario` los controla el backend (pendiente + token).
+        val texto = json.encodeToString(
+            BugReportCreateRequest(descripcion = "No carga la lista", tipo = "bug_ui", fecha = "2026-10-07"),
+        )
+        assertFalse(texto.contains("estado"))
+        assertFalse(texto.contains("id_usuario"))
     }
 }

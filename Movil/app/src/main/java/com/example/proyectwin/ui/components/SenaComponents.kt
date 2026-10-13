@@ -672,7 +672,9 @@ fun SenaBottomNavigationBar(
         modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
     ) {
         items.forEach { item ->
-            val isSelected = currentRoute == item.route
+            // Los destinos pueden declarar query args opcionales (p. ej. filtros);
+            // el tab compara solo la ruta base.
+            val isSelected = currentRoute?.substringBefore('?') == item.route.substringBefore('?')
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { if (!isSelected) onNavigate(item.route) },

@@ -28,6 +28,8 @@ import com.example.proyectwin.ui.viewmodel.AdminUiState
 fun AdminSimilarityListScreen(
     onBack: () -> Unit,
     onNavigate: (String) -> Unit,
+    /** Filtro por propuesta (viene del detalle o de una notificación). */
+    proyectoId: Int? = null,
     bottomBar: @Composable () -> Unit = {},
     adminViewModel: AdminViewModel = hiltViewModel()
 ) {
@@ -44,8 +46,11 @@ fun AdminSimilarityListScreen(
 
     // El listado global del servidor solo trae pares con ambos proyectos
     // aprobados; al abrir la pantalla se completan con los pares por propuesta
-    // (vigentes e históricas) usando los endpoints existentes.
-    LaunchedEffect(Unit) { adminViewModel.cargarSimilitudesCompletas() }
+    // (vigentes e históricas) usando los endpoints existentes. Se espera al
+    // estado Success para no lanzarlo antes de tener los datos ni duplicarlo.
+    LaunchedEffect(adminState) {
+        if (adminState is AdminUiState.Success) adminViewModel.cargarSimilitudesCompletas()
+    }
 
     val similarityGroups = when (val state = adminState) {
         is AdminUiState.Success -> completas ?: state.similarities
@@ -53,6 +58,8 @@ fun AdminSimilarityListScreen(
     }
 
     val filteredGroups = similarityGroups.filter { group ->
+        val matchesProyecto = proyectoId == null ||
+            group.projectId1 == proyectoId || group.projectId2 == proyectoId
         val matchesEstado = when (selectedStatus) {
             "Vigentes" -> group.vigente
             "Históricas" -> !group.vigente
@@ -62,7 +69,7 @@ fun AdminSimilarityListScreen(
         val matchesSearch = consulta.isEmpty() ||
             group.project1Title.orEmpty().contains(consulta, ignoreCase = true) ||
             group.project2Title.orEmpty().contains(consulta, ignoreCase = true)
-        matchesEstado && matchesSearch
+        matchesProyecto && matchesEstado && matchesSearch
     }
 
     Scaffold(
@@ -90,6 +97,16 @@ fun AdminSimilarityListScreen(
                 )
             }
 
+            when (val state = adminState) {
+                is AdminUiState.Loading -> item {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
+                        SenaLoadingState()
+                    }
+                }
+                is AdminUiState.Error -> item {
+                    SenaErrorState(message = state.message, onRetry = { adminViewModel.loadAll() })
+                }
+                is AdminUiState.Success -> {
             item {
                 SenaCard(elevation = 1.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -154,8 +171,12 @@ fun AdminSimilarityListScreen(
                         }
                     }
                     Text(
-                        "${filteredGroups.size} de ${similarityGroups.size} pares · incluye los pares por propuesta " +
-                            "(vigentes con contraparte aprobada e históricas), no solo los de ambos lados aprobados.",
+                        if (proyectoId != null) {
+                            "Mostrando solo los pares de la propuesta #$proyectoId."
+                        } else {
+                            "${filteredGroups.size} de ${similarityGroups.size} pares · incluye los pares por propuesta " +
+                                "(vigentes con contraparte aprobada e históricas), no solo los de ambos lados aprobados."
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = senaColors().textLight,
                     )
@@ -230,6 +251,8 @@ fun AdminSimilarityListScreen(
                             )
                         }
                     }
+                }
+            }
                 }
             }
 

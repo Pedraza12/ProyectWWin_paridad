@@ -161,7 +161,7 @@ fun DashboardScreen(
                                     title = "Nuevo Proyecto",
                                     icon = Icons.Default.AddCircle,
                                     color = senaColors().success,
-                                    onClick = { onNavigate(AppNavigation.APRENDIZ_NEW_PROJECT.replace("{projectId}", "")) }
+                                    onClick = { onNavigate(AppNavigation.rutaNuevoProyecto()) }
                                 )
                             }
                             item {

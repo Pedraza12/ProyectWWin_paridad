@@ -24,6 +24,7 @@ import com.example.proyectwin.data.model.Project
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
+import com.example.proyectwin.ui.util.formatearFechaLocal
 import com.example.proyectwin.ui.viewmodel.AuthUiState
 import com.example.proyectwin.ui.viewmodel.AuthViewModel
 import com.example.proyectwin.ui.viewmodel.DashboardUiState
@@ -156,15 +157,28 @@ fun ProjectsScreen(
                 }
             }
 
-            if (filteredProjects.isEmpty()) {
-                item {
-                    SenaEmptyState(
-                        message = "No se encontraron proyectos que coincidan con tu búsqueda.",
-                        icon = Icons.Default.SearchOff
+            when (val state = dashState) {
+                is DashboardUiState.Loading -> item {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
+                        SenaLoadingState()
+                    }
+                }
+                is DashboardUiState.Error -> item {
+                    SenaErrorState(
+                        message = state.message,
+                        onRetry = { user?.id?.let { dashboardViewModel.loadStudentDashboard(it) } },
                     )
                 }
-            } else {
-                items(filteredProjects) { project ->
+                is DashboardUiState.Success -> {
+                    if (filteredProjects.isEmpty()) {
+                        item {
+                            SenaEmptyState(
+                                message = "No se encontraron proyectos que coincidan con tu búsqueda.",
+                                icon = Icons.Default.SearchOff
+                            )
+                        }
+                    } else {
+                        items(filteredProjects) { project ->
                     SenaCard(onClick = { onProjectDetail(project.id.toString()) }) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
@@ -173,7 +187,7 @@ fun ProjectsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 SenaStatusBadge(status = project.statusDisplay)
-                                Text(project.createdAt ?: "", style = MaterialTheme.typography.labelSmall, color = senaColors().textLight)
+                                Text(formatearFechaLocal(project.createdAt), style = MaterialTheme.typography.labelSmall, color = senaColors().textLight)
                             }
                             Text(
                                 project.title,
@@ -206,6 +220,8 @@ fun ProjectsScreen(
                         }
                     }
                 }
+            }
+            }
             }
 
             item { Spacer(Modifier.height(80.dp)) }

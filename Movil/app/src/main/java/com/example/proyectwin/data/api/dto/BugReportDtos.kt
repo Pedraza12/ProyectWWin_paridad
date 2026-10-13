@@ -21,6 +21,10 @@ data class BugReportDto(
     val generalUser: GeneralUserDto? = null,
 )
 
+/**
+ * POST /bug-reports: el backend fija `estado = pendiente` y firma el reporte
+ * con el usuario del token; no se envían esos campos desde el cliente.
+ */
 @Serializable
 data class BugReportCreateRequest(
     val titulo: String? = null,
@@ -28,9 +32,7 @@ data class BugReportCreateRequest(
     val motivo: String? = null,
     val descripcion: String,
     val tipo: String,
-    val estado: String = "pendiente",
     val fecha: String,
-    @SerialName("id_usuario") val idUsuario: Int? = null,
 )
 
 /** PUT /bug-reports: objeto completo (estado/respuesta desde el admin). `fecha` es obligatoria. */

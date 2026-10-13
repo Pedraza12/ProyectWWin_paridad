@@ -19,12 +19,13 @@ private val Context.dataStore by preferencesDataStore(name = "proyectwin_session
 
 /**
  * Sesión persistente (DataStore Preferences): usuario, token Bearer de Sanctum
- * y datos locales de perfil. Fuente de verdad de la sesión; la copia en
- * memoria para la red la mantiene `TokenProvider`.
+ * (cifrado con [TokenCipher]) y datos locales de perfil. Fuente de verdad de
+ * la sesión; la copia en memoria para la red la mantiene `TokenProvider`.
  */
 @Singleton
 class SessionManager @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val tokenCipher: TokenCipher,
 ) {
 
     companion object {
@@ -49,7 +50,7 @@ class SessionManager @Inject constructor(
             name = prefs[KEY_USER_NAME] ?: "",
             email = prefs[KEY_USER_EMAIL] ?: "",
             role = prefs[KEY_USER_ROLE] ?: UserRole.APRENDIZ.value,
-            token = prefs[KEY_USER_TOKEN],
+            token = descifrarToken(prefs[KEY_USER_TOKEN]),
             fotoPerfil = prefs[KEY_USER_FOTO],
             fichaId = prefs[KEY_USER_FICHA_ID],
             documentoIdentidad = prefs[KEY_USER_DOCUMENTO],
@@ -70,7 +71,9 @@ class SessionManager @Inject constructor(
             prefs[KEY_USER_ROLE] = user.role
             user.nombre?.let { prefs[KEY_USER_NOMBRE] = it }
             user.apellido?.let { prefs[KEY_USER_APELLIDO] = it }
-            if (user.token != null) prefs[KEY_USER_TOKEN] = user.token
+            // El token solo se persiste cifrado; si el Keystore falla no se
+            // guarda (la sesión vivirá en memoria hasta el próximo login).
+            user.token?.let { token -> tokenCipher.cifrar(token)?.let { prefs[KEY_USER_TOKEN] = it } }
             if (user.fotoPerfil != null) prefs[KEY_USER_FOTO] = user.fotoPerfil
             if (user.fichaId != null) prefs[KEY_USER_FICHA_ID] = user.fichaId
             if (user.documentoIdentidad != null) prefs[KEY_USER_DOCUMENTO] = user.documentoIdentidad
@@ -106,7 +109,32 @@ class SessionManager @Inject constructor(
     }
 
     suspend fun getToken(): String? {
-        return context.dataStore.data.first()[KEY_USER_TOKEN]
+        return descifrarToken(context.dataStore.data.first()[KEY_USER_TOKEN])
+    }
+
+    /**
+     * Migra el token legado (texto plano) al formato cifrado y descarta blobs
+     * corruptos o con clave invalidada. Idempotente y seguro ante fallos: si
+     * el Keystore no puede cifrar, el valor legado se conserva para reintentar.
+     */
+    suspend fun migrarTokenLegacy() {
+        context.dataStore.edit { prefs ->
+            val actual = prefs[KEY_USER_TOKEN] ?: return@edit
+            when {
+                TokenCipher.requiereMigracion(actual) -> {
+                    val cifrado = tokenCipher.cifrar(actual)
+                    if (cifrado != null) prefs[KEY_USER_TOKEN] = cifrado
+                }
+                tokenCipher.descifrar(actual) == null -> prefs.remove(KEY_USER_TOKEN)
+            }
+        }
+    }
+
+    /** Descifra el token guardado; el texto plano legado se usa mientras migra. */
+    private fun descifrarToken(valor: String?): String? = when {
+        valor == null -> null
+        TokenCipher.esBlobCifrado(valor) -> tokenCipher.descifrar(valor)
+        else -> valor
     }
 
     suspend fun clearSession() {

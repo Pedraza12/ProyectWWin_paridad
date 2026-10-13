@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class Notification(
     val id: Int,
     val mensaje: String,
-    val tipo: String = NotificationType.INFO.value,
+    val tipo: String = NotificationType.SISTEMA.value,
     val userId: Int? = null,
     val projectId: Int? = null,
     val leido: Boolean = false,

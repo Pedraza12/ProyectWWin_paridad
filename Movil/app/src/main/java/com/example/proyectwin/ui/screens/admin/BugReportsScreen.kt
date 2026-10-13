@@ -168,15 +168,25 @@ fun BugReportsScreen(
                 }
             }
 
-            if (filteredReports.isEmpty()) {
-                item {
-                    SenaEmptyState(
-                        message = "No se encontraron reportes que coincidan con la búsqueda.",
-                        icon = Icons.Default.SearchOff
-                    )
+            when (val state = reportsState) {
+                is BugReportsUiState.Loading -> item {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
+                        SenaLoadingState()
+                    }
                 }
-            } else {
-                items(filteredReports) { report ->
+                is BugReportsUiState.Error -> item {
+                    SenaErrorState(message = state.message, onRetry = { bugReportsViewModel.load() })
+                }
+                is BugReportsUiState.Success -> {
+                    if (filteredReports.isEmpty()) {
+                        item {
+                            SenaEmptyState(
+                                message = "No se encontraron reportes que coincidan con la búsqueda.",
+                                icon = Icons.Default.SearchOff
+                            )
+                        }
+                    } else {
+                        items(filteredReports) { report ->
                     BugReportCard(
                         report = report,
                         onClick = {
@@ -185,6 +195,8 @@ fun BugReportsScreen(
                         onDelete = { reporteParaEliminar = report },
                     )
                 }
+            }
+            }
             }
 
             item { Spacer(Modifier.height(40.dp)) }

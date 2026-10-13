@@ -41,7 +41,7 @@ class BugReportsRepositoryImpl @Inject constructor(
                     motivo = motivo,
                     descripcion = descripcion,
                     tipo = tipo,
-                ).toCreateRequest(idUsuario = null),
+                ).toCreateRequest(),
             )
         }.map { it.toDomain() }
 

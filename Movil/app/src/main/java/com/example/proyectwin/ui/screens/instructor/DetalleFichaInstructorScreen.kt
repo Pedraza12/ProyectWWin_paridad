@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.proyectwin.data.model.ClassGroupStatus
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
@@ -61,7 +62,9 @@ fun DetalleFichaInstructorScreen(
         },
         containerColor = senaColors().background,
         bottomBar = {
-            if (ficha != null) {
+            // Una ficha anulada solo la modifica un administrador: el instructor
+            // conserva el detalle (histórico) pero no la acción de edición.
+            if (ficha != null && ficha.classGroupStatus != ClassGroupStatus.ANULADA) {
                 SenaBottomBar {
                     SenaButton(
                         text = "Editar Ficha",

@@ -28,6 +28,8 @@ import com.example.proyectwin.ui.viewmodel.SimilarityDetailViewModel
 fun SimilarityDetailScreen(
     similarityId: String = "",
     detalleProyectoRoute: String = AppNavigation.APRENDIZ_DETAIL,
+    /** Ruta del detalle de similitud del rol actual (no cruza de grafo). */
+    similarityRoute: String = AppNavigation.APRENDIZ_SIMILARITY,
     onBack: () -> Unit,
     onNavigate: (String) -> Unit,
     similarityDetailViewModel: SimilarityDetailViewModel = hiltViewModel(),
@@ -168,7 +170,7 @@ fun SimilarityDetailScreen(
                                         IconButton(
                                             onClick = {
                                                 onNavigate(
-                                                    AppNavigation.APRENDIZ_SIMILARITY
+                                                    similarityRoute
                                                         .replace("{similarityId}", relacionada.id.toString()),
                                                 )
                                             },

@@ -45,11 +45,18 @@ object AppNavigation {
     fun rutaConfirmacion(correo: String, resetUrl: String?): String =
         "confirmation?correo=${android.net.Uri.encode(correo)}&resetUrl=${android.net.Uri.encode(resetUrl ?: "")}"
 
+    /**
+     * Alta/edición de propuesta. `projectId` vacío = alta; `retorno` decide a
+     * qué detalle se vuelve al guardar (el admin edita desde su propio detalle).
+     */
+    fun rutaNuevoProyecto(projectId: String = "", retorno: String = "aprendiz"): String =
+        "aprendiz_new_project/$projectId?retorno=$retorno"
+
     // Aprendiz Graph
     const val APRENDIZ_GRAPH = "aprendiz_graph"
     const val APRENDIZ_DASHBOARD = "aprendiz_dashboard"
     const val APRENDIZ_PROJECTS = "aprendiz_projects"
-    const val APRENDIZ_NEW_PROJECT = "aprendiz_new_project/{projectId}"
+    const val APRENDIZ_NEW_PROJECT = "aprendiz_new_project/{projectId}?retorno={retorno}"
     const val APRENDIZ_DETAIL = "aprendiz_detail/{projectId}"
     const val APRENDIZ_SIMILARITY = "aprendiz_similarity/{similarityId}"
     /** Lista completa; [APRENDIZ_SIMILITUDES] agrega el filtro opcional. */
@@ -72,7 +79,9 @@ object AppNavigation {
     const val INSTRUCTOR_DETAIL = "instructor_detail/{projectId}"
     const val INSTRUCTOR_PROFILE = "instructor/profile"
     const val INSTRUCTOR_SIMILARITY_DETAIL = "instructor/similarity-detail/{similarityId}"
-    const val INSTRUCTOR_SIMILITUDES = "instructor/similitudes"
+    /** Lista completa; [INSTRUCTOR_SIMILITUDES] agrega el filtro opcional. */
+    const val INSTRUCTOR_SIMILITUDES_BASE = "instructor/similitudes"
+    const val INSTRUCTOR_SIMILITUDES = "instructor/similitudes?proyectoId={proyectoId}"
     const val INSTRUCTOR_MANAGE_FICHAS = "instructor/fichas/manage"
     const val INSTRUCTOR_ALERTS = "instructor/alerts"
     const val INSTRUCTOR_FICHA_DETAIL = "instructor_ficha_detail/{fichaId}"
@@ -84,7 +93,9 @@ object AppNavigation {
     const val ADMIN_BUGS = "admin/bugs"
     const val ADMIN_PROJECTS = "admin/projects"
     const val ADMIN_PROJECT_DETAIL = "admin/project/{projectId}"
+    /** Ruta limpia del tab; [ADMIN_SIMILARITY_LIST_FILTRO] agrega el filtro. */
     const val ADMIN_SIMILARITY_LIST = "admin/similarities"
+    const val ADMIN_SIMILARITY_LIST_FILTRO = "admin/similarities?proyectoId={proyectoId}"
     const val ADMIN_SIMILARITY_DETAIL = "admin/similarity/{similarityId}"
     const val ADMIN_NEW_USER = "admin/users/new"
     const val ADMIN_USER_DETAIL = "admin/user/{userId}"
@@ -199,21 +210,31 @@ object AppNavigation {
             }
             composable(APRENDIZ_PROJECTS) { ProjectsScreen(
                 onNavigate = { route -> navController.navigateTo(route) },
-                onNewProject = { navController.navigate(APRENDIZ_NEW_PROJECT.replace("{projectId}", "")) },
+                onNewProject = { navController.navigate(rutaNuevoProyecto()) },
                 onProjectDetail = { id -> navController.navigate("aprendiz_detail/$id") },
                 bottomBar = { bottomBar() }
             ) }
             composable(
                 route = APRENDIZ_NEW_PROJECT,
-                arguments = listOf(navArgument("projectId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("projectId") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("retorno") { type = NavType.StringType; defaultValue = "aprendiz" },
+                )
             ) { backStackEntry ->
                 val projectId = backStackEntry.arguments?.getString("projectId") ?: ""
+                val retorno = backStackEntry.arguments?.getString("retorno") ?: "aprendiz"
                 NewProjectScreen(
                     projectId = projectId,
                     onBack = { navController.popBackStack() },
                     onNavigate = { route -> navController.navigateTo(route) },
                     onSaved = { id ->
-                        navController.navigate("aprendiz_detail/$id") {
+                        // El admin vuelve a SU detalle; el aprendiz al suyo.
+                        val destino = if (retorno == "admin") {
+                            ADMIN_PROJECT_DETAIL.replace("{projectId}", id.toString())
+                        } else {
+                            "aprendiz_detail/$id"
+                        }
+                        navController.navigate(destino) {
                             popUpTo(APRENDIZ_NEW_PROJECT) { inclusive = true }
                         }
                     }
@@ -263,6 +284,7 @@ object AppNavigation {
                 similitudesRoute = APRENDIZ_SIMILITUDES,
                 detailRoute = "aprendiz_detail/{id}",
                 fichaRoute = APRENDIZ_FICHA_DETAIL,
+                bottomBar = { bottomBar() },
             ) }
             composable(APRENDIZ_FICHA_DETAIL) { FichaDetailScreen(onBack = { navController.popBackStack() }, onNavigate = { route -> navController.navigateTo(route) }) }
             composable(APRENDIZ_JOIN_FICHA) { UnirseFichaAprendizScreen(onBack = { navController.popBackStack() }, onJoined = { navController.popBackStack() }) }
@@ -350,18 +372,28 @@ object AppNavigation {
                 SimilarityDetailScreen(
                     similarityId = similarityId,
                     detalleProyectoRoute = INSTRUCTOR_DETAIL,
+                    similarityRoute = INSTRUCTOR_SIMILARITY_DETAIL,
                     onBack = { navController.popBackStack() },
                     onNavigate = { route -> navController.navigateTo(route) },
                 )
             }
-            composable(INSTRUCTOR_SIMILITUDES) { SimilitudesInstructorScreen(
-                onBack = { navController.popBackStack() },
-                onNavigate = { route -> navController.navigateTo(route) },
-            ) }
+            composable(
+                route = INSTRUCTOR_SIMILITUDES,
+                arguments = listOf(
+                    navArgument("proyectoId") { type = NavType.IntType; defaultValue = 0 },
+                ),
+            ) { backStackEntry ->
+                val proyectoId = backStackEntry.arguments?.getInt("proyectoId") ?: 0
+                SimilitudesInstructorScreen(
+                    proyectoId = proyectoId.takeIf { it > 0 },
+                    onBack = { navController.popBackStack() },
+                    onNavigate = { route -> navController.navigateTo(route) },
+                )
+            }
             composable(INSTRUCTOR_MANAGE_FICHAS) { ManageFichasScreen(
                 onBack = { navController.popBackStack() },
                 onViewDetail = { fichaId -> navController.navigate(INSTRUCTOR_FICHA_DETAIL.replace("{fichaId}", fichaId)) },
-                onViewDirectory = { fichaId -> navController.navigate(INSTRUCTOR_FICHAS) },
+                onViewDirectory = { navController.navigate(INSTRUCTOR_FICHAS) },
                 onCreateFicha = { navController.navigate(INSTRUCTOR_CREAR_FICHA_BASE) },
                 onNavigate = { route -> navController.navigateTo(route) },
                 bottomBar = { bottomBar() }
@@ -430,14 +462,21 @@ object AppNavigation {
                     onBack = { navController.popBackStack() },
                     onNavigate = { route -> navController.navigateTo(route) },
                     // Intervención admin: editar contenido reutiliza el formulario;
-                    // el backend devuelve una aprobada editada a revisión.
-                    editarRoute = APRENDIZ_NEW_PROJECT,
-                    similitudesRoute = ADMIN_SIMILARITY_LIST,
+                    // al guardar vuelve al detalle del admin (retorno=admin).
+                    editarRoute = "aprendiz_new_project/{projectId}?retorno=admin",
+                    similitudesRoute = ADMIN_SIMILARITY_LIST_FILTRO,
                     similarityRoute = ADMIN_SIMILARITY_DETAIL,
                 )
             }
-            composable(ADMIN_SIMILARITY_LIST) {
+            composable(
+                route = ADMIN_SIMILARITY_LIST_FILTRO,
+                arguments = listOf(
+                    navArgument("proyectoId") { type = NavType.IntType; defaultValue = 0 },
+                ),
+            ) { backStackEntry ->
+                val proyectoId = backStackEntry.arguments?.getInt("proyectoId") ?: 0
                 AdminSimilarityListScreen(
+                    proyectoId = proyectoId.takeIf { it > 0 },
                     onBack = { navController.popBackStack() },
                     onNavigate = { route -> navController.navigateTo(route) },
                     bottomBar = { bottomBar() }
@@ -446,10 +485,7 @@ object AppNavigation {
             composable(
                 route = ADMIN_SIMILARITY_DETAIL,
                 arguments = listOf(
-                    navArgument("projectId") {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    }
+                    navArgument("similarityId") { type = NavType.StringType; defaultValue = "" },
                 )
             ) { backStackEntry ->
                 val similarityId = backStackEntry.arguments?.getString("similarityId") ?: ""
@@ -490,7 +526,7 @@ object AppNavigation {
                 onNavigate = { route -> navController.navigateTo(route) },
                 onBack = { navController.popBackStack() },
                 profileRoute = ADMIN_PROFILE,
-                similitudesRoute = ADMIN_SIMILARITY_LIST,
+                similitudesRoute = ADMIN_SIMILARITY_LIST_FILTRO,
                 detailRoute = "admin/project/{id}",
                 fichaRoute = ADMIN_FICHAS,
                 reporteRoute = ADMIN_BUG_DETAIL,

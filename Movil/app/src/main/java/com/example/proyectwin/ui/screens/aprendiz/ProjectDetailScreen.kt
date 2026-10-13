@@ -25,6 +25,7 @@ import com.example.proyectwin.data.model.TeamMember
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
+import com.example.proyectwin.ui.util.aplanarHiloComentarios
 import com.example.proyectwin.ui.util.formatearFechaLocal
 import com.example.proyectwin.ui.viewmodel.ProjectActionState
 import com.example.proyectwin.ui.viewmodel.ProjectDetailData
@@ -59,6 +60,9 @@ fun ProjectDetailScreen(
     var respondiendoA by remember { mutableStateOf<Int?>(null) }
     var dialogoRechazo by remember { mutableStateOf(false) }
     var observacionRechazo by remember { mutableStateOf("") }
+    var comentarioEditando by remember { mutableStateOf<Comment?>(null) }
+    var textoEdicionComentario by remember { mutableStateOf("") }
+    var comentarioParaEliminar by remember { mutableStateOf<Comment?>(null) }
 
     LaunchedEffect(projectId) {
         projectId.toIntOrNull()?.let { projectDetailViewModel.load(it) }
@@ -126,7 +130,11 @@ fun ProjectDetailScreen(
                         enProceso = enProceso,
                         onEnviar = { projectDetailViewModel.enviar() },
                         onEditar = {
-                            onNavigate(editarRoute.replace("{projectId}", projectId))
+                            onNavigate(
+                                editarRoute
+                                    .replace("{projectId}", projectId)
+                                    .replace("{retorno}", "aprendiz"),
+                            )
                         },
                         onEliminar = { confirmarEliminar = true },
                         onSimilitudes = {
@@ -160,6 +168,11 @@ fun ProjectDetailScreen(
                             nuevoComentario = ""
                             respondiendoA = null
                         },
+                        onEditar = { comentario ->
+                            comentarioEditando = comentario
+                            textoEdicionComentario = comentario.texto
+                        },
+                        onEliminar = { comentario -> comentarioParaEliminar = comentario },
                     )
 
                     HistorialPropuesta(data.historial)
@@ -210,6 +223,67 @@ fun ProjectDetailScreen(
                         },
                         dismissButton = {
                             TextButton(onClick = { dialogoRechazo = false }) { Text("Cancelar") }
+                        },
+                    )
+                }
+
+                comentarioEditando?.let { comentario ->
+                    AlertDialog(
+                        onDismissRequest = { comentarioEditando = null },
+                        title = { Text("Editar observación") },
+                        text = {
+                            SenaTextField(
+                                value = textoEdicionComentario,
+                                onValueChange = { textoEdicionComentario = it },
+                                label = "",
+                                placeholder = "Texto de la observación...",
+                                singleLine = false,
+                                minLines = 3,
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                enabled = textoEdicionComentario.isNotBlank() && !enProceso,
+                                onClick = {
+                                    projectDetailViewModel.editarComentario(
+                                        id = comentario.id,
+                                        idProyecto = comentario.proyectoId,
+                                        texto = textoEdicionComentario.trim(),
+                                        respuestaA = comentario.respuestaA,
+                                    )
+                                    comentarioEditando = null
+                                },
+                            ) { Text("Guardar", color = senaColors().green) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { comentarioEditando = null }) { Text("Cancelar") }
+                        },
+                    )
+                }
+
+                comentarioParaEliminar?.let { comentario ->
+                    // Borrar una raíz arrastra sus respuestas (cascada del backend).
+                    val tieneRespuestas = data.comentarios.any { it.respuestaA == comentario.id }
+                    AlertDialog(
+                        onDismissRequest = { comentarioParaEliminar = null },
+                        title = { Text("Eliminar observación") },
+                        text = {
+                            Text(
+                                if (tieneRespuestas) {
+                                    "¿Eliminar esta observación? También se eliminarán sus respuestas."
+                                } else {
+                                    "¿Eliminar esta observación? Esta acción no se puede deshacer."
+                                },
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                comentarioParaEliminar = null
+                                projectDetailViewModel.eliminarComentario(comentario.id)
+                            }) { Text("Eliminar", color = senaColors().danger) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { comentarioParaEliminar = null }) { Text("Cancelar") }
                         },
                     )
                 }
@@ -505,7 +579,7 @@ private fun SimilitudesPropuesta(
                                     color = senaColors().textSecondary,
                                 )
                                 Text(
-                                    "Histórica · ${par.fecha ?: ""}",
+                                    "Histórica · ${formatearFechaLocal(par.fecha)}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = senaColors().warning,
                                 )
@@ -598,9 +672,13 @@ private fun ObservacionesPropuesta(
     onResponder: (Int?) -> Unit,
     onCancelarRespuesta: () -> Unit,
     onEnviar: () -> Unit,
+    onEditar: (Comment) -> Unit,
+    onEliminar: (Comment) -> Unit,
 ) {
-    val raices = data.comentarios.filter { it.respuestaA == null }
-    val respuestas = data.comentarios.filter { it.respuestaA != null }
+    // El backend admite responder a cualquier observación del mismo proyecto:
+    // se aplana el árbol completo (con protección ante ciclos) para mostrar
+    // también los niveles anidados que antes quedaban invisibles.
+    val hilo = aplanarHiloComentarios(data.comentarios)
 
     SenaSectionHeader(title = "Observaciones (${data.comentarios.size})")
     SenaCard(elevation = 1.dp) {
@@ -608,12 +686,22 @@ private fun ObservacionesPropuesta(
             if (data.comentarios.isEmpty()) {
                 SenaEmptyState(message = "No hay observaciones para esta propuesta.", icon = Icons.AutoMirrored.Filled.Chat)
             } else {
-                raices.forEach { comentario ->
-                    ComentarioItem(comentario, data, enProceso, onResponder)
-                    respuestas.filter { it.respuestaA == comentario.id }.forEach { respuesta ->
-                        Row(modifier = Modifier.padding(start = 24.dp)) {
-                            ComentarioItem(respuesta, data, enProceso, onResponder, esRespuesta = true)
-                        }
+                hilo.forEach { entrada ->
+                    Row(
+                        modifier = Modifier.padding(
+                            // Sangría por nivel (acotada para no salirse del ancho).
+                            start = (24 * entrada.profundidad.coerceAtMost(5)).dp,
+                        ),
+                    ) {
+                        ComentarioItem(
+                            comentario = entrada.comentario,
+                            data = data,
+                            enProceso = enProceso,
+                            onResponder = onResponder,
+                            onEditar = onEditar,
+                            onEliminar = onEliminar,
+                            esRespuesta = entrada.profundidad > 0,
+                        )
                     }
                 }
             }
@@ -663,6 +751,8 @@ private fun ComentarioItem(
     data: ProjectDetailData,
     enProceso: Boolean,
     onResponder: (Int?) -> Unit,
+    onEditar: (Comment) -> Unit,
+    onEliminar: (Comment) -> Unit,
     esRespuesta: Boolean = false,
 ) {
     Column(
@@ -692,12 +782,25 @@ private fun ComentarioItem(
             style = MaterialTheme.typography.bodyMedium,
             color = senaColors().textSecondary,
         )
-        if (!esRespuesta && data.puedeComentar) {
-            TextButton(
-                onClick = { onResponder(comentario.id) },
-                enabled = !enProceso,
-            ) {
-                Text("Responder", style = MaterialTheme.typography.labelSmall, color = senaColors().green)
+        val puedeGestionar = data.puedeGestionarComentario(comentario)
+        if ((!esRespuesta && data.puedeComentar) || puedeGestionar) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!esRespuesta && data.puedeComentar) {
+                    TextButton(
+                        onClick = { onResponder(comentario.id) },
+                        enabled = !enProceso,
+                    ) {
+                        Text("Responder", style = MaterialTheme.typography.labelSmall, color = senaColors().green)
+                    }
+                }
+                if (puedeGestionar) {
+                    TextButton(onClick = { onEditar(comentario) }, enabled = !enProceso) {
+                        Text("Editar", style = MaterialTheme.typography.labelSmall, color = senaColors().green)
+                    }
+                    TextButton(onClick = { onEliminar(comentario) }, enabled = !enProceso) {
+                        Text("Eliminar", style = MaterialTheme.typography.labelSmall, color = senaColors().danger)
+                    }
+                }
             }
         }
     }

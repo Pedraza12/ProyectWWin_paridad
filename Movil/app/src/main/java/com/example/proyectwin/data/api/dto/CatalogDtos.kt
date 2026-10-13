@@ -28,7 +28,8 @@ data class TrainingProgramDto(
 @Serializable
 data class TrainingProgramRequest(
     val nombre: String,
-    val nivel: String? = null,
+    /** El backend lo exige (`required`); la UI no debe omitirlo ni enviarlo null. */
+    val nivel: String,
     @SerialName("knowledge_network_id") val knowledgeNetworkId: Int,
 )
 

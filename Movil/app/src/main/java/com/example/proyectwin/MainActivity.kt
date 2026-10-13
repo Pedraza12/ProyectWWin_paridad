@@ -60,7 +60,12 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     SessionEvents.expired.collect {
-                        authViewModel.logout()
+                        // Solo con una sesión activa: si el evento viene del
+                        // login (p. ej. 403 de cuenta suspendida), no debe
+                        // borrar el mensaje de error que ve el usuario.
+                        if (authViewModel.uiState.value is AuthUiState.LoggedIn) {
+                            authViewModel.logout()
+                        }
                     }
                 }
 

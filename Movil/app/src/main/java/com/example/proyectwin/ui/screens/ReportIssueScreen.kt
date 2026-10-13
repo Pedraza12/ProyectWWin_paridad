@@ -165,23 +165,35 @@ fun ReportIssueScreen(
                 )
             }
             
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (reportes.isEmpty()) {
-                    SenaEmptyState(
-                        message = "Aún no has registrado reportes de falla.",
-                        icon = Icons.Default.BugReport
-                    )
-                } else {
-                    reportes.forEach { r ->
-                        SenaCard(elevation = 0.5.dp) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("#${r.id.toString().padStart(3, '0')}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = senaColors().green)
-                                Spacer(Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(r.titulo, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = senaColors().text)
-                                    Text(r.descripcion, style = MaterialTheme.typography.labelSmall, color = senaColors().textLight, maxLines = 1)
+            when (val state = reportsState) {
+                is BugReportsUiState.Loading -> Box(
+                    Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    SenaLoadingState()
+                }
+                is BugReportsUiState.Error -> SenaErrorState(
+                    message = state.message,
+                    onRetry = { bugReportsViewModel.load() },
+                )
+                is BugReportsUiState.Success -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (reportes.isEmpty()) {
+                        SenaEmptyState(
+                            message = "Aún no has registrado reportes de falla.",
+                            icon = Icons.Default.BugReport
+                        )
+                    } else {
+                        reportes.forEach { r ->
+                            SenaCard(elevation = 0.5.dp) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("#${r.id.toString().padStart(3, '0')}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = senaColors().green)
+                                    Spacer(Modifier.width(16.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(r.titulo, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = senaColors().text)
+                                        Text(r.descripcion, style = MaterialTheme.typography.labelSmall, color = senaColors().textLight, maxLines = 1)
+                                    }
+                                    SenaStatusBadge(status = r.statusDisplay)
                                 }
-                                SenaStatusBadge(status = r.statusDisplay)
                             }
                         }
                     }

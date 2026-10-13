@@ -156,7 +156,6 @@ class FichaFormViewModel @Inject constructor(
 
     fun guardar(
         fichaId: Int?,
-        codigoActual: String,
         nombre: String,
         numero: String,
         estado: String,
@@ -168,9 +167,9 @@ class FichaFormViewModel @Inject constructor(
         viewModelScope.launch {
             _saveState.value = FichaSaveState.Loading
             val resultado = if (fichaId == null) {
-                fichasRepository.crear("", nombre, numero, estado, idPrograma, idInstructor, aprendices)
+                fichasRepository.crear(nombre, numero, estado, idPrograma, idInstructor, aprendices)
             } else {
-                fichasRepository.actualizar(fichaId, codigoActual, nombre, numero, estado, idPrograma, idInstructor, aprendices)
+                fichasRepository.actualizar(fichaId, nombre, numero, estado, idPrograma, idInstructor, aprendices)
             }
             resultado.fold(
                 onSuccess = { _saveState.value = FichaSaveState.Success },

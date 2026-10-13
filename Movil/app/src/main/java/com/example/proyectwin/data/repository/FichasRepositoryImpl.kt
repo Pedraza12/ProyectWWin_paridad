@@ -30,9 +30,8 @@ class FichasRepositoryImpl @Inject constructor(
         safeApiCall { api.obtener(id, INCLUDE_DETALLE) }.map { it.toDomain() }
 
     override suspend fun crear(
-        codigo: String,
         nombre: String,
-        numero: String?,
+        numero: String,
         estado: String,
         idPrograma: Int,
         idInstructor: Int,
@@ -40,7 +39,6 @@ class FichasRepositoryImpl @Inject constructor(
     ): Result<Ficha> = safeApiCall {
         api.crear(
             ClassGroupCreateRequest(
-                codigo = codigo,
                 numero = numero,
                 nombre = nombre,
                 estado = estado,
@@ -53,9 +51,8 @@ class FichasRepositoryImpl @Inject constructor(
 
     override suspend fun actualizar(
         id: Int,
-        codigo: String,
         nombre: String,
-        numero: String?,
+        numero: String,
         estado: String,
         idPrograma: Int,
         idInstructor: Int,
@@ -64,7 +61,6 @@ class FichasRepositoryImpl @Inject constructor(
         api.actualizar(
             id,
             ClassGroupUpdateRequest(
-                codigo = codigo,
                 numero = numero,
                 nombre = nombre,
                 estado = estado,

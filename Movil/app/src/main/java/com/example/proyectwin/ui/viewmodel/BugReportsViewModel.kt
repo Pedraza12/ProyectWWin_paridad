@@ -34,6 +34,10 @@ class BugReportsViewModel @Inject constructor(
     private val _detalle = MutableStateFlow<BugReport?>(null)
     val detalle: StateFlow<BugReport?> = _detalle.asStateFlow()
 
+    /** Error de la carga del detalle: evita el spinner infinito sin reintento. */
+    private val _detalleError = MutableStateFlow<String?>(null)
+    val detalleError: StateFlow<String?> = _detalleError.asStateFlow()
+
     private val _accionError = MutableStateFlow<String?>(null)
     val accionError: StateFlow<String?> = _accionError.asStateFlow()
 
@@ -57,10 +61,11 @@ class BugReportsViewModel @Inject constructor(
     fun cargarDetalle(id: Int) {
         viewModelScope.launch {
             _detalle.value = null
+            _detalleError.value = null
             bugReportsRepository.obtener(id).fold(
                 onSuccess = { _detalle.value = it },
                 onFailure = { e ->
-                    _accionError.value = e.message ?: "Error al cargar el reporte"
+                    _detalleError.value = e.message ?: "No se pudo cargar el reporte."
                 },
             )
         }

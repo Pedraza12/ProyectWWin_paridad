@@ -389,7 +389,6 @@ fun CrearFichaScreen(
                                 } else {
                                     fichaFormViewModel.guardar(
                                         fichaId = idEdicion,
-                                        codigoActual = data.ficha?.codigo.orEmpty(),
                                         nombre = nombre.trim(),
                                         numero = numero.trim(),
                                         estado = estado,

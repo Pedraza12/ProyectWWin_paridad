@@ -26,6 +26,8 @@ import com.example.proyectwin.ui.viewmodel.SimilitudesInstructorViewModel
 fun SimilitudesInstructorScreen(
     onBack: () -> Unit,
     onNavigate: (String) -> Unit,
+    /** Filtro por propuesta (viene del detalle o de una notificación). */
+    proyectoId: Int? = null,
     similitudesViewModel: SimilitudesInstructorViewModel = hiltViewModel(),
 ) {
     var busqueda by remember { mutableStateOf("") }
@@ -56,10 +58,11 @@ fun SimilitudesInstructorScreen(
             }
             is SimilitudesInstructorUiState.Success -> {
                 val pares = estado.pares.filter { par ->
-                    par.similitud * 100 >= umbralMinimo && (
-                        par.project1Title.orEmpty().contains(busqueda, true) ||
-                            par.project2Title.orEmpty().contains(busqueda, true)
-                        )
+                    (proyectoId == null || par.projectId1 == proyectoId || par.projectId2 == proyectoId) &&
+                        par.similitud * 100 >= umbralMinimo && (
+                            par.project1Title.orEmpty().contains(busqueda, true) ||
+                                par.project2Title.orEmpty().contains(busqueda, true)
+                            )
                 }
 
                 LazyColumn(
@@ -70,7 +73,11 @@ fun SimilitudesInstructorScreen(
                     item {
                         SenaPageHeader(
                             title = "Similitudes",
-                            subtitle = "Coincidencias del motor en tus fichas a cargo.",
+                            subtitle = if (proyectoId != null) {
+                                "Coincidencias del motor para la propuesta #$proyectoId."
+                            } else {
+                                "Coincidencias del motor en tus fichas a cargo."
+                            },
                             icon = Icons.Default.Compare,
                         )
                     }

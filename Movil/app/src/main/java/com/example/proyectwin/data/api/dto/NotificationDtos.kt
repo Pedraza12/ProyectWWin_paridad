@@ -21,9 +21,8 @@ data class NotificationDto(
 )
 
 /**
- * POST/PUT /notifications: incluye siempre los campos obligatorios del backend;
- * `enlace`/`descripcion` viajan aún en null (como el objeto completo del
- * frontend al marcar como leída).
+ * POST /notifications: el backend exige destinatario real (`exists`).
+ * Si no se conoce, el campo se omite (nunca se envía `id_usuario: 0`).
  */
 @Serializable
 data class NotificationRequest(
@@ -33,5 +32,12 @@ data class NotificationRequest(
     val enlace: String?,
     val leida: Boolean,
     val fecha: String,
-    @SerialName("id_usuario") val idUsuario: Int,
+    @SerialName("id_usuario") val idUsuario: Int? = null,
 )
+
+/**
+ * PUT /notifications/{id}: el dueño solo marca leída (el backend ignora el
+ * resto de campos para no-admin); no se envía destinatario.
+ */
+@Serializable
+data class NotificationReadRequest(val leida: Boolean)

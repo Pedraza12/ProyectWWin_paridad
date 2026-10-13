@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -42,7 +41,6 @@ fun LoginScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var rememberMe by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val uiState by authViewModel.uiState.collectAsState()
     val isSubmitting by authViewModel.isSubmitting.collectAsState()
@@ -141,19 +139,9 @@ fun LoginScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Switch(
-                                checked = rememberMe,
-                                onCheckedChange = { rememberMe = it },
-                                colors = SwitchDefaults.colors(checkedTrackColor = senaColors().green),
-                                modifier = Modifier.scale(0.8f)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Recordarme", style = MaterialTheme.typography.bodySmall, color = senaColors().textSecondary)
-                        }
                         TextButton(onClick = onForgotPasswordClick) {
                             Text("Olvidé mi clave", style = MaterialTheme.typography.labelSmall, color = senaColors().green, fontWeight = FontWeight.Black)
                         }
@@ -161,7 +149,7 @@ fun LoginScreen(
 
                     SenaButton(
                         text = "ENTRAR AL SISTEMA",
-                        onClick = { authViewModel.login(username, password, rememberMe) },
+                        onClick = { authViewModel.login(username, password) },
                         isLoading = isSubmitting,
                         icon = Icons.AutoMirrored.Filled.Login,
                         modifier = Modifier.fillMaxWidth()

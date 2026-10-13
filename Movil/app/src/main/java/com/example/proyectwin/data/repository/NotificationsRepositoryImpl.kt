@@ -1,9 +1,9 @@
 package com.example.proyectwin.data.repository
 
+import com.example.proyectwin.data.api.dto.NotificationReadRequest
 import com.example.proyectwin.data.api.safeApiCall
 import com.example.proyectwin.data.api.service.NotificationsApi
 import com.example.proyectwin.data.mapper.toDomain
-import com.example.proyectwin.data.mapper.toRequest
 import com.example.proyectwin.data.model.Notification
 import com.example.proyectwin.domain.repository.NotificationsRepository
 import javax.inject.Inject
@@ -18,7 +18,7 @@ class NotificationsRepositoryImpl @Inject constructor(
         safeApiCall { api.listar(idUsuario) }.map { lista -> lista.map { it.toDomain() } }
 
     override suspend fun marcarComoLeida(notificacion: Notification): Result<Notification> =
-        safeApiCall { api.actualizar(notificacion.id, notificacion.toRequest(leida = true)) }
+        safeApiCall { api.actualizar(notificacion.id, NotificationReadRequest(leida = true)) }
             .map { it.toDomain() }
 
     override suspend fun eliminar(id: Int): Result<Unit> =

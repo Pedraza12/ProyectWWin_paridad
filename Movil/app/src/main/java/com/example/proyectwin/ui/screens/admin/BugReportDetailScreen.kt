@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectwin.data.model.BugReportStatus
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
+import com.example.proyectwin.ui.util.formatearFechaLocal
 import com.example.proyectwin.ui.viewmodel.BugReportsViewModel
 
 /** Detalle real del reporte: estado, respuesta al solicitante y datos. */
@@ -33,6 +34,7 @@ fun BugReportDetailScreen(
 ) {
     val bug by bugReportsViewModel.detalle.collectAsState()
     val error by bugReportsViewModel.accionError.collectAsState()
+    val detalleError by bugReportsViewModel.detalleError.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val bugIdNum = bugId.toIntOrNull() ?: 0
 
@@ -73,8 +75,16 @@ fun BugReportDetailScreen(
     ) { paddingValues ->
         val reporte = bug
         if (reporte == null) {
+            val mensajeError = detalleError
             Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                SenaLoadingState()
+                if (mensajeError != null) {
+                    SenaErrorState(
+                        message = mensajeError,
+                        onRetry = { if (bugIdNum > 0) bugReportsViewModel.cargarDetalle(bugIdNum) },
+                    )
+                } else {
+                    SenaLoadingState()
+                }
             }
             return@Scaffold
         }
@@ -113,7 +123,7 @@ fun BugReportDetailScreen(
                         HorizontalDivider(color = senaColors().borderSoft)
                         BugDetailRow(Icons.Default.Person, "Reportado por", reporte.reporterName ?: "—")
                         BugDetailRow(Icons.Default.BugReport, "Tipo", reporte.typeDisplay)
-                        BugDetailRow(Icons.Default.Event, "Fecha", reporte.fecha ?: reporte.createdAt?.take(10) ?: "—")
+                        BugDetailRow(Icons.Default.Event, "Fecha", formatearFechaLocal(reporte.fecha ?: reporte.createdAt))
                         reporte.numeroFicha?.takeIf { it.isNotBlank() }?.let {
                             BugDetailRow(Icons.Default.Numbers, "Ficha", it)
                         }

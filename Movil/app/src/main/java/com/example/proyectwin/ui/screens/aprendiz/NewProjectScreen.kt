@@ -60,6 +60,7 @@ fun NewProjectScreen(
 
     val authState by authViewModel.uiState.collectAsState()
     val sessionUser = (authState as? AuthUiState.LoggedIn)?.user
+    val esAdmin = sessionUser?.role == UserRole.ADMINISTRADOR.value
     // La API exige ficha activa para registrar propuestas: si el aprendiz aún
     // no pertenece a ninguna, se explica y se le lleva a unirse en vez de
     // dejarlo llenar el formulario para fallar al final.
@@ -163,8 +164,9 @@ fun NewProjectScreen(
     val enviando = saveState is ProjectsViewModel.SaveState.Loading
     val proyectoCargado: Project? = proyectoEdicion
     val puedeGuardarYEnviar = !esEdicion || (proyectoCargado?.puedeEnviar ?: true)
-    // Un proyecto aprobado no se edita en el flujo normal (regla del backend).
-    val puedeGuardar = !esEdicion || (proyectoCargado?.esEditable ?: true)
+    // Un aprobado no se edita en el flujo normal, pero el admin conserva su
+    // intervención (el backend la devuelve a revisión si cambia el contenido).
+    val puedeGuardar = !esEdicion || esAdmin || (proyectoCargado?.esEditable ?: true)
 
     fun draftActual(): ProjectDraft = ProjectDraft(
         titulo = title.trim(),
@@ -337,7 +339,7 @@ fun NewProjectScreen(
                         ProjectStatus.BORRADOR -> "Borrador: puedes editarlo y enviarlo cuando quieras."
                         ProjectStatus.PENDIENTE -> "En revisión: tus cambios se analizarán de nuevo."
                         ProjectStatus.RECHAZADO -> "Rechazado: ajusta y reenvía cuando estés listo."
-                        ProjectStatus.APROBADO -> "Aprobado: solo un administrador puede modificarlo."
+                        ProjectStatus.APROBADO -> "Aprobado: solo un administrador puede modificarlo; si cambia el contenido, volverá a revisión."
                     },
                     icon = Icons.Default.Info,
                     color = senaColors().info

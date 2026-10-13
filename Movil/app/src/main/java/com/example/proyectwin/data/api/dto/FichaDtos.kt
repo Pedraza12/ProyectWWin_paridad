@@ -23,8 +23,8 @@ data class ClassGroupDto(
 
 @Serializable
 data class ClassGroupCreateRequest(
-    val codigo: String,
-    val numero: String? = null,
+    /** El backend exige `numero` y genera el `codigo` de unión por su cuenta. */
+    val numero: String,
     val nombre: String,
     val estado: String,
     @SerialName("id_programa") val idPrograma: Int,
@@ -33,11 +33,10 @@ data class ClassGroupCreateRequest(
     val aprendices: List<Int>? = null,
 )
 
-/** PUT /class-groups: objeto completo (como el frontend); `numero` en null limpia el campo. */
+/** PUT /class-groups: `numero` es obligatorio; `codigo` es inmutable y el backend lo descarta. */
 @Serializable
 data class ClassGroupUpdateRequest(
-    val codigo: String,
-    val numero: String?,
+    val numero: String,
     val nombre: String,
     val estado: String,
     @SerialName("id_programa") val idPrograma: Int,

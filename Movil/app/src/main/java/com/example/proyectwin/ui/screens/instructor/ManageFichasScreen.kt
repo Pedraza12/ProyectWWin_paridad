@@ -52,7 +52,8 @@ data class FichaItem(
 fun ManageFichasScreen(
     onBack: () -> Unit,
     onViewDetail: (String) -> Unit,
-    onViewDirectory: (String) -> Unit,
+    /** El directorio es global: no depende de la ficha de origen. */
+    onViewDirectory: () -> Unit,
     onCreateFicha: () -> Unit,
     onNavigate: (String) -> Unit,
     bottomBar: @Composable () -> Unit = {},
@@ -65,12 +66,22 @@ fun ManageFichasScreen(
     // -1 = ninguna expandida (sentinel para rememberSaveable).
     var fichaExpandida by rememberSaveable { mutableIntStateOf(-1) }
     var inicializado by rememberSaveable { mutableStateOf(false) }
+    var fichaParaEliminar by remember { mutableStateOf<FichaItem?>(null) }
     val filters = listOf("Todas", "Activo", "Finalizado", "Anulada")
     val uiState by fichasViewModel.uiState.collectAsState()
     val authState by authViewModel.uiState.collectAsState()
     val dashState by dashboardViewModel.uiState.collectAsState()
     val detalles by fichasViewModel.detalles.collectAsState()
+    val actionState by fichasViewModel.actionState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+
+    LaunchedEffect(actionState.message) {
+        actionState.message?.let {
+            snackbarHostState.showSnackbar(it)
+            fichasViewModel.clearError()
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (inicializado) {
@@ -128,6 +139,7 @@ fun ManageFichasScreen(
             }
         },
         containerColor = senaColors().background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = bottomBar
     ) { paddingValues ->
         LazyColumn(
@@ -231,13 +243,21 @@ fun ManageFichasScreen(
                                     fichaExpandida = if (fichaExpandida == ficha.id) -1 else ficha.id
                                 },
                                 onViewDetail = { onViewDetail(ficha.id.toString()) },
-                                onViewDirectory = { onViewDirectory(ficha.id.toString()) },
-                                onEdit = {
-                                    onNavigate(
-                                        AppNavigation.INSTRUCTOR_CREAR_FICHA
-                                            .replace("{fichaId}", ficha.id.toString()),
-                                    )
-                                }
+                                onViewDirectory = onViewDirectory,
+                                // Una ficha anulada solo la modifica un admin (403):
+                                // el instructor no debe ver la acción como disponible.
+                                onEdit = if (ficha.status != "Anulada") {
+                                    {
+                                        onNavigate(
+                                            AppNavigation.INSTRUCTOR_CREAR_FICHA
+                                                .replace("{fichaId}", ficha.id.toString()),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                                onEliminar = { fichaParaEliminar = ficha },
+                                eliminando = actionState.eliminando,
                             )
                         }
                     }
@@ -246,6 +266,21 @@ fun ManageFichasScreen(
             
             item { Spacer(Modifier.height(80.dp)) }
         }
+    }
+
+    fichaParaEliminar?.let { ficha ->
+        AlertDialog(
+            onDismissRequest = { fichaParaEliminar = null },
+            title = { Text("Eliminar ficha") },
+            text = { Text("Si tiene aprendices o propuestas quedará anulada; si no, se eliminará.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    fichaParaEliminar = null
+                    fichasViewModel.eliminarFicha(ficha.id)
+                }) { Text("Eliminar", color = senaColors().danger) }
+            },
+            dismissButton = { TextButton(onClick = { fichaParaEliminar = null }) { Text("Cancelar") } },
+        )
     }
 }
 
@@ -257,7 +292,10 @@ fun InstructorFichaCard(
     onToggleRoster: () -> Unit = {},
     onViewDetail: () -> Unit,
     onViewDirectory: () -> Unit,
-    onEdit: () -> Unit,
+    /** null = la acción no está disponible (ficha anulada para instructor). */
+    onEdit: (() -> Unit)?,
+    onEliminar: () -> Unit = {},
+    eliminando: Boolean = false,
 ) {
     SenaCard(elevation = 1.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -336,7 +374,14 @@ fun InstructorFichaCard(
             ) {
                 FichaActionButton(Icons.Default.Visibility, "Detalle", onViewDetail)
                 FichaActionButton(Icons.Default.ContactPage, "Directorio", onViewDirectory)
-                FichaActionButton(Icons.Default.Edit, "Editar", onEdit)
+                onEdit?.let { FichaActionButton(Icons.Default.Edit, "Editar", it) }
+                if (ficha.status != "Anulada") {
+                    TextButton(onClick = onEliminar, enabled = !eliminando) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp), tint = senaColors().danger)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Eliminar", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = senaColors().danger)
+                    }
+                }
             }
         }
     }

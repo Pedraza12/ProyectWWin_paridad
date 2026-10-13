@@ -7,6 +7,11 @@ import kotlinx.serialization.Serializable
 data class LoginRequest(
     val username: String,
     val password: String,
+    /**
+     * Solo aplica a la sesión por cookie del SPA (remember_token). En móvil el
+     * acceso es por token Bearer y su vigencia la fija SANCTUM_EXPIRATION:
+     * el campo se conserva por contrato, pero no cambia nada (se omite).
+     */
     val recordarme: Boolean = false,
 )
 

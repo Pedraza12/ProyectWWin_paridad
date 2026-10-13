@@ -14,7 +14,6 @@ import com.example.proyectwin.data.api.dto.InstructorDto
 import com.example.proyectwin.data.api.dto.KnowledgeNetworkDto
 import com.example.proyectwin.data.api.dto.MotorConfigDto
 import com.example.proyectwin.data.api.dto.NotificationDto
-import com.example.proyectwin.data.api.dto.NotificationRequest
 import com.example.proyectwin.data.api.dto.PasajeSimilitud
 import com.example.proyectwin.data.api.dto.ProjectCreateRequest
 import com.example.proyectwin.data.api.dto.ProjectDto
@@ -289,17 +288,6 @@ fun NotificationDto.toDomain(): Notification = Notification(
     fecha = fecha,
 )
 
-/** PUT completo como el frontend: conserva todos los campos y cambia `leida`. */
-fun Notification.toRequest(leida: Boolean = leido): NotificationRequest = NotificationRequest(
-    titulo = titulo ?: mensaje,
-    descripcion = descripcion,
-    tipo = tipo,
-    enlace = enlace,
-    leida = leida,
-    fecha = fecha ?: createdAt?.take(10) ?: hoy(),
-    idUsuario = userId ?: 0,
-)
-
 // ------------------------------------------------------------ Reportes de falla
 
 fun BugReportDto.toDomain(): BugReport = BugReport(
@@ -311,7 +299,6 @@ fun BugReportDto.toDomain(): BugReport = BugReport(
     tipo = tipo,
     estado = estado,
     respuesta = respuesta,
-    projectId = null,
     reporterId = idUsuario.takeIf { it != 0 },
     reporterName = generalUser?.nombreCompleto(),
     createdAt = createdAt,
@@ -319,16 +306,14 @@ fun BugReportDto.toDomain(): BugReport = BugReport(
     fecha = fecha,
 )
 
-fun BugReport.toCreateRequest(idUsuario: Int?, fecha: String = hoy()): BugReportCreateRequest =
+fun BugReport.toCreateRequest(fecha: String = hoy()): BugReportCreateRequest =
     BugReportCreateRequest(
         titulo = titulo.ifEmpty { null },
         numeroFicha = numeroFicha,
         motivo = motivo,
         descripcion = descripcion,
         tipo = tipo,
-        estado = estado,
         fecha = fecha,
-        idUsuario = idUsuario,
     )
 
 fun BugReport.toUpdateRequest(fecha: String, idUsuario: Int): BugReportUpdateRequest =

@@ -66,10 +66,10 @@ class CatalogosViewModel @Inject constructor(
     fun actualizarRed(id: Int, nombre: String) = ejecutar("Red actualizada.") { catalogsRepository.actualizarRed(id, nombre) }
     fun eliminarRed(id: Int) = ejecutar("Red eliminada.") { catalogsRepository.eliminarRed(id) }
 
-    fun crearPrograma(nombre: String, nivel: String?, redId: Int) =
+    fun crearPrograma(nombre: String, nivel: String, redId: Int) =
         ejecutar("Programa creado.") { catalogsRepository.crearPrograma(nombre, nivel, redId) }
 
-    fun actualizarPrograma(id: Int, nombre: String, nivel: String?, redId: Int) =
+    fun actualizarPrograma(id: Int, nombre: String, nivel: String, redId: Int) =
         ejecutar("Programa actualizado.") { catalogsRepository.actualizarPrograma(id, nombre, nivel, redId) }
 
     fun eliminarPrograma(id: Int) = ejecutar("Programa eliminado.") { catalogsRepository.eliminarPrograma(id) }

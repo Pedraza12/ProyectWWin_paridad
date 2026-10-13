@@ -12,9 +12,8 @@ interface FichasRepository {
     suspend fun obtener(id: Int): Result<Ficha>
 
     suspend fun crear(
-        codigo: String,
         nombre: String,
-        numero: String?,
+        numero: String,
         estado: String,
         idPrograma: Int,
         idInstructor: Int,
@@ -24,9 +23,8 @@ interface FichasRepository {
 
     suspend fun actualizar(
         id: Int,
-        codigo: String,
         nombre: String,
-        numero: String?,
+        numero: String,
         estado: String,
         idPrograma: Int,
         idInstructor: Int,

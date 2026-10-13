@@ -45,6 +45,8 @@ data class ProjectDetailData(
     val esAdmin: Boolean = false,
     /** Instructor asignado a la propuesta o responsable de su ficha. */
     val esInstructorACargo: Boolean = false,
+    /** Usuario autenticado (para saber si una observación es propia). */
+    val usuarioActualId: Int? = null,
 ) {
     /** Editable por el aprendiz cuando la propuesta y su ficha lo permiten. */
     val puedeEditar: Boolean
@@ -68,6 +70,13 @@ data class ProjectDetailData(
     val puedeRevisar: Boolean
         get() = (esAdmin || esInstructorACargo) &&
             ProjectStatus.fromValue(project.estado) == ProjectStatus.PENDIENTE
+
+    /**
+     * Editar/eliminar una observación: el autor (o un admin). Para no-admin el
+     * backend exige además `puedeEscribir` (ficha activa), igual que comentar.
+     */
+    fun puedeGestionarComentario(comentario: Comment): Boolean =
+        esAdmin || (comentario.usuarioId == usuarioActualId && puedeComentar)
 }
 
 sealed class ProjectDetailUiState {
@@ -164,6 +173,7 @@ class ProjectDetailViewModel @Inject constructor(
                         proyecto.fichaEstado == ClassGroupStatus.ACTIVO.value,
                     esAdmin = usuario?.role == UserRole.ADMINISTRADOR.value,
                     esInstructorACargo = esInstructorACargo,
+                    usuarioActualId = usuario?.id,
                 ),
             )
         }
@@ -207,6 +217,16 @@ class ProjectDetailViewModel @Inject constructor(
 
     fun comentar(texto: String, respuestaA: Int? = null) {
         ejecutar { commentsRepository.crear(proyectoId, texto, respuestaA) }
+    }
+
+    /** Edición del propio texto (o de un admin); el backend valida permisos. */
+    fun editarComentario(id: Int, idProyecto: Int, texto: String, respuestaA: Int?) {
+        ejecutar { commentsRepository.actualizar(id, idProyecto, texto, respuestaA) }
+    }
+
+    /** Elimina la observación (el hilo de respuestas cae en cascada). */
+    fun eliminarComentario(id: Int) {
+        ejecutar { commentsRepository.eliminar(id) }
     }
 
     fun agregarIntegrante(idAprendiz: Int) {

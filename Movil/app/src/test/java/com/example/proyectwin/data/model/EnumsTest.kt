@@ -28,10 +28,14 @@ class EnumsTest {
 
     @Test
     fun notificationType_fromValue_returnsCorrect() {
-        assertEquals(NotificationType.INFO, NotificationType.fromValue("info"))
-        assertEquals(NotificationType.WARNING, NotificationType.fromValue("warning"))
-        assertEquals(NotificationType.SUCCESS, NotificationType.fromValue("success"))
-        assertEquals(NotificationType.ERROR, NotificationType.fromValue("error"))
+        assertEquals(NotificationType.SIMILITUD, NotificationType.fromValue("similitud"))
+        assertEquals(NotificationType.OBSERVACION, NotificationType.fromValue("observacion"))
+        assertEquals(NotificationType.REVISION, NotificationType.fromValue("revision"))
+        assertEquals(NotificationType.MENSAJE, NotificationType.fromValue("mensaje"))
+        assertEquals(NotificationType.SISTEMA, NotificationType.fromValue("sistema"))
+        // Valores que el backend no usa (legado) o desconocidos: genérico real.
+        assertEquals(NotificationType.SISTEMA, NotificationType.fromValue("info"))
+        assertEquals(NotificationType.SISTEMA, NotificationType.fromValue("desconocido"))
     }
 
     @Test

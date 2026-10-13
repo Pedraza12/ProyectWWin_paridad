@@ -2,6 +2,7 @@ package com.example.proyectwin.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.proyectwin.data.api.ApiException
 import com.example.proyectwin.data.local.SessionManager
 import com.example.proyectwin.data.model.GeneralUser
 import com.example.proyectwin.domain.repository.AuthRepository
@@ -63,20 +64,26 @@ class AuthViewModel @Inject constructor(
             }
         }
         // Revalida el token contra /auth/me al abrir la app. Si el servidor no
-        // responde se conserva la sesión local; un 401 cierra la sesión global.
+        // responde se conserva la sesión local; un 401 (token vencido/revocado)
+        // o un 403 de /auth/me (cuenta suspendida) invalidan la sesión con el
+        // logout central, sin depender del evento global (que puede perderse
+        // si se emite antes de que la UI lo esté observando).
         viewModelScope.launch {
             val user = authRepository.currentUser.first()
             if (user != null) {
-                authRepository.refreshSession()
+                val error = authRepository.refreshSession().exceptionOrNull()
+                if (error is ApiException.Http && (error.status == 401 || error.status == 403)) {
+                    logout()
+                }
             }
         }
     }
 
-    fun login(username: String, password: String, recordarme: Boolean = false) {
+    fun login(username: String, password: String) {
         if (_isSubmitting.value) return // doble toque
         viewModelScope.launch {
             _isSubmitting.value = true
-            authRepository.login(username, password, recordarme).fold(
+            authRepository.login(username, password).fold(
                 onSuccess = { user ->
                     _uiState.value = AuthUiState.LoggedIn(user)
                 },

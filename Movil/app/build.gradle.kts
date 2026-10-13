@@ -54,6 +54,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Distribución: define `proyectwin.apiBaseUrl.release` con el
+            // endpoint HTTPS real. El fallback de emulador es HTTP y queda
+            // bloqueado por network_security_config en release.
             buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl("release")}\"")
         }
     }

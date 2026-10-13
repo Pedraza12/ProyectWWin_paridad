@@ -184,7 +184,7 @@ fun AdminCatalogosScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SenaTextField(value = nombre, onValueChange = { nombre = it }, label = "Nombre")
-                    SenaTextField(value = nivel, onValueChange = { nivel = it }, label = "Nivel (ej: Tecnólogo)")
+                    SenaTextField(value = nivel, onValueChange = { nivel = it }, label = "Nivel * (ej: Tecnólogo)")
                     Text("Red de conocimiento", style = MaterialTheme.typography.labelSmall, color = senaColors().textLight)
                     Box {
                         TextButton(onClick = { redesExpanded = true }) {
@@ -205,11 +205,13 @@ fun AdminCatalogosScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val red = redSeleccionada
-                    if (nombre.trim().isNotBlank() && red != null) {
+                    val nivelLimpio = nivel.trim()
+                    // El backend exige `nivel`: sin él, el request daría 422.
+                    if (nombre.trim().isNotBlank() && nivelLimpio.isNotBlank() && red != null) {
                         if (editando) {
-                            catalogosViewModel.actualizarPrograma(programa.id, nombre.trim(), nivel.trim().ifBlank { null }, red.id)
+                            catalogosViewModel.actualizarPrograma(programa.id, nombre.trim(), nivelLimpio, red.id)
                         } else {
-                            catalogosViewModel.crearPrograma(nombre.trim(), nivel.trim().ifBlank { null }, red.id)
+                            catalogosViewModel.crearPrograma(nombre.trim(), nivelLimpio, red.id)
                         }
                     }
                     dialogoPrograma = null

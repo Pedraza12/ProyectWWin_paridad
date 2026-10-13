@@ -33,7 +33,7 @@ class CatalogsRepositoryImpl @Inject constructor(
 
     override suspend fun crearPrograma(
         nombre: String,
-        nivel: String?,
+        nivel: String,
         redId: Int,
     ): Result<TrainingProgram> = safeApiCall {
         api.crearPrograma(
@@ -48,7 +48,7 @@ class CatalogsRepositoryImpl @Inject constructor(
     override suspend fun actualizarPrograma(
         id: Int,
         nombre: String,
-        nivel: String?,
+        nivel: String,
         redId: Int,
     ): Result<TrainingProgram> = safeApiCall {
         api.actualizarPrograma(

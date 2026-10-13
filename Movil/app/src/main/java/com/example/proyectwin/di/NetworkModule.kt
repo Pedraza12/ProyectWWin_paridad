@@ -57,7 +57,9 @@ object NetworkModule {
         if (BuildConfig.DEBUG) {
             builder.addInterceptor(
                 HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.BODY
+                    // BASIC: método/URL/estado, sin cuerpos ni cabeceras; evita
+                    // que la contraseña del login o el token queden en Logcat.
+                    level = HttpLoggingInterceptor.Level.BASIC
                     redactHeader("Authorization")
                 },
             )
