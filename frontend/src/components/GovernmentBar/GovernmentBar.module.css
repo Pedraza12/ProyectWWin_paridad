@@ -53,8 +53,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--r-md);
   color: var(--govbar-text-dim);
   transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);

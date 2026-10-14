@@ -107,7 +107,7 @@ fun AdminDashboardScreen(
                         .fillMaxWidth()
                         .height(280.dp)
                         .clip(RoundedCornerShape(bottomStart = 48.dp, bottomEnd = 48.dp))
-                        .background(Brush.verticalGradient(colors = listOf(Color(0xFF022C22), Color(0xFF064E3B))))
+                        .background(Brush.verticalGradient(colors = listOf(senaColors().darkGreen, senaColors().header)))
                         .padding(24.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {

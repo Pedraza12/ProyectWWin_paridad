@@ -108,7 +108,7 @@ fun InstructorDashboardScreen(
                         .fillMaxWidth()
                         .height(260.dp)
                         .clip(RoundedCornerShape(bottomStart = 48.dp, bottomEnd = 48.dp))
-                        .background(Brush.verticalGradient(colors = listOf(Color(0xFF0F172A), senaColors().header)))
+                        .background(Brush.verticalGradient(colors = listOf(senaColors().background, senaColors().header)))
                         .padding(24.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {

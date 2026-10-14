@@ -16,7 +16,7 @@
 /* Barra de inspector: acciones siempre a mano */
 .barraInspector {
   position: sticky;
-  top: calc(var(--govbar-h) + var(--header-h) + var(--sp-3));
+  top: var(--sticky-top);
   z-index: 50;
   padding: var(--sp-2_5) var(--sp-3);
   background: color-mix(in srgb, var(--c-surface) 88%, transparent);

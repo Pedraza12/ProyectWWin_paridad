@@ -2,7 +2,7 @@
 .card{position:relative;overflow:hidden;width:100%;max-width:var(--narrow-max);background:var(--c-surface);border:1px solid var(--c-border-h);border-radius:var(--r-xl);box-shadow:var(--sh-xl),var(--glow-soft);padding:var(--sp-8) var(--sp-6);text-align:center}
 .card::after{content:'';position:absolute;left:0;right:0;height:64px;background:linear-gradient(transparent,var(--scan));animation:fx-scan-y 3.2s linear infinite;pointer-events:none}
 .ringWrap{position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:var(--sp-5)}
-.ring{width:132px;height:132px}
+.ring{width:min(132px,40vw);height:auto}
 .ringBg{fill:none;stroke:var(--c-border);stroke-width:10}
 .ringFg{fill:none;stroke:var(--c-primary);stroke-width:10;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--c-primary));transition:stroke-dashoffset var(--dur-fast) linear}
 .pct{position:absolute;font-family:var(--mono);font-size:var(--text-xl);font-weight:800;color:var(--c-text)}

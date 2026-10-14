@@ -59,7 +59,7 @@ fun FichaDirectoryScreen(
             FloatingActionButton(
                 onClick = onCreateFicha,
                 containerColor = senaColors().green,
-                contentColor = Color.White,
+                contentColor = senaColors().onPrimary,
                 shape = RoundedCornerShape(16.dp),
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Nueva Ficha")

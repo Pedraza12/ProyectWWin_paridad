@@ -1,29 +1,29 @@
 .cargando {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 8px);
-  padding: var(--space-6, 24px);
-  color: var(--c-text-3, #8a8f98);
-  font-size: 0.9rem;
+  gap: var(--sp-2);
+  padding: var(--sp-6);
+  color: var(--c-text-3);
+  font-size: var(--text-base);
 }
 
 .error {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4, 16px);
+  gap: var(--sp-4);
   flex-wrap: wrap;
-  padding: var(--space-4, 16px);
-  border: 1px solid var(--red-100, #f3c1c1);
+  padding: var(--sp-4);
+  border: 1px solid var(--c-danger);
   border-radius: var(--r-md);
-  background: var(--red-50, #fdf2f2);
+  background: var(--c-danger-bg);
 }
 
 .errorTexto {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 8px);
+  gap: var(--sp-2);
   margin: 0;
-  color: var(--red-700, #9b2c2c);
-  font-size: 0.9rem;
+  color: var(--c-danger-text);
+  font-size: var(--text-base);
 }

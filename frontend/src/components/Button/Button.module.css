@@ -1,11 +1,11 @@
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-1_5);border-radius:var(--r-md);font-family:var(--font);font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out),filter var(--dur-fast) var(--ease-out);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-1_5);border-radius:var(--r-md);font-family:var(--font);font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out),filter var(--dur-fast) var(--ease-out);white-space:nowrap}
 .btn:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
 .btn:focus-visible{outline:none;box-shadow:var(--sh-ring)}
 
-/* Sizes */
-.sm{padding:var(--sp-1_5) var(--sp-3);font-size:var(--text-xs)}
-.md{padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm)}
-.lg{padding:var(--sp-2_5) var(--sp-5);font-size:var(--text-base)}
+/* Sizes — alturas mínimas para objetivo táctil (36/40/44) */
+.sm{min-height:36px;padding:var(--sp-1_5) var(--sp-3);font-size:var(--text-xs)}
+.md{min-height:40px;padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm)}
+.lg{min-height:44px;padding:var(--sp-2_5) var(--sp-5);font-size:var(--text-base)}
 .full{width:100%}
 
 /* Variants */
@@ -18,8 +18,8 @@
 .ghost{background:transparent;color:var(--c-text-2)}
 .ghost:hover{background:var(--c-surface-alt);color:var(--c-text)}
 
-  .danger{background:var(--c-danger);color:var(--c-on-danger)}
-  .danger:hover{background:var(--c-danger-hover)}
+.danger{background:var(--c-danger);color:var(--c-on-danger)}
+.danger:hover{background:var(--c-danger-hover)}
 
 .dangerGhost{background:transparent;color:var(--c-danger-text);border:1px solid var(--c-danger)}
 .dangerGhost:hover{background:var(--c-danger-bg)}
@@ -33,4 +33,4 @@
 .info{background:var(--c-info);color:var(--c-on-info)}
 .info:hover{background:var(--c-info-hover)}
 
-  .btn:hover{filter:brightness(1.07);box-shadow:var(--sh-lg);}
+.btn:hover{filter:brightness(1.07);box-shadow:var(--sh-lg)}

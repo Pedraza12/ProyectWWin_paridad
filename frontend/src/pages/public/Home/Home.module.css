@@ -44,11 +44,11 @@
 .sectionInner{max-width:var(--content-max);margin:0 auto}
 .sectionAlt{background:var(--c-surface-sunken);border-top:1px solid var(--c-border-2);border-bottom:1px solid var(--c-border-2)}
 .sectionSubtitle{color:var(--c-text-2);margin:0 0 var(--sp-8);max-width:36rem}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-4)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:var(--sp-4)}
 .featureCard{height:100%}
 .cardIcon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--r-lg);background:var(--c-primary-light);color:var(--c-primary);margin-bottom:var(--sp-4)}
 .cardText{font-size:var(--text-sm);color:var(--c-text-2);line-height:var(--leading-relaxed);margin:0}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-4);counter-reset:paso}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:var(--sp-4);counter-reset:paso}
 .step{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-xl);padding:var(--sp-6) var(--sp-5);box-shadow:var(--sh-card)}
 .stepNumber{font-size:var(--text-3xl);font-weight:800;color:var(--c-primary)}
 .stepTitle{font-size:var(--text-md);margin:var(--sp-3) 0 var(--sp-2)}
@@ -57,5 +57,4 @@
 @media (max-width:960px){
   .hero{grid-template-columns:1fr;padding-top:var(--sp-10)}
   .title{font-size:var(--text-4xl)}
-  .grid,.steps{grid-template-columns:1fr}
 }

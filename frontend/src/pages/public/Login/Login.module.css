@@ -74,10 +74,10 @@
   margin: 0;
   padding: var(--sp-3);
   background: var(--c-danger-bg);
-  border: 1px solid var(--red-100);
+  border: 1px solid var(--c-danger);
   border-radius: var(--r-md);
   font-size: var(--text-sm);
-  color: var(--red-700);
+  color: var(--c-danger-text);
 }
 
 .footer {

@@ -167,6 +167,7 @@
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--c-text);
+  overflow-wrap: anywhere;
 }
 
 /* Students grid (aprendiz card layout) */
@@ -259,7 +260,8 @@
 /* Student list (instructor row layout) */
 .studentList {
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0,1fr): evita que títulos largos (nowrap) expandan la columna */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-3);
 }
 
@@ -295,7 +297,7 @@
 /* ── Responsive breakpoints ── */
 @media (min-width: 768px) {
   .infoGrid {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .infoGridInstructor {
@@ -304,6 +306,13 @@
 
   .studentsGrid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* La rejilla ancha solo con espacio real para 5 columnas */
+@media (min-width: 1280px) {
+  .infoGrid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 

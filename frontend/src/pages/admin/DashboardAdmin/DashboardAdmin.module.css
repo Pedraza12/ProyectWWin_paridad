@@ -2,8 +2,4 @@
 .motorChips{display:flex;gap:var(--sp-2_5);flex-wrap:wrap}
 .panelLink{font-size:var(--text-sm);font-weight:600;color:var(--c-primary);text-decoration:none}
 .panelLink:hover{text-decoration:underline}
-.accionesPanel [class*="grid"]{grid-template-columns:repeat(3,1fr);gap:var(--sp-3)}
-.accionesPanel [class*="card"]{padding:var(--sp-4);gap:var(--sp-1)}
-.accionesPanel [class*="card"] [class*="icon"]{margin-bottom:0}
-@media (max-width:1023.98px){.accionesPanel [class*="grid"]{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:520px){.accionesPanel [class*="grid"]{grid-template-columns:1fr}}
+/* El layout compacto del panel de acciones vive en QuickActions (variant="stack"). */

@@ -131,11 +131,11 @@ fun ManageFichasScreen(
             FloatingActionButton(
                 onClick = onCreateFicha,
                 containerColor = senaColors().green,
-                contentColor = Color.White,
+                contentColor = senaColors().onPrimary,
                 shape = RoundedCornerShape(16.dp),
                 elevation = FloatingActionButtonDefaults.elevation(8.dp)
             ) {
-                Icon(Icons.Default.PlusOne, contentDescription = "Nueva Ficha")
+                Icon(Icons.Default.Add, contentDescription = "Nueva Ficha")
             }
         },
         containerColor = senaColors().background,
@@ -370,10 +370,15 @@ fun InstructorFichaCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 FichaActionButton(Icons.Default.Visibility, "Detalle", onViewDetail)
                 FichaActionButton(Icons.Default.ContactPage, "Directorio", onViewDirectory)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 onEdit?.let { FichaActionButton(Icons.Default.Edit, "Editar", it) }
                 if (ficha.status != "Anulada") {
                     TextButton(onClick = onEliminar, enabled = !eliminando) {
@@ -400,8 +405,8 @@ fun FichaStatMini(icon: ImageVector, text: String, modifier: Modifier = Modifier
 fun FichaActionButton(icon: ImageVector, label: String, onClick: () -> Unit) {
     TextButton(
         onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-        modifier = Modifier.height(36.dp)
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.heightIn(min = 40.dp)
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))

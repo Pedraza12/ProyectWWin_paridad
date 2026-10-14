@@ -91,7 +91,7 @@
 
 .preview {
   position: sticky;
-  top: calc(var(--govbar-h) + var(--header-h) + var(--sp-4));
+  top: var(--sticky-top);
 }
 
 .kicker {

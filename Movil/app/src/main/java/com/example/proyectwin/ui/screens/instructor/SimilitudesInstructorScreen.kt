@@ -92,7 +92,7 @@ fun SimilitudesInstructorScreen(
                                     placeholder = "Buscar por título...",
                                     leadingIcon = Icons.Default.Search,
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SenaChipRow {
                                     listOf(0, 30, 50, 75).forEach { umbral ->
                                         SenaChip(
                                             text = if (umbral == 0) "Todas" else "≥ $umbral%",

@@ -272,6 +272,8 @@ private fun TarjetaFichaAdmin(
                     Spacer(Modifier.width(4.dp))
                     Text("Credenciales")
                 }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onEliminar) {
                     Text("Eliminar", color = senaColors().danger)
                 }

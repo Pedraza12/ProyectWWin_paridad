@@ -95,7 +95,7 @@ fun SimilitudesScreen(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = senaColors().textLight,
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SenaChipRow {
                                     listOf(0, 30, 50, 75).forEach { umbral ->
                                         SenaChip(
                                             text = if (umbral == 0) "Todas" else "≥ $umbral%",

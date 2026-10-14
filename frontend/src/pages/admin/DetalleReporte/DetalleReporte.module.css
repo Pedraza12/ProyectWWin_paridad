@@ -15,6 +15,16 @@
   padding: var(--sp-3) var(--sp-4);
 }
 
+.alertError {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-danger-text);
+  background: var(--c-danger-bg);
+  border: 1px solid var(--c-danger);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+}
+
 .description {
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);

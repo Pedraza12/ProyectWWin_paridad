@@ -145,7 +145,7 @@ export default function DashboardAdmin() {
             left={
               <div className={s.accionesPanel}>
                 <DataPanel title="Acciones rápidas" icon={<Sparkle size={18} />}>
-                  <QuickActions items={quick} />
+                  <QuickActions items={quick} variant="stack" />
                 </DataPanel>
               </div>
             }

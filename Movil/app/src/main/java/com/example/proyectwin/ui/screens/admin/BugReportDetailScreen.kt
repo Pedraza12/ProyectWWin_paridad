@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -209,12 +210,13 @@ private fun etiquetaEstado(estado: BugReportStatus): String = when (estado) {
     BugReportStatus.RECHAZADO -> "Rechazado"
 }
 
+@Composable
 private fun colorEstado(estado: BugReportStatus) = when (estado) {
-    BugReportStatus.RESUELTO -> androidx.compose.ui.graphics.Color(0xFF059669)
-    BugReportStatus.RECHAZADO -> androidx.compose.ui.graphics.Color(0xFFEF4444)
-    BugReportStatus.EN_REVISION -> androidx.compose.ui.graphics.Color(0xFF3B82F6)
-    BugReportStatus.CERRADO -> androidx.compose.ui.graphics.Color(0xFF64748B)
-    BugReportStatus.PENDIENTE -> androidx.compose.ui.graphics.Color(0xFFF59E0B)
+    BugReportStatus.RESUELTO -> senaColors().success
+    BugReportStatus.RECHAZADO -> senaColors().danger
+    BugReportStatus.EN_REVISION -> senaColors().info
+    BugReportStatus.CERRADO -> senaColors().textLight
+    BugReportStatus.PENDIENTE -> senaColors().warning
 }
 
 @Composable
@@ -222,7 +224,20 @@ fun BugDetailRow(icon: ImageVector, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = senaColors().textMuted, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(12.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = senaColors().textLight, modifier = Modifier.width(100.dp))
-        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = senaColors().text)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = senaColors().textLight,
+            modifier = Modifier.widthIn(min = 88.dp, max = 110.dp)
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = senaColors().text,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

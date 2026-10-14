@@ -127,7 +127,7 @@ private fun PasswordChangeForm(
             if (onBack != null) {
                 IconButton(
                     onClick = onBack,
-                    modifier = Modifier.align(Alignment.TopStart).padding(top = 16.dp)
+                    modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(top = 16.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                 }

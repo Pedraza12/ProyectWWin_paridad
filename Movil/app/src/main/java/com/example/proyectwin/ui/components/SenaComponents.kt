@@ -12,6 +12,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +37,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.focus.FocusDirection
@@ -61,17 +64,20 @@ fun SenaButton(
     isPrimary: Boolean = true,
     isLoading: Boolean = false,
     enabled: Boolean = true,
-    containerColor: Color? = null
+    containerColor: Color? = null,
+    contentColor: Color? = null,
+    minWidth: Dp = 120.dp
 ) {
     val primaryGradient = Brush.linearGradient(colors = listOf(senaColors().green, senaColors().darkGreen))
-    
+    val colorContenido = contentColor ?: if (isPrimary) senaColors().onPrimary else senaColors().green
+
     Surface(
         modifier = modifier
-            // Se adapta al contenido: no recorta el texto si el caller fija una
-            // altura menor o si el texto ocupa más de una línea.
-            .heightIn(min = 56.dp)
-            .widthIn(min = 120.dp)
-            .clip(CircleShape)
+            // Altura mínima táctil (48) y ancho configurable: en filas con
+            // weight el caller pasa minWidth = 0.dp para no forzar el texto.
+            .heightIn(min = 48.dp)
+            .widthIn(min = minWidth)
+            .clip(RoundedCornerShape(12.dp))
             .then(if (isPrimary && enabled && !isLoading) Modifier.background(primaryGradient) else Modifier)
             .clickable(enabled = enabled && !isLoading) { onClick() },
         color = when {
@@ -79,27 +85,26 @@ fun SenaButton(
             containerColor != null -> containerColor
             else -> if (enabled) Color.Transparent else senaColors().border
         },
-        border = if (!isPrimary) androidx.compose.foundation.BorderStroke(2.dp, senaColors().green) else null,
-        shape = CircleShape
+        border = if (!isPrimary) androidx.compose.foundation.BorderStroke(1.dp, colorContenido) else null,
+        shape = RoundedCornerShape(12.dp)
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = if (isPrimary) Color.White else senaColors().green, strokeWidth = 2.dp)
+                CircularProgressIndicator(modifier = Modifier.size(22.dp), color = colorContenido, strokeWidth = 2.dp)
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (icon != null) {
-                        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = if (isPrimary) Color.White else senaColors().green)
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = colorContenido)
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(
                         text = text,
                         style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp,
-                            color = if (isPrimary) Color.White else senaColors().green
+                            fontWeight = FontWeight.Bold,
+                            color = colorContenido
                         ),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     )
@@ -150,7 +155,7 @@ fun SenaTextField(
             placeholder = { Text(placeholder, color = senaColors().textMuted) },
             leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null, tint = if (isError) senaColors().danger else senaColors().green) } },
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(
                 keyboardType = keyboardType,
                 imeAction = if (multilinea) ImeAction.Default else imeAction,
@@ -186,7 +191,7 @@ fun SenaCard(
         modifier = modifier.fillMaxWidth(),
         onClick = onClick ?: {},
         enabled = onClick != null,
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation)
     ) {
@@ -353,12 +358,12 @@ fun SenaTopBar(
                     }
                     if (showProfile) {
                         Surface(
-                            modifier = Modifier.padding(end = 12.dp).size(36.dp), 
+                            modifier = Modifier.padding(end = 8.dp).size(44.dp),
                             shape = CircleShape, 
                             color = Color.White.copy(alpha = 0.2f)
                         ) {
                             IconButton(onClick = { onNavigateToProfile?.invoke() ?: NavIntents.pedirPerfil() }) { 
-                                Icon(Icons.Default.Person, contentDescription = "Perfil", tint = Color.White, modifier = Modifier.size(18.dp)) 
+                                Icon(Icons.Default.Person, contentDescription = "Perfil", tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
@@ -582,17 +587,36 @@ fun SenaChip(text: String, color: Color, modifier: Modifier = Modifier, isSelect
     Surface(
         color = if (isSelected) color else color.copy(alpha = 0.1f),
         shape = CircleShape,
-        modifier = modifier.then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        modifier = modifier
+            .heightIn(min = 40.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.2f))
     ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-            color = if (isSelected) Color.White else color,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Black
-        )
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Text(
+                text = text,
+                color = if (isSelected) senaColors().onPrimary else color,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+        }
     }
+}
+
+// Fila de chips con desplazamiento horizontal: evita desbordes cuando los
+// filtros no caben en pantallas estrechas (patrón usado en la web con scroll).
+@Composable
+fun SenaChipRow(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content
+    )
 }
 
 @Composable
@@ -624,13 +648,26 @@ fun TeamMemberRow(initials: String, name: String, role: String, isLider: Boolean
             color = if (isLider) senaColors().green else senaColors().borderSoft
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(initials, color = if (isLider) Color.White else senaColors().text, fontWeight = FontWeight.Black)
+                Text(initials, color = if (isLider) senaColors().onPrimary else senaColors().text, fontWeight = FontWeight.Bold)
             }
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = senaColors().text)
-            Text(role, style = MaterialTheme.typography.bodySmall, color = senaColors().textLight)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = senaColors().text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                role,
+                style = MaterialTheme.typography.bodySmall,
+                color = senaColors().textLight,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -648,9 +685,21 @@ fun DetailRow(icon: ImageVector, label: String, value: String) {
             }
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = senaColors().textLight)
-            Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = senaColors().text)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = senaColors().textLight,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = senaColors().text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -807,7 +856,8 @@ private fun decodificarFotoBase64(valor: String?): ImageBitmap? {
 fun SenaCopyButton(
     textToCopy: String,
     label: String = "Copiar",
-    onCopied: () -> Unit = {}
+    onCopied: () -> Unit = {},
+    onDark: Boolean = false
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var copied by remember { mutableStateOf(false) }
@@ -823,7 +873,7 @@ fun SenaCopyButton(
         },
         icon = if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
         isPrimary = false,
-        modifier = Modifier.height(44.dp)
+        contentColor = if (onDark) Color.White else null
     )
 }
 
@@ -975,7 +1025,7 @@ fun SenaSkeletonCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(16.dp),
         color = senaColors().backgroundElevated
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
@@ -1138,10 +1188,10 @@ fun SenaFilterBar(
     SenaCard(modifier = modifier, elevation = 1.dp, containerColor = senaColors().backgroundElevated) {
         Column {
             Row(
-                modifier = Modifier.fillMaxWidth().clickable {
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
                     if (onToggle != null) onToggle(!isExpanded)
                     else internalExpanded = !internalExpanded
-                }.padding(vertical = 4.dp),
+                }.padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(

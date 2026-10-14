@@ -190,6 +190,7 @@ export default function Bitacora() {
           rows={paginadas}
           keyOf={(r) => r.id}
           empty="Sin acciones registradas para este filtro."
+          stickyLast={false}
         />
         <Pagination
           totalItems={filas.length}

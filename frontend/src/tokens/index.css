@@ -135,6 +135,8 @@
   --sidebar-w:248px;--header-h:60px;--govbar-h:36px;--content-max:1200px;
   --form-max:480px;--narrow-max:640px;
   --rail-w:76px;--topnav-h:60px;
+  /* Offset único para cabeceras sticky (govbar + header + aire) */
+  --sticky-top:calc(var(--govbar-h) + var(--header-h) + var(--sp-4));
 }
 
 /* ========================================

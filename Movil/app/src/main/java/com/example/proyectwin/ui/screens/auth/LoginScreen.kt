@@ -64,7 +64,7 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
-                .background(Brush.verticalGradient(colors = listOf(Color(0xFF0F172A), senaColors().header)))
+                .background(Brush.verticalGradient(colors = listOf(senaColors().background, senaColors().header)))
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {

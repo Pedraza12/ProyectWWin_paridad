@@ -138,7 +138,7 @@ export default function DetalleReporte() {
         )}
 
         {accionMsg && (
-          <p className={s.alertSuccess} role="alert" style={{ color: 'var(--c-danger, #c0392b)' }}>
+          <p className={s.alertError} role="alert">
             <Warning size={14} /> {accionMsg}
           </p>
         )}

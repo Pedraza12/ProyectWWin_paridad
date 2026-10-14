@@ -247,66 +247,76 @@ fun NewProjectScreen(
         containerColor = senaColors().background,
         bottomBar = {
             SenaBottomBar {
-                SenaButton(
-                    text = "Cancelar",
-                    onClick = onBack,
-                    isPrimary = false,
-                    modifier = Modifier.weight(1f)
-                )
-                if (!esEdicion) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SenaButton(
+                            text = "Cancelar",
+                            onClick = onBack,
+                            isPrimary = false,
+                            modifier = Modifier.weight(1f),
+                            minWidth = 0.dp
+                        )
+                        if (!esEdicion) {
+                            SenaButton(
+                                text = "Borrador",
+                                onClick = {
+                                    errorLocal = null
+                                    projectsViewModel.guardar(draftActual(), null, selectedIds.toList(), enviarDespues = false)
+                                },
+                                isPrimary = false,
+                                isLoading = enviando,
+                                modifier = Modifier.weight(1f),
+                                minWidth = 0.dp
+                            )
+                        }
+                    }
                     SenaButton(
-                        text = "Borrador",
+                        text = when {
+                            !esEdicion -> "Enviar"
+                            puedeGuardarYEnviar -> "Guardar y enviar"
+                            else -> "Guardar cambios"
+                        },
                         onClick = {
                             errorLocal = null
-                            projectsViewModel.guardar(draftActual(), null, selectedIds.toList(), enviarDespues = false)
-                        },
-                        isPrimary = false,
-                        isLoading = enviando,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                SenaButton(
-                    text = when {
-                        !esEdicion -> "Enviar"
-                        puedeGuardarYEnviar -> "Guardar y enviar"
-                        else -> "Guardar cambios"
-                    },
-                    onClick = {
-                        errorLocal = null
-                        val enviar = puedeGuardarYEnviar
-                        if (enviar) {
-                            intentoEnvio = true
-                            val pendientes = listOf(
-                                errorTitulo(),
-                                errorResumen(),
-                                errorArea(),
-                                errorObjetivoGeneral(),
-                                errorObjetivosEspecificos(),
-                            ).filterNotNull()
-                            if (pendientes.isNotEmpty()) {
-                                errorLocal = "No se puede enviar todavía. Corrige los campos marcados y vuelve a intentarlo."
+                            val enviar = puedeGuardarYEnviar
+                            if (enviar) {
+                                intentoEnvio = true
+                                val pendientes = listOf(
+                                    errorTitulo(),
+                                    errorResumen(),
+                                    errorArea(),
+                                    errorObjetivoGeneral(),
+                                    errorObjetivosEspecificos(),
+                                ).filterNotNull()
+                                if (pendientes.isNotEmpty()) {
+                                    errorLocal = "No se puede enviar todavía. Corrige los campos marcados y vuelve a intentarlo."
+                                } else {
+                                    projectsViewModel.guardar(
+                                        draft = draftActual(),
+                                        proyectoExistente = idEdicion,
+                                        miembros = if (esEdicion) emptyList() else selectedIds.toList(),
+                                        enviarDespues = true,
+                                    )
+                                }
                             } else {
                                 projectsViewModel.guardar(
                                     draft = draftActual(),
                                     proyectoExistente = idEdicion,
                                     miembros = if (esEdicion) emptyList() else selectedIds.toList(),
-                                    enviarDespues = true,
+                                    enviarDespues = false,
                                 )
                             }
-                        } else {
-                            projectsViewModel.guardar(
-                                draft = draftActual(),
-                                proyectoExistente = idEdicion,
-                                miembros = if (esEdicion) emptyList() else selectedIds.toList(),
-                                enviarDespues = false,
-                            )
-                        }
-                    },
-                    isLoading = enviando,
-                    enabled = puedeGuardar,
-                    icon = if (puedeGuardarYEnviar) Icons.Default.Send else Icons.Default.Save,
-                    modifier = Modifier.weight(1.4f)
-                )
+                        },
+                        isLoading = enviando,
+                        enabled = puedeGuardar,
+                        icon = if (puedeGuardarYEnviar) Icons.Default.Send else Icons.Default.Save,
+                        modifier = Modifier.fillMaxWidth(),
+                        minWidth = 0.dp
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -418,16 +428,14 @@ fun NewProjectScreen(
             SenaSectionHeader(title = "Área de Aplicación")
             SenaCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AREAS.chunked(2).forEach { fila ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            fila.forEach { opcion ->
-                                SenaChip(
-                                    text = opcion,
-                                    color = senaColors().green,
-                                    isSelected = area == opcion,
-                                    onClick = { area = opcion; errorLocal = null },
-                                )
-                            }
+                    SenaChipRow {
+                        AREAS.forEach { opcion ->
+                            SenaChip(
+                                text = opcion,
+                                color = senaColors().green,
+                                isSelected = area == opcion,
+                                onClick = { area = opcion; errorLocal = null },
+                            )
                         }
                     }
                     fieldErrors["area_aplicacion"]?.let {
@@ -510,8 +518,9 @@ fun TeamMemberList(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 48.dp)
                     .clickable { onToggle(member.id) }
-                    .padding(8.dp),
+                    .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -521,11 +530,26 @@ fun TeamMemberList(
                             if (selected) senaColors().green else Color.Transparent,
                             shape = RoundedCornerShape(4.dp)
                         )
-                )
+                        .then(
+                            if (!selected) Modifier.background(Color.Transparent) else Modifier
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selected) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = senaColors().onPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
                 Spacer(Modifier.width(12.dp))
                 Text(
                     member.nombre.ifBlank { member.correo },
                     style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }

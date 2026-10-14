@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectwin.data.model.Comment
@@ -173,21 +174,29 @@ fun AdminSimilarityDetailScreen(
                     SenaSectionHeader(title = "Agregar observación")
                     SenaCard(elevation = 1.dp) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf(0, 1).forEach { indice ->
                                     val proyecto = if (indice == 0) par.project1 else par.project2
-                                    SenaChip(
-                                        text = if (indice == 0) "A" else "B",
-                                        color = senaColors().green,
-                                        isSelected = comentarioProyecto == indice,
-                                        onClick = { comentarioProyecto = indice },
-                                    )
-                                    Text(
-                                        proyecto?.title ?: "Propuesta ${if (indice == 0) "A" else "B"}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = senaColors().textLight,
-                                        modifier = Modifier.align(Alignment.CenterVertically),
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        SenaChip(
+                                            text = if (indice == 0) "A" else "B",
+                                            color = senaColors().green,
+                                            isSelected = comentarioProyecto == indice,
+                                            onClick = { comentarioProyecto = indice },
+                                        )
+                                        Text(
+                                            proyecto?.title ?: "Propuesta ${if (indice == 0) "A" else "B"}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = senaColors().textLight,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
                                 }
                             }
                             SenaTextField(

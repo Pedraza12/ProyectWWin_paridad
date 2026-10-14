@@ -150,7 +150,7 @@ fun DetalleFichaInstructorScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.QrCode, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        SenaCopyButton(textToCopy = ficha.codigo, label = ficha.codigo)
+                                        SenaCopyButton(textToCopy = ficha.codigo, label = ficha.codigo, onDark = true)
                                     }
                                     if (!ficha.numero.isNullOrBlank()) {
                                         Text(

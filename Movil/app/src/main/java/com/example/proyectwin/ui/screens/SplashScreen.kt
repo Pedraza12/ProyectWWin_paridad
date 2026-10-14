@@ -48,7 +48,7 @@ fun SplashScreen() {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF022C22), senaColors().header),
+                    colors = listOf(senaColors().darkGreen, senaColors().header),
                 ),
             ),
         contentAlignment = Alignment.Center,

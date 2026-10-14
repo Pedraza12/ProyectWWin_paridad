@@ -162,7 +162,7 @@ fun FichaDetailScreen(
                                         Spacer(Modifier.width(8.dp))
                                         Text("Código:", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f))
                                         Spacer(Modifier.width(6.dp))
-                                        SenaCopyButton(textToCopy = ficha.codigo, label = ficha.codigo)
+                                        SenaCopyButton(textToCopy = ficha.codigo, label = ficha.codigo, onDark = true)
                                     }
                                     if (!ficha.numero.isNullOrBlank()) {
                                         Text(
