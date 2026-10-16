@@ -1,5 +1,6 @@
 package com.example.proyectwin.di
 
+import com.example.proyectwin.data.repository.AppUpdatesRepositoryImpl
 import com.example.proyectwin.data.repository.AuditRepositoryImpl
 import com.example.proyectwin.data.repository.AuthRepositoryImpl
 import com.example.proyectwin.data.repository.BugReportsRepositoryImpl
@@ -12,6 +13,7 @@ import com.example.proyectwin.data.repository.NotificationsRepositoryImpl
 import com.example.proyectwin.data.repository.ProjectsRepositoryImpl
 import com.example.proyectwin.data.repository.SimilaritiesRepositoryImpl
 import com.example.proyectwin.data.repository.UsersRepositoryImpl
+import com.example.proyectwin.domain.repository.AppUpdatesRepository
 import com.example.proyectwin.domain.repository.AuditRepository
 import com.example.proyectwin.domain.repository.AuthRepository
 import com.example.proyectwin.domain.repository.BugReportsRepository
@@ -63,6 +65,9 @@ internal abstract class RepositoryModule {
 
     @Binds
     abstract fun bindMotorRepository(impl: MotorRepositoryImpl): MotorRepository
+
+    @Binds
+    abstract fun bindAppUpdatesRepository(impl: AppUpdatesRepositoryImpl): AppUpdatesRepository
 
     @Binds
     abstract fun bindAuditRepository(impl: AuditRepositoryImpl): AuditRepository

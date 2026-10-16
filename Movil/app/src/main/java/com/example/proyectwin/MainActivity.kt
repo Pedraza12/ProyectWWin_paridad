@@ -11,7 +11,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,6 +34,8 @@ import com.example.proyectwin.navigation.AppNavigation.instructorGraph
 import com.example.proyectwin.navigation.AppNavigation.adminGraph
 import com.example.proyectwin.navigation.NavIntent
 import com.example.proyectwin.navigation.NavIntents
+import com.example.proyectwin.ui.components.AppUpdateHost
+import com.example.proyectwin.ui.components.abrirEnlaceSeguro
 import com.example.proyectwin.ui.screens.EditProfileScreen
 import com.example.proyectwin.ui.screens.ReportIssueScreen
 import com.example.proyectwin.ui.screens.SplashScreen
@@ -33,6 +43,7 @@ import com.example.proyectwin.ui.screens.auth.CambioObligatorioScreen
 import com.example.proyectwin.ui.screens.auth.ChangeEmailScreen
 import com.example.proyectwin.ui.theme.LocalThemeIsDark
 import com.example.proyectwin.ui.theme.ProyecTwinTheme
+import com.example.proyectwin.ui.viewmodel.AppUpdateViewModel
 import com.example.proyectwin.ui.viewmodel.AuthUiState
 import com.example.proyectwin.ui.viewmodel.AuthViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -48,6 +59,11 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val uiState by authViewModel.uiState.collectAsState()
+
+                // Verificación de actualización (una vez por proceso) y aviso.
+                val appUpdateViewModel: AppUpdateViewModel = hiltViewModel()
+                val estadoActualizacion by appUpdateViewModel.uiState.collectAsState()
+                val contexto = LocalContext.current
 
                 val isDark = LocalThemeIsDark.current.value
                 val view = LocalView.current
@@ -182,13 +198,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                if (!arranqueListo) {
-                    SplashScreen()
-                } else {
-                    NavHost(
-                        navController = navController,
-                        startDestination = startDestination
-                    ) {
+                // "Sesión activa" = logueado y sin cambio de contraseña pendiente
+                // (ese flujo ya es bloqueante por sí mismo).
+                val estadoSesion = uiState as? AuthUiState.LoggedIn
+                val sesionActiva = estadoSesion != null && !estadoSesion.user.mustChangePassword
+                LaunchedEffect(sesionActiva) {
+                    if (sesionActiva) appUpdateViewModel.verificar(BuildConfig.VERSION_NAME)
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (!arranqueListo) {
+                        SplashScreen()
+                    } else {
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination
+                        ) {
                         authGraph(navController)
                         aprendizGraph(navController)
                         instructorGraph(navController)
@@ -224,6 +249,26 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                         }
+                    }
+                }
+
+                    // Banner de actualización: flota sobre la pantalla actual sin
+                    // bloquear la navegación (solo con sesión activa).
+                    if (arranqueListo && sesionActiva) {
+                        AppUpdateHost(
+                            estado = estadoActualizacion,
+                            onActualizar = {
+                                val url = estadoActualizacion.urlDescarga
+                                if (url != null && abrirEnlaceSeguro(contexto, url)) {
+                                    appUpdateViewModel.actualizacionAtendida()
+                                }
+                            },
+                            onMasTarde = { appUpdateViewModel.masTarde() },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .navigationBarsPadding()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 96.dp),
+                        )
                     }
                 }
             }

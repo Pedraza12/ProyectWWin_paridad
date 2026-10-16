@@ -16,3 +16,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Healthcheck del despliegue en Railway (configurado en railway.json).
+// Responde 200 cuando la aplicación arranca correctamente.
+Route::get('/up', function () {
+    return response()->json(['status' => 'ok']);
+});

@@ -3,6 +3,7 @@ package com.example.proyectwin.di
 import com.example.proyectwin.BuildConfig
 import com.example.proyectwin.data.api.AuthInterceptor
 import com.example.proyectwin.data.api.service.ApprenticesApi
+import com.example.proyectwin.data.api.service.AppVersionApi
 import com.example.proyectwin.data.api.service.AuditApi
 import com.example.proyectwin.data.api.service.AuthApi
 import com.example.proyectwin.data.api.service.BugReportsApi
@@ -98,6 +99,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideApprenticesApi(retrofit: Retrofit): ApprenticesApi = retrofit.create(ApprenticesApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAppVersionApi(retrofit: Retrofit): AppVersionApi = retrofit.create(AppVersionApi::class.java)
 
     @Provides
     @Singleton

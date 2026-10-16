@@ -383,3 +383,16 @@ fun AuditLogDto.toDomain(): AuditLog = AuditLog(
 /** Usuario de login + token: lo que se persiste en la sesión local. */
 fun com.example.proyectwin.data.api.dto.LoginResponse.toSessionUser(): GeneralUser =
     user.toDomain().copy(token = token)
+
+// ------------------------------------------------------- Actualizaciones
+
+/** Versión publicada del APK Android (consulta pública de actualizaciones). */
+fun com.example.proyectwin.data.api.dto.AppVersionDto.toDomain(
+): com.example.proyectwin.data.model.AppVersionInfo =
+    com.example.proyectwin.data.model.AppVersionInfo(
+        versionPublicada = latestVersion.orEmpty(),
+        versionMinima = minimumSupportedVersion.orEmpty(),
+        obligatoria = enforceMinimum,
+        urlDescarga = downloadUrl?.trim()?.takeIf { it.isNotEmpty() },
+        notas = releaseNotes?.trim()?.takeIf { it.isNotEmpty() },
+    )

@@ -1,0 +1,16 @@
+# Contexto del build de la imagen (Railway usa el Dockerfile de la raíz).
+# Todo lo que no participe del build se excluye para subir rápido.
+.git
+.vscode
+.idea
+**/node_modules
+**/vendor
+**/test-results
+**/*.md
+frontend/dist
+frontend/e2e
+backend/tests
+backend/.phpunit.result.cache
+backend/.env
+Movil
+docs

@@ -1,0 +1,14 @@
+# Lo que no necesita subir `railway up` (la imagen igual lo excluye).
+.git
+.vscode
+.idea
+**/node_modules
+**/vendor
+**/test-results
+frontend/dist
+frontend/e2e
+backend/tests
+backend/.phpunit.result.cache
+backend/.env
+Movil
+docs

@@ -137,6 +137,10 @@ fun SenaTextField(
     // mostraba "→|" y al pulsarlo (o al escribir) saltaba al siguiente campo,
     // impidiendo redactar párrafos y objetivos.
     val multilinea = !singleLine
+    // El ojito aparece solo en campos de contraseña y cada campo maneja su
+    // propio estado de visibilidad.
+    var mostrarPassword by remember { mutableStateOf(false) }
+    val ocultado = isPassword && !mostrarPassword
     Column(modifier = modifier.fillMaxWidth()) {
         if (label.isNotEmpty()) {
             Text(
@@ -154,7 +158,18 @@ fun SenaTextField(
             isError = isError,
             placeholder = { Text(placeholder, color = senaColors().textMuted) },
             leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null, tint = if (isError) senaColors().danger else senaColors().green) } },
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            visualTransformation = if (ocultado) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = if (isPassword) {
+                {
+                    IconButton(onClick = { mostrarPassword = !mostrarPassword }) {
+                        Icon(
+                            imageVector = if (mostrarPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (mostrarPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                            tint = senaColors().textSecondary,
+                        )
+                    }
+                }
+            } else null,
             shape = RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(
                 keyboardType = keyboardType,

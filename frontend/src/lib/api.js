@@ -30,12 +30,12 @@ function leerCookie(nombre) {
 
 let csrfListo = false;
 
-// Pide la cookie CSRF una sola vez (Laravel la deja en XSRF-TOKEN).
-async function asegurarCsrf() {
-  if (csrfListo || leerCookie("XSRF-TOKEN")) {
-    csrfListo = true;
-    return;
-  }
+// Pide (o renueva) la cookie CSRF. El Set-Cookie de esta respuesta reemplaza la
+// XSRF-TOKEN anterior, así que también recupera el caso en que el servidor se
+// reinicia (p. ej. un despliegue): la sesión muere pero el navegador conserva
+// el token viejo y toda escritura respondería 419 hasta limpiar cookies.
+async function refrescarCsrf() {
+  csrfListo = false;
   try {
     await fetch(URL_CSRF, {
       credentials: "include",
@@ -45,6 +45,15 @@ async function asegurarCsrf() {
   } catch {
     /* se reintentará en la próxima escritura */
   }
+}
+
+// Pide la cookie CSRF una sola vez (Laravel la deja en XSRF-TOKEN).
+async function asegurarCsrf() {
+  if (csrfListo || leerCookie("XSRF-TOKEN")) {
+    csrfListo = true;
+    return;
+  }
+  await refrescarCsrf();
 }
 
 // ---------------------------------------------------------------- Caché de GET
@@ -114,29 +123,50 @@ export async function apiFetch(
       Accept: "application/json",
     };
 
-    // Las escrituras exigen el token CSRF (cookie httpOnly de sesión + header).
-    if (!esGet) {
+    // Cabeceras para una escritura: token CSRF leído de la cookie XSRF-TOKEN.
+    const cabecerasEscritura = async () => {
+      const h = { ...headers };
       await asegurarCsrf();
       const xsrf = leerCookie("XSRF-TOKEN");
-      if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
-    }
+      if (xsrf) h["X-XSRF-TOKEN"] = xsrf;
+      return h;
+    };
 
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeout);
-    try {
-      const res = await fetch(url, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-        credentials: "include",
-        signal: ctrl.signal,
-      });
-      const text = await res.text();
-      let data = null;
+    // Un intento de red completo (fetch + lectura del cuerpo).
+    const enviar = async (h) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeout);
       try {
-        data = text ? JSON.parse(text) : null;
-      } catch {
-        data = text;
+        const res = await fetch(url, {
+          method,
+          headers: h,
+          body: body ? JSON.stringify(body) : undefined,
+          credentials: "include",
+          signal: ctrl.signal,
+        });
+        const text = await res.text();
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          data = text;
+        }
+        return { res, data };
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    try {
+      let { res, data } = await enviar(
+        esGet ? headers : await cabecerasEscritura(),
+      );
+
+      // 419 = token CSRF desincronizado con la sesión (p. ej. tras reiniciar el
+      // servidor). Se renueva la cookie y se reintenta UNA vez.
+      if (!esGet && res.status === 419) {
+        await refrescarCsrf();
+        ({ res, data } = await enviar(await cabecerasEscritura()));
       }
 
       if (!res.ok) {
@@ -165,7 +195,6 @@ export async function apiFetch(
       }
       throw err;
     } finally {
-      clearTimeout(timer);
       if (enVuelo.get(url) === peticion) enVuelo.delete(url);
       if (!esGet && genEscritura === generacion) invalidarCache();
     }
@@ -178,23 +207,39 @@ export async function apiFetch(
 // Descarga un archivo binario (p. ej. el PDF de credenciales) respetando la
 // sesión por cookie y el token CSRF. Dispara la descarga en el navegador.
 export async function apiDescargar(path, { method = "GET", body, nombre = "archivo.pdf", timeout = 15000 } = {}) {
-  await asegurarCsrf();
+  // Un intento de red con el token CSRF vigente.
+  const intentar = async () => {
+    await asegurarCsrf();
 
-  const headers = { Accept: "application/pdf" };
-  const xsrf = leerCookie("XSRF-TOKEN");
-  if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
-  if (body) headers["Content-Type"] = "application/json";
+    const headers = { Accept: "application/pdf" };
+    const xsrf = leerCookie("XSRF-TOKEN");
+    if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
+    if (body) headers["Content-Type"] = "application/json";
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeout);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      return await fetch(`${BASE}${path.startsWith("/") ? "" : "/"}${path}`, {
+        method,
+        headers,
+        credentials: "include",
+        body: body ? JSON.stringify(body) : undefined,
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
   try {
-    const res = await fetch(`${BASE}${path.startsWith("/") ? "" : "/"}${path}`, {
-      method,
-      headers,
-      credentials: "include",
-      body: body ? JSON.stringify(body) : undefined,
-      signal: ctrl.signal,
-    });
+    let res = await intentar();
+
+    // Mismo criterio que apiFetch: renovar el token y reintentar una vez
+    // cuando el servidor responde 419 (token CSRF desincronizado).
+    if (method !== "GET" && res.status === 419) {
+      await refrescarCsrf();
+      res = await intentar();
+    }
 
     if (!res.ok) {
       const text = await res.text();
@@ -236,8 +281,6 @@ export async function apiDescargar(path, { method = "GET", body, nombre = "archi
       throw e;
     }
     throw err;
-  } finally {
-    clearTimeout(timer);
   }
 }
 

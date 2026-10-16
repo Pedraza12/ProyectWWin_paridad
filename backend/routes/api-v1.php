@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\MotorConfigController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AppVersionController;
 
 // ------------------------------------------------------------------ Públicas
 // Login y recuperación de contraseña por correo no exigen token. La creación
@@ -36,6 +37,10 @@ Route::get('public/resumen', [MotorConfigController::class, 'resumen']);
 // Demo pública del motor: compara un texto libre contra el corpus vigente y
 // devuelve solo títulos y porcentajes (nunca autores ni resúmenes).
 Route::post('public/demo-similitud', [SimilarityController::class, 'demo']);
+
+// Versión publicada de la app Android (detección de actualizaciones en móvil).
+// Pública: la app la consulta sin token; se configura en app_version.php.
+Route::get('app-version/android', [AppVersionController::class, 'android']);
 
 // ------------------------------------------------------------------ Sesión
 // Cuenta suspendida no puede ni siquiera usar su token vigente.
