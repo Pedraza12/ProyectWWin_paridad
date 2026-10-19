@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowDown, ArrowLeft, ArrowRight, Books, CalendarBlank, MagnifyingGlass, User } from 'phosphor-react'
+import { ArrowLeft, ArrowRight, Books, CalendarBlank, FileText, MagnifyingGlass, User } from 'phosphor-react'
 import PageHeader from '../PageHeader/PageHeader'
 import DataPanel from '../DataPanel/DataPanel'
 import Badge from '../Badge/Badge'
 import GradeBadge from '../GradeBadge/GradeBadge'
-import ScoreDial from '../ScoreDial/ScoreDial'
 import Tag from '../Tag/Tag'
 import EmptyState from '../EmptyState/EmptyState'
+import SimilarityGraph from '../SimilarityGraph/SimilarityGraph'
 import { useAuth } from '../../contexts/AuthContext'
 import { useApi } from '../../lib/useApi'
 import { similitudes, fichas } from '../../lib/recursos'
@@ -240,48 +240,7 @@ export default function DetalleSimilitudBase({
             )}
           </p>
 
-          <dl className={s.fields}>
-            {p.resumen && (
-              <div className={s.field}>
-                <dt>Resumen</dt>
-                <dd>{p.resumen}</dd>
-              </div>
-            )}
-            {p.objetivo_general && (
-              <div className={s.field}>
-                <dt>Objetivo general</dt>
-                <dd>{p.objetivo_general}</dd>
-              </div>
-            )}
-            {objetivosDe(p).length > 0 && (
-              <div className={s.field}>
-                <dt>Objetivos específicos</dt>
-                <dd>
-                  <ul className={s.lista}>
-                    {objetivosDe(p).map((objetivo, i) => (
-                      <li key={`${tag}-obj-${i}`}>{objetivo}</li>
-                    ))}
-                  </ul>
-                </dd>
-              </div>
-            )}
-            {listaClaves(p.palabras_clave).length > 0 && (
-              <div className={s.field}>
-                <dt>Palabras clave</dt>
-                <dd className={s.tags}>
-                  {listaClaves(p.palabras_clave).map((clave, i) => (
-                    <span key={`${tag}-kw-${i}`} className={s.kw}>{clave}</span>
-                  ))}
-                </dd>
-              </div>
-            )}
-            {p.area_aplicacion && (
-              <div className={s.field}>
-                <dt>Área de aplicación</dt>
-                <dd>{p.area_aplicacion}</dd>
-              </div>
-            )}
-          </dl>
+          {p.resumen && <p className={s.cardResumen}>{p.resumen}</p>}
 
           {puedeVerProyecto(p.id) ? (
             <Link to={`/${role}${projectPath}/${p.id}`} className={s.link}>
@@ -306,40 +265,80 @@ export default function DetalleSimilitudBase({
         breadcrumb={[...crumbPrevio, { label: `#${similitud.id}` }]}
       />
 
-      <section className={s.compareHead} aria-label="Encabezado de la comparación">
-        <div className={s.names}>
-          <div className={s.nameRow}>
-            <Tag variant="b">Proyecto B</Tag>
-            <h2 className={s.name}>{propuestaB?.titulo || 'Proyecto no disponible'}</h2>
-            {propuestaB && <span className={`mono ${s.nameId}`}>#{propuestaB.id}</span>}
-          </div>
-          <span className={s.vs} aria-hidden="true">comparado con</span>
-          <div className={s.nameRow}>
-            <Tag variant="a">Proyecto A</Tag>
-            <h2 className={s.name}>{propuestaA?.titulo || 'Proyecto no disponible'}</h2>
-            {propuestaA && <span className={`mono ${s.nameId}`}>#{propuestaA.id}</span>}
-          </div>
-        </div>
-        <div className={s.dial}>
-          <ScoreDial value={pct} size={132} label="Índice de similitud" />
-          <div className={s.dialInfo}>
-            <p className={s.scoreLabel}>Índice de similitud</p>
-            <GradeBadge score={pct} />
-            <p className={s.scoreNote}>
-              Medida calculada por el motor de ProyecTwin. No es una prueba de plagio ni un veredicto definitivo.
-            </p>
-          </div>
-        </div>
-      </section>
+      <SimilarityGraph porcentaje={pct} etiqueta="Índice de similitud" />
+      <p className={s.note}>
+        Medida calculada por el motor de ProyecTwin. No es una prueba de plagio ni un veredicto definitivo.
+      </p>
 
-      <div className={s.stack}>
-        {tarjetaProyecto(propuestaB, 'B')}
-        <div className={s.connector} aria-hidden="true">
-          <ArrowDown size={16} />
-          <span>misma comparación</span>
-        </div>
+      <div className={s.cardsRow}>
         {tarjetaProyecto(propuestaA, 'A')}
+        {tarjetaProyecto(propuestaB, 'B')}
       </div>
+
+      <DataPanel title="Detalle de las propuestas" icon={<FileText />}>
+        <div className={s.detailsGrid}>
+          {[['A', propuestaA], ['B', propuestaB]].map(([tag, p]) => (
+            <section key={tag} className={s.detalle} aria-label={`Detalles del proyecto ${tag}`}>
+              <header className={s.detalleHead}>
+                <Tag variant={tag === 'A' ? 'a' : 'b'}>Proyecto {tag}</Tag>
+                <h3 className={s.detalleTitulo}>{p?.titulo || 'Proyecto no disponible'}</h3>
+              </header>
+              {p ? (
+                <dl className={s.fields}>
+                  {p.resumen && (
+                    <div className={s.field}>
+                      <dt>Resumen</dt>
+                      <dd>{p.resumen}</dd>
+                    </div>
+                  )}
+                  {p.objetivo_general && (
+                    <div className={s.field}>
+                      <dt>Objetivo general</dt>
+                      <dd>{p.objetivo_general}</dd>
+                    </div>
+                  )}
+                  {objetivosDe(p).length > 0 && (
+                    <div className={s.field}>
+                      <dt>Objetivos específicos</dt>
+                      <dd>
+                        <ul className={s.lista}>
+                          {objetivosDe(p).map((objetivo, i) => (
+                            <li key={`${tag}-obj-${i}`}>{objetivo}</li>
+                          ))}
+                        </ul>
+                      </dd>
+                    </div>
+                  )}
+                  {listaClaves(p.palabras_clave).length > 0 && (
+                    <div className={s.field}>
+                      <dt>Palabras clave</dt>
+                      <dd className={s.tags}>
+                        {listaClaves(p.palabras_clave).map((clave, i) => (
+                          <span key={`${tag}-kw-${i}`} className={s.kw}>{clave}</span>
+                        ))}
+                      </dd>
+                    </div>
+                  )}
+                  {p.area_aplicacion && (
+                    <div className={s.field}>
+                      <dt>Área de aplicación</dt>
+                      <dd>{p.area_aplicacion}</dd>
+                    </div>
+                  )}
+                  {fichaDe(p) && (
+                    <div className={s.field}>
+                      <dt>Ficha</dt>
+                      <dd>{fichaDe(p)}</dd>
+                    </div>
+                  )}
+                </dl>
+              ) : (
+                <p className={s.muted}>Este proyecto ya no está disponible.</p>
+              )}
+            </section>
+          ))}
+        </div>
+      </DataPanel>
 
       {(detalles || terminos.length > 0 || pasajes.length > 0) && (
         <DataPanel title="Coincidencias detectadas por el motor" icon={<MagnifyingGlass />}>

@@ -9,15 +9,16 @@
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: var(--sp-3);
 }
+/* Tres gráficas compactas en escritorio; se apilan solas en pantallas chicas. */
 .charts {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: var(--sp-4);
   align-items: start;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .charts {
-    grid-template-columns: 1fr;
+    gap: var(--sp-3);
   }
 }

@@ -1,16 +1,17 @@
 import s from './Charts.module.css'
+import { CYBER_COLORS } from './palette'
 
-// Gráficas SVG livianas (sin librerías externas) alineadas al sistema visual.
-// Todas reciben datos reales y muestran un estado vacío si no hay valores.
+// Gráficas SVG livianas (sin librerías externas), con estética de consola
+// tecnológica: fondo oscuro, tipografía mono, neón sutil y datos reales.
 
 export function BarChart({ data = [], ariaLabel = 'Gráfica de barras' }) {
   const max = Math.max(1, ...data.map((d) => Number(d.value) || 0))
-  if (!data.length) return <p className={s.empty}>Sin datos para mostrar.</p>
+  if (!data.length) return <p className={`${s.cyber} ${s.empty}`}>Sin datos para mostrar.</p>
 
   const resumen = data.map((d) => `${d.label}: ${d.value}`).join(', ')
 
   return (
-    <ul className={s.bars} role="img" aria-label={`${ariaLabel}. ${resumen}`}>
+    <ul className={`${s.cyber} ${s.bars}`} role="img" aria-label={`${ariaLabel}. ${resumen}`}>
       {data.map((d) => (
         <li key={d.label} className={s.barRow}>
           <span className={s.barLabel}>{d.label}</span>
@@ -19,11 +20,12 @@ export function BarChart({ data = [], ariaLabel = 'Gráfica de barras' }) {
               className={s.barFill}
               style={{
                 width: `${((Number(d.value) || 0) / max) * 100}%`,
-                background: d.color || 'var(--c-primary)',
+                background: d.color || CYBER_COLORS.cyan,
+                boxShadow: `0 0 10px ${(d.color || CYBER_COLORS.cyan)}55`,
               }}
             />
           </span>
-          <span className={`mono ${s.barValue}`}>{d.value}</span>
+          <span className={s.barValue}>{d.value}</span>
         </li>
       ))}
     </ul>
@@ -32,13 +34,13 @@ export function BarChart({ data = [], ariaLabel = 'Gráfica de barras' }) {
 
 export function DonutChart({
   data = [],
-  size = 176,
-  thickness = 22,
+  size = 158,
+  thickness = 18,
   centro = '',
   ariaLabel = 'Distribución',
 }) {
   const total = data.reduce((acc, d) => acc + (Number(d.value) || 0), 0)
-  if (!total) return <p className={s.empty}>Sin datos para mostrar.</p>
+  if (!total) return <p className={`${s.cyber} ${s.empty}`}>Sin datos para mostrar.</p>
 
   const radio = (size - thickness) / 2
   const circunferencia = 2 * Math.PI * radio
@@ -61,7 +63,7 @@ export function DonutChart({
   const resumen = data.map((d) => `${d.label}: ${d.value}`).join(', ')
 
   return (
-    <div className={s.donutWrap}>
+    <div className={`${s.cyber} ${s.donutWrap}`}>
       <div className={s.donutBox} style={{ width: size, height: size }}>
         <svg
           width={size}
@@ -87,11 +89,12 @@ export function DonutChart({
                 cy={cx}
                 r={radio}
                 fill="none"
-                stroke={segmento.color || 'var(--c-primary)'}
+                stroke={segmento.color || CYBER_COLORS.cyan}
                 strokeWidth={thickness}
                 strokeDasharray={`${segmento.largo} ${circunferencia - segmento.largo}`}
                 strokeDashoffset={segmento.offset}
                 transform={`rotate(-90 ${cx} ${cx})`}
+                style={{ filter: `drop-shadow(0 0 4px ${segmento.color || CYBER_COLORS.cyan}66)` }}
               />
             )
           })}
@@ -106,11 +109,14 @@ export function DonutChart({
           <li key={d.label} className={s.legendItem}>
             <span
               className={s.legendDot}
-              style={{ background: d.color || 'var(--c-primary)' }}
+              style={{
+                background: d.color || CYBER_COLORS.cyan,
+                boxShadow: `0 0 6px ${d.color || CYBER_COLORS.cyan}`,
+              }}
               aria-hidden="true"
             />
             <span className={s.legendText}>{d.label}</span>
-            <span className={`mono ${s.legendValue}`}>{d.value}</span>
+            <span className={s.legendValue}>{d.value}</span>
           </li>
         ))}
       </ul>
@@ -121,12 +127,13 @@ export function DonutChart({
 export function LineChart({ data = [], ariaLabel = 'Evolución mensual' }) {
   const valores = data.map((d) => Number(d.value) || 0)
   if (!data.length || valores.every((v) => v === 0)) {
-    return <p className={s.empty}>Sin datos en el período.</p>
+    return <p className={`${s.cyber} ${s.empty}`}>Sin datos en el período.</p>
   }
 
+  // Lienzo compacto (aspecto ~3:1) para que la gráfica no domine el panel.
   const W = 600
-  const H = 200
-  const pad = { top: 16, right: 12, bottom: 30, left: 34 }
+  const H = 190
+  const pad = { top: 12, right: 10, bottom: 26, left: 30 }
   const max = Math.max(1, ...valores)
   const paso = data.length > 1 ? (W - pad.left - pad.right) / (data.length - 1) : 0
   const x = (i) => pad.left + i * paso
@@ -137,12 +144,12 @@ export function LineChart({ data = [], ariaLabel = 'Evolución mensual' }) {
   const resumen = data.map((d) => `${d.label}: ${d.value}`).join(', ')
 
   return (
-    <div className={s.lineWrap} role="img" aria-label={`${ariaLabel}. ${resumen}`}>
+    <div className={`${s.cyber} ${s.lineWrap}`} role="img" aria-label={`${ariaLabel}. ${resumen}`}>
       <svg viewBox={`0 0 ${W} ${H}`} className={s.lineSvg} aria-hidden="true">
         {ticks.map((t) => (
           <g key={t.valor}>
             <line x1={pad.left} x2={W - pad.right} y1={t.y} y2={t.y} className={s.gridLine} />
-            <text x={pad.left - 8} y={t.y + 4} textAnchor="end" className={s.axisText}>
+            <text x={pad.left - 6} y={t.y + 3} textAnchor="end" className={s.axisText}>
               {t.valor}
             </text>
           </g>
@@ -150,7 +157,7 @@ export function LineChart({ data = [], ariaLabel = 'Evolución mensual' }) {
         <polygon points={area} className={s.lineArea} />
         <polyline points={puntos} className={s.linePath} />
         {valores.map((v, i) => (
-          <circle key={data[i].mes || i} cx={x(i)} cy={y(v)} r="4" className={s.lineDot}>
+          <circle key={data[i].mes || i} cx={x(i)} cy={y(v)} r="3.5" className={s.lineDot}>
             <title>{`${data[i].label}: ${v}`}</title>
           </circle>
         ))}
