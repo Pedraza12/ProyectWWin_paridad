@@ -202,6 +202,10 @@ class GeneralUserController extends Controller
             'foto_url' => 'nullable',
             'rol' => 'sometimes|required|in:aprendiz,instructor,admin',
             'estado' => 'sometimes|boolean',
+            // Documento de identidad: el admin puede corregirlo (p. ej. un
+            // número mal digitado en el alta). El propio usuario no lo edita.
+            'tipo_documento' => 'sometimes|required|in:CC,TI,CE,PPT',
+            'numero_documento' => 'sometimes|required|max:40|unique:general_users,numero_documento,' . $general_user->id,
         ]);
 
         // Autorización: la propia cuenta, o cualquier cuenta si eres admin.
@@ -260,11 +264,15 @@ class GeneralUserController extends Controller
             }
         }
 
-        // Whitelist: solo campos editables por esta vía. Los campos internos
-        // del flujo de credenciales (username, documentos, must_change_password,
-        // password_temporal, credenciales_*) nunca se aceptan desde el request.
+        // Whitelist: solo campos editables por esta vía. El admin también puede
+        // corregir el documento de identidad; los campos internos del flujo de
+        // credenciales (username, must_change_password, password_temporal,
+        // credenciales_*) nunca se aceptan desde el request.
         $data = $esAdmin
-            ? $request->only(['nombre', 'apellido', 'correo', 'foto_url', 'rol', 'estado'])
+            ? $request->only([
+                'nombre', 'apellido', 'correo', 'foto_url', 'rol', 'estado',
+                'tipo_documento', 'numero_documento',
+            ])
             : $request->only(['nombre', 'apellido', 'correo', 'foto_url']);
 
         // Las contraseñas no se cambian por esta vía: la propia exige la actual
@@ -278,9 +286,11 @@ class GeneralUserController extends Controller
         }
 
         $cambiaNombre = $request->filled('nombre') && $request->nombre !== $general_user->nombre;
+        $cambiaDocumento = ($request->filled('tipo_documento') && $request->tipo_documento !== $general_user->tipo_documento)
+            || ($request->filled('numero_documento') && $request->numero_documento !== $general_user->numero_documento);
 
         // Actualización atómica: cuenta + perfiles + auditoría (todo o nada).
-        DB::transaction(function () use ($general_user, $data, $cambiaRol, $cambiaEstado, $cambiaCorreo, $cambiaNombre) {
+        DB::transaction(function () use ($general_user, $data, $cambiaRol, $cambiaEstado, $cambiaCorreo, $cambiaNombre, $cambiaDocumento) {
             $general_user->update($data);
 
             Auditoria::registrar('actualizar_usuario', 'general_users', $general_user->id, array_filter([
@@ -288,6 +298,9 @@ class GeneralUserController extends Controller
                 'estado' => $cambiaEstado ? (bool) $general_user->estado : null,
                 'correo' => $cambiaCorreo ? $general_user->correo : null,
                 'nombre' => $cambiaNombre ? $general_user->nombre : null,
+                'documento' => $cambiaDocumento
+                    ? $general_user->tipo_documento . ' ' . $general_user->numero_documento
+                    : null,
             ]));
 
             // Mantiene coherentes los perfiles (admin/instructor/aprendiz) al cambio de rol.

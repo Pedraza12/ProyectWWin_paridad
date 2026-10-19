@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { FolderOpen, MagnifyingGlass, ChartBar, Users, PencilSimple, Prohibit, Key, Trash, CheckCircle, Warning, ArrowCounterClockwise } from 'phosphor-react'
+import { FolderOpen, MagnifyingGlass, ChartBar, Users, PencilSimple, Prohibit, Key, Trash, CheckCircle, Warning, ArrowCounterClockwise, Camera } from 'phosphor-react'
 import DashboardLayout from '../../../layouts/DashboardLayout/DashboardLayout'
 import PerfilBase from '../../../components/PerfilBase/PerfilBase'
+import Avatar from '../../../components/Avatar/Avatar'
 import DataPanel from '../../../components/DataPanel/DataPanel'
 import Badge from '../../../components/Badge/Badge'
 import GradeBadge from '../../../components/GradeBadge/GradeBadge'
@@ -18,6 +19,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
 import { usuarios, aprendices, fichas, proyectos, similitudes } from '../../../lib/recursos'
 import { esEmailValido } from '../../../utils/validation'
+import { procesarFoto } from '../../../utils/foto'
 import { PROJECT_ESTADO_VARIANT, PROJECT_ESTADO_LABEL as PROYECTO_ESTADO_LABEL, ROL_LABEL } from '../../../constants/badgeVariants'
 import { fechaDesdeApi, infoSimilitud, nombreCompleto, payloadCuenta } from '../../../utils/helpers'
 
@@ -39,8 +41,14 @@ export default function DetalleUsuario() {
 
   // Edición
   const [editando, setEditando] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', fichaId: '', role: 'aprendiz' })
+  const [form, setForm] = useState({
+    name: '', apellido: '', tipoDocumento: 'CC', numeroDocumento: '',
+    email: '', fichaId: '', role: 'aprendiz', fotoUrl: null,
+  })
   const [errores, setErrores] = useState({})
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
+  const [fotoError, setFotoError] = useState('')
+  const fileRef = useRef(null)
   const [guardado, setGuardado] = useState(false)
   const [accionMsg, setAccionMsg] = useState(null)
   const [claveTemporal, setClaveTemporal] = useState(null)
@@ -161,16 +169,43 @@ export default function DetalleUsuario() {
 
   const iniciarEdicion = () => {
     setForm({
-      name: nombre,
+      name: usuario.nombre || '',
+      apellido: usuario.apellido || '',
+      tipoDocumento: usuario.tipo_documento || 'CC',
+      numeroDocumento: usuario.numero_documento || '',
       email: usuario.correo || '',
       fichaId: perfilAprendiz?.id_class_group ? String(perfilAprendiz.id_class_group) : '',
       role: usuario.rol || 'aprendiz',
+      fotoUrl: usuario.foto_url || null,
     })
+    setFotoError('')
     setErrores({})
     setGuardado(false)
     setClaveTemporal(null)
     setAccionMsg(null)
     setEditando(true)
+  }
+
+  // Foto: se recorta/optimiza en el navegador y se guarda como data URL.
+  const alElegirFoto = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setSubiendoFoto(true)
+    setFotoError('')
+    try {
+      const dataUrl = await procesarFoto(file)
+      setForm((f) => ({ ...f, fotoUrl: dataUrl }))
+    } catch (err) {
+      setFotoError(err.message || 'No fue posible procesar la imagen.')
+    } finally {
+      setSubiendoFoto(false)
+    }
+  }
+
+  const quitarFoto = () => {
+    setFotoError('')
+    setForm((f) => ({ ...f, fotoUrl: null }))
   }
 
   const onChange = (e) => {
@@ -181,6 +216,9 @@ export default function DetalleUsuario() {
 
   const validar = () => {
     const err = {}
+    if (!form.name.trim()) err.name = 'El nombre es obligatorio.'
+    if (!form.apellido.trim()) err.apellido = 'El apellido es obligatorio.'
+    if (!form.numeroDocumento.trim()) err.numeroDocumento = 'El número de documento es obligatorio.'
     if (esMiCuenta && form.role !== 'admin') {
       err.role = 'No puedes quitarte tu propio rol de administrador.'
     }
@@ -236,9 +274,17 @@ export default function DetalleUsuario() {
     try {
       // El correo propio nunca se cambia por aquí: solo con contraseña.
       const correoAEnviar = esMiCuenta ? usuario.correo : nuevoEmail
-      if (correoAEnviar !== usuario.correo || form.role !== usuario.rol) {
-        await usuarios.actualizar(usuario.id, payloadCuenta(usuario, { correo: correoAEnviar, rol: form.role }))
+      const cambios = {
+        nombre: form.name.trim(),
+        apellido: form.apellido.trim(),
+        correo: correoAEnviar,
+        rol: form.role,
+        tipo_documento: form.tipoDocumento,
+        numero_documento: form.numeroDocumento.trim(),
       }
+      // La foto solo viaja si cambió (evita reenviar el base64 sin motivo).
+      if ((form.fotoUrl || null) !== (usuario.foto_url || null)) cambios.foto_url = form.fotoUrl
+      await usuarios.actualizar(usuario.id, payloadCuenta(usuario, cambios))
       // 2) Ficha del aprendiz: solo si ya tiene perfil y cambió la selección.
       if (usuario.rol === 'aprendiz' && perfilAprendiz) {
         const actual = perfilAprendiz.id_class_group ? String(perfilAprendiz.id_class_group) : ''
@@ -260,12 +306,14 @@ export default function DetalleUsuario() {
     } catch (err2) {
       const campos = err2?.data?.errors || {}
       // El backend responde en inglés para `unique`; se traduce al mensaje de la UI.
-      const correoDuplicado = campos.correo || campos.email
-      setErrores({
-        email: correoDuplicado
-          ? 'Ya existe un usuario con este correo.'
-          : (err2?.data?.message || 'No se pudo actualizar el usuario.'),
-      })
+      if (campos.correo || campos.email) {
+        setErrores({ email: 'Ya existe un usuario con este correo.' })
+      } else if (campos.numero_documento) {
+        setErrores({ numeroDocumento: 'Ya existe un usuario con este número de documento.' })
+      } else {
+        setErrores({})
+        setAccionMsg(err2?.data?.message || 'No se pudo actualizar el usuario.')
+      }
     } finally {
       setAccionOcupada(false)
     }
@@ -407,20 +455,75 @@ export default function DetalleUsuario() {
         {editando && (
           <DataPanel title="Editar usuario" icon={<PencilSimple />}>
             <form className={formStyles.form} onSubmit={onSubmitEdicion} noValidate>
+              <FormField
+                label="Foto de perfil"
+                error={fotoError}
+                help="Se recorta y optimiza automáticamente (máx. 5 MB). Puedes retirar una foto inapropiada."
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <Avatar
+                    name={`${form.name} ${form.apellido}`.trim()}
+                    src={form.fotoUrl || undefined}
+                    size="md"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={subiendoFoto}
+                  >
+                    <Camera size={14} /> {subiendoFoto ? 'Procesando…' : 'Cambiar foto'}
+                  </Button>
+                  {form.fotoUrl && (
+                    <Button type="button" variant="secondary" onClick={quitarFoto} disabled={subiendoFoto}>
+                      <Trash size={14} /> Quitar foto
+                    </Button>
+                  )}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={alElegirFoto}
+                  />
+                </div>
+              </FormField>
               <div className={formStyles.grid2}>
-                <FormField label="Nombre completo" help="El nombre identifica propuestas y equipos; no se puede cambiar.">
-                  <Input name="name" value={form.name} readOnly />
+                <FormField label="Nombres" required error={errores.name}>
+                  <Input name="name" value={form.name} onChange={onChange} placeholder="Nombres" />
                 </FormField>
-                <FormField label="Correo electrónico" required error={errores.email}>
+                <FormField label="Apellidos" required error={errores.apellido}>
+                  <Input name="apellido" value={form.apellido} onChange={onChange} placeholder="Apellidos" />
+                </FormField>
+              </div>
+              <div className={formStyles.grid2}>
+                <FormField label="Tipo de documento" required>
+                  <Select name="tipoDocumento" value={form.tipoDocumento} onChange={onChange}>
+                    <option value="CC">Cédula de ciudadanía (CC)</option>
+                    <option value="TI">Tarjeta de identidad (TI)</option>
+                    <option value="CE">Cédula de extranjería (CE)</option>
+                    <option value="PPT">Permiso por protección temporal (PPT)</option>
+                  </Select>
+                </FormField>
+                <FormField label="Número de documento" required error={errores.numeroDocumento}>
                   <Input
-                    name="email"
-                    type="email"
-                    value={form.email}
+                    name="numeroDocumento"
+                    value={form.numeroDocumento}
                     onChange={onChange}
-                    placeholder="Correo electrónico"
+                    placeholder="Número de documento"
+                    inputMode="numeric"
                   />
                 </FormField>
               </div>
+              <FormField label="Correo electrónico" required error={errores.email}>
+                <Input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={onChange}
+                  placeholder="Correo electrónico"
+                />
+              </FormField>
               <FormField
                 label="Rol"
                 required
