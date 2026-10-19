@@ -47,6 +47,7 @@ export default function DetalleFichaAdmin() {
   const [guardado, setGuardado] = useState(false)
   const [enviandoEdicion, setEnviandoEdicion] = useState(false)
   const [accionMsg, setAccionMsg] = useState(null)
+  const [avisoMsg, setAvisoMsg] = useState('')
   const [modalEliminar, setModalEliminar] = useState(false)
   const [busquedaAprendiz, setBusquedaAprendiz] = useState('')
   const [filtroPropFicha, setFiltroPropFicha] = useState('todos')
@@ -279,7 +280,15 @@ export default function DetalleFichaAdmin() {
 
   const confirmarEliminar = async () => {
     try {
-      await fichas.eliminar(ficha.id)
+      const resp = await fichas.eliminar(ficha.id)
+      // Con historial la ficha se anula (el número queda libre); sin historial
+      // se elimina de verdad.
+      if (resp?.accion === 'anulada') {
+        setModalEliminar(false)
+        setAvisoMsg('La ficha tenía aprendices o propuestas: quedó anulada y su número volvió a estar disponible.')
+        await recargar()
+        return
+      }
       navigate('/admin/fichas')
     } catch (err) {
       setModalEliminar(false)
@@ -308,6 +317,10 @@ export default function DetalleFichaAdmin() {
 
         {accionMsg && (
           <Alert variant="danger"><Warning size={14} /> {accionMsg}</Alert>
+        )}
+
+        {avisoMsg && (
+          <Alert><CheckCircle size={14} /> {avisoMsg}</Alert>
         )}
 
         <DataPanel
@@ -586,7 +599,7 @@ export default function DetalleFichaAdmin() {
       <ConfirmModal
         open={modalEliminar}
         titulo="Eliminar ficha"
-        mensaje={`¿Seguro que deseas eliminar la ficha "${ficha.nombre}" (${ficha.codigo})? Se eliminarán también sus aprendices y propuestas (con sus similitudes y observaciones). Esta acción no se puede deshacer.`}
+        mensaje={`¿Seguro que deseas eliminar la ficha "${ficha.nombre}" (${ficha.numero || ficha.codigo})? Si tiene aprendices o propuestas quedará anulada y su número se liberará; si está vacía, se elimina.`}
         textoConfirmar="Sí, eliminar"
         textoCancelar="Cancelar"
         responsabilidad

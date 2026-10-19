@@ -432,7 +432,7 @@ export default function DetalleProyectoAdmin() {
       <ConfirmModal
         open={modalEliminar}
         titulo="Eliminar propuesta"
-        mensaje={`¿Seguro que deseas eliminar "${proyecto.titulo}"? Se eliminarán también sus similitudes y observaciones. Esta acción no se puede deshacer.`}
+        mensaje={`¿Seguro que deseas eliminar "${proyecto.titulo}"? Solo se elimina si no tiene similitudes compartidas; las observaciones se borrarán. Esta acción no se puede deshacer.`}
         textoConfirmar="Sí, eliminar"
         responsabilidad
         onConfirmar={confirmarEliminar}

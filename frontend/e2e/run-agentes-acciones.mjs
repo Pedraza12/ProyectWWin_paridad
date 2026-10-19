@@ -4,20 +4,29 @@
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { exigirEntornoE2E } from './guardas-e2e.mjs'
+
+exigirEntornoE2E('agentes-acciones')
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const raiz = path.resolve(here, '..')
 const backend = path.resolve(raiz, '..', 'backend')
 const ROLES = ['aprendiz', 'instructor', 'admin']
 
-function reseed() {
-  const r = spawnSync('php', ['artisan', 'migrate:fresh', '--seed'], {
+function reseed(motivo) {
+  // Reseed SOLO vía `php artisan e2e:reset --env=e2e` (guardas server-side:
+  // autorización E2E_ALLOW_RESET, APP_ENV=e2e, nombre de BD y lock).
+  console.log(`[agentes] reseed E2E (${motivo})…`)
+  const r = spawnSync('php', ['artisan', 'e2e:reset', '--env=e2e'], {
     cwd: backend,
     stdio: 'inherit',
     shell: true,
     timeout: 180000,
   })
-  if (r.status !== 0) console.error('[agentes] AVISO: el reseed falló')
+  if (r.status !== 0) {
+    console.error('[agentes] ABORTADO: el reseed E2E falló o fue rechazado por las guardas.')
+    process.exit(2)
+  }
 }
 
 let ok = 0
@@ -61,8 +70,8 @@ for (const sim of SIMULACIONES) {
   }
 }
 
-console.log('\n[agentes] restableciendo el seed…')
-reseed()
+console.log('\n[agentes] restableciendo el seed E2E…')
+reseed('restauración final')
 
 const min = ((Date.now() - t0) / 60000).toFixed(1)
 console.log(`[agentes] ${ok} OK, ${mal} con fallos en ${min} min`)

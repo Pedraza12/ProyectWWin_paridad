@@ -10,6 +10,7 @@ use App\Models\GeneralUser;
 use App\Models\Notification;
 use App\Models\Project;
 use App\Models\ProjectHistory;
+use App\Models\Similarity;
 use App\Services\NotificacionesService;
 use App\Similarity\Recomputador;
 use App\Http\Controllers\Controller;
@@ -90,7 +91,9 @@ class ProjectController extends Controller
             } else {
                 $datos['id_creador'] = $usuario->id;
             }
-            $datos['estado'] = $datos['estado'] ?? 'borrador';
+            // Toda propuesta nace como borrador (también las del admin): el
+            // envío explícito es el que ejecuta el motor de similitud (D-3).
+            $datos['estado'] = 'borrador';
         } else {
             // Solo aprendices (o un admin a nombre de uno) pueden ser autores:
             // una propuesta sin autor aprendiz rompe el dominio del motor.
@@ -162,6 +165,11 @@ class ProjectController extends Controller
         }
 
         $item = DB::transaction(function () use ($project, $huella, $eraRechazada) {
+            // Orden global de bloqueos (D-2b): el mutex del motor se adquiere
+            // SIEMPRE antes de tocar la propuesta (evita el AB-BA con destroy).
+            $config = \App\Models\MotorConfig::firstOrCreate([], ['umbral' => 0.30, 'meses' => 12]);
+            \App\Models\MotorConfig::whereKey($config->id)->lockForUpdate()->first();
+
             // Lock de la fila: dos envíos concurrentes no pueden pasar la
             // transición; el segundo espera y recibe 422 al re-validar.
             $bloqueado = Project::whereKey($project->id)->lockForUpdate()->first();
@@ -283,6 +291,32 @@ class ProjectController extends Controller
             return response()->json(['message' => 'Sin permiso para editar propuestas.'], 403);
         }
 
+        // Un borrador no salta el flujo (D-3): el envío explícito es el que
+        // ejecuta el motor de similitud. El admin conserva las transiciones de
+        // revisión existentes (pendiente→aprobado/rechazado, intervención).
+        if ($rol === 'admin' && $project->estado === 'borrador'
+            && $request->filled('estado') && $request->input('estado') !== 'borrador') {
+            return response()->json([
+                'message' => 'Un borrador debe enviarse con "Enviar propuesta" para analizarse antes de cambiar de estado.',
+            ], 422);
+        }
+
+        // D-1: coherencia estado↔análisis del motor. Estas retrotransiciones
+        // administrativas dejarían la propuesta sin detección vigente (o con
+        // pares vigentes colgando en un borrador); el camino válido es el
+        // reenvío canónico, que archiva, re-analiza y sella la huella.
+        if ($rol === 'admin' && $request->filled('estado') && $request->input('estado') !== $project->estado) {
+            $bloqueos = [
+                'rechazado>aprobado' => 'Una propuesta rechazada no puede aprobarse directamente: debe reenviarse y analizarse primero.',
+                'rechazado>pendiente' => 'Una propuesta rechazada no puede volver a revisión sin reenviarse y analizarse.',
+                'pendiente>borrador' => 'Una propuesta enviada no puede volver a borrador; permanece en revisión o se rechaza.',
+            ];
+            $clave = $project->estado . '>' . $request->input('estado');
+            if (isset($bloqueos[$clave])) {
+                return response()->json(['message' => $bloqueos[$clave]], 422);
+            }
+        }
+
         // Whitelist: `observacion` no es columna (alimenta el rechazo) y la
         // huella de envío la fija el servidor en `enviar`: no se edita a mano.
         $datos = $request->only([
@@ -325,6 +359,11 @@ class ProjectController extends Controller
 
         // Actualización atómica: propuesta + comentario + historial + avisos.
         DB::transaction(function () use ($project, $datos, $rol, $estadoAnterior, $observacion, $contenidoCambio, $usuario) {
+            // Orden global de bloqueos (D-2b): el mutex del motor se adquiere
+            // SIEMPRE antes de tocar la propuesta (evita el AB-BA con destroy).
+            $config = \App\Models\MotorConfig::firstOrCreate([], ['umbral' => 0.30, 'meses' => 12]);
+            \App\Models\MotorConfig::whereKey($config->id)->lockForUpdate()->first();
+
             $project->update($datos);
 
             // Aprobar/rechazar queda en la bitácora (decisión con efecto académico).
@@ -391,10 +430,11 @@ class ProjectController extends Controller
             } elseif ($contenidoCambio) {
                 \App\Support\HistorialProyecto::registrar($project, 'actualizada');
 
-                // Edición en revisión: la detección anterior corresponde al
+                // Edición en revisión (cualquier rol editor: aprendiz,
+                // instructor o admin): la detección anterior corresponde al
                 // contenido enviado (se conserva como histórica) y el motor
                 // analiza el contenido nuevo.
-                if ($rol === 'aprendiz' && $project->estado === 'pendiente') {
+                if ($project->estado === 'pendiente') {
                     $motor = app(Recomputador::class);
                     $motor->archivar($project);
                     $motor->detectar($project, false);
@@ -433,7 +473,45 @@ class ProjectController extends Controller
             return response()->json(['message' => 'No puedes eliminar esta propuesta.'], 403);
         }
 
-        DB::transaction(function () use ($project) {
+        // El creador conserva borrar borradores y rechazadas; una propuesta ya
+        // enviada (en revisión o aprobada) protege su evidencia y la de la
+        // contraparte de las similitudes compartidas (D-2).
+        if ($rol === 'aprendiz' && in_array($project->estado, ['pendiente', 'aprobado'], true)) {
+            return response()->json([
+                'message' => 'No puedes eliminar una propuesta en revisión o aprobada.',
+            ], 409);
+        }
+
+        // D-2b: la evidencia de similitud es compartida (una fila conecta dos
+        // propuestas). Si existe cualquier par —vigente o archivado—, el
+        // borrado físico destruiría evidencia de la contraparte: se rechaza.
+        $mensajeEvidencia = 'No puedes eliminar una propuesta con similitudes compartidas: la evidencia pertenece también a las demás propuestas.';
+        $tienePares = fn (): bool => Similarity::where('id_proyecto_1', $project->id)
+            ->orWhere('id_proyecto_2', $project->id)
+            ->exists();
+        if ($tienePares()) {
+            return response()->json(['message' => $mensajeEvidencia], 409);
+        }
+
+        return DB::transaction(function () use ($project, $mensajeEvidencia) {
+            // Re-verificación serializada con el motor (mismo mutex que
+            // Recomputador::detectar) y como LECTURA DE BLOQUEO (actual, no la
+            // instantánea de REPEATABLE READ): ve cualquier par confirmado antes
+            // de adquirir el mutex y sus locks de rango cubren la ventana.
+            // Inicialización canónica (igual que Recomputador): garantiza la fila
+            // del motor también en el arranque y toma SIEMPRE el mutex.
+            $config = \App\Models\MotorConfig::firstOrCreate([], ['umbral' => 0.30, 'meses' => 12]);
+            \App\Models\MotorConfig::whereKey($config->id)->lockForUpdate()->first();
+            $paresBloqueados = Similarity::where('id_proyecto_1', $project->id)
+                ->orWhere('id_proyecto_2', $project->id)
+                ->lockForUpdate()
+                ->count();
+            if ($paresBloqueados > 0) {
+                throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                    response()->json(['message' => $mensajeEvidencia], 409)
+                );
+            }
+
             $project->delete();
             // Evita notificaciones con enlace a una propuesta ya inexistente.
             Notification::where('enlace', 'proyecto:' . $project->id)->delete();
@@ -441,9 +519,9 @@ class ProjectController extends Controller
                 'titulo' => $project->titulo,
                 'estado' => $project->estado,
             ]);
-        });
 
-        return $project;
+            return $project;
+        });
     }
 
     // ---------------------------------------------------------------- Internos

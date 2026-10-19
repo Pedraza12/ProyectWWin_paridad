@@ -8,6 +8,12 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { exigirEntornoE2E } from './guardas-e2e.mjs'
+
+// Guarda de seguridad (sprint final, Paso 1): sin autorización explícita
+// (E2E_ALLOW_RESET=1) y un backend E2E (PROYECTWIN_API ≠ :8000), el runner
+// aborta antes de lanzar Playwright.
+exigirEntornoE2E('aislado')
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 // Uso: node e2e/run-aislado.mjs [-- <args playwright>] | [filtro...]

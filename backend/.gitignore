@@ -8,6 +8,10 @@
 .env
 .env.backup
 .env.production
+# Entornos locales de pruebas/aislamiento (sprint final, Paso 1): contienen
+# copia local de APP_KEY/credenciales; NUNCA deben versionarse.
+.env.testing
+.env.e2e
 Homestead.json
 Homestead.yaml
 auth.json

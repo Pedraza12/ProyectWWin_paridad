@@ -163,7 +163,7 @@ export default function ConfigSimilitud() {
               <p className={s.baseText}>
                 El motor compara cada propuesta contra las <strong>propuestas aprobadas</strong> del
                 mismo programa de los últimos <strong>{vigente.meses} meses</strong>, con{' '}
-                <strong>{totalSimilitudes} coincidencia(s) vǭlida(s)</strong> a la fecha.
+                <strong>{totalSimilitudes} coincidencia(s) válida(s)</strong> a la fecha.
                 Así aprobar siempre sigue siendo posible aunque la base crezca.
               </p>
               <p className={`mono ${s.pipeline}`}>propuestas → TF-IDF + coseno → umbral {Math.round(vigente.umbral * 100)}% → coincidencias</p>

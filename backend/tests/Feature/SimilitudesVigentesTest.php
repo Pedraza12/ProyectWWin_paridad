@@ -233,6 +233,63 @@ class SimilitudesVigentesTest extends TestCase
         $this->assertNotSame($par->id, $nueva->id);
     }
 
+    public function test_editar_una_pendiente_como_instructor_archiva_y_redetecta(): void
+    {
+        [$instructorUser, $maria, $ana] = $this->escenario();
+
+        $idMaria = $this->crearYEnviar($maria, 'Inventarios María');
+        $this->como($instructorUser)->putJson('/v1/projects/' . $idMaria, ['estado' => 'aprobado'])->assertOk();
+
+        $idAna = $this->crearYEnviar($ana, 'Inventarios Ana');
+        $par = $this->parDe($idAna);
+        $this->assertTrue((bool) $par->vigente);
+
+        // El instructor edita el CONTENIDO de la pendiente (sin cambiar estado).
+        $this->como($instructorUser)->putJson('/v1/projects/' . $idAna, [
+            'titulo' => 'Inventarios Ana con diferencial',
+            'resumen' => 'Herramienta web para controlar inventarios de almacén con alertas de stock y reportes.',
+        ])->assertOk();
+
+        // La detección anterior queda como evidencia histórica.
+        $this->assertFalse((bool) $par->fresh()->vigente);
+
+        // Y aparece una nueva detección vigente del contenido editado.
+        $nueva = Similarity::where(function ($q) use ($idAna) {
+            $q->where('id_proyecto_1', $idAna)->orWhere('id_proyecto_2', $idAna);
+        })->where('vigente', true)->first();
+        $this->assertNotNull($nueva);
+        $this->assertNotSame($par->id, $nueva->id);
+    }
+
+    public function test_editar_una_pendiente_como_admin_archiva_y_redetecta(): void
+    {
+        [$instructorUser, $maria, $ana] = $this->escenario();
+
+        $idMaria = $this->crearYEnviar($maria, 'Inventarios María');
+        $this->como($instructorUser)->putJson('/v1/projects/' . $idMaria, ['estado' => 'aprobado'])->assertOk();
+
+        $idAna = $this->crearYEnviar($ana, 'Inventarios Ana');
+        $par = $this->parDe($idAna);
+        $this->assertTrue((bool) $par->vigente);
+
+        // El admin edita el CONTENIDO de la pendiente (sin cambiar estado).
+        $admin = $this->usuario('admin');
+        $this->como($admin)->putJson('/v1/projects/' . $idAna, [
+            'titulo' => 'Inventarios Ana con diferencial',
+            'resumen' => 'Herramienta web para controlar inventarios de almacén con alertas de stock y reportes.',
+        ])->assertOk();
+
+        // La detección anterior queda como evidencia histórica.
+        $this->assertFalse((bool) $par->fresh()->vigente);
+
+        // Y aparece una nueva detección vigente del contenido editado.
+        $nueva = Similarity::where(function ($q) use ($idAna) {
+            $q->where('id_proyecto_1', $idAna)->orWhere('id_proyecto_2', $idAna);
+        })->where('vigente', true)->first();
+        $this->assertNotNull($nueva);
+        $this->assertNotSame($par->id, $nueva->id);
+    }
+
     public function test_el_instructor_no_edita_un_proyecto_aprobado(): void
     {
         [$instructorUser, $maria] = $this->escenario();

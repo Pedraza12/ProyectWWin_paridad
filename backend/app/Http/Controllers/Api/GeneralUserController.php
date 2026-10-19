@@ -242,6 +242,11 @@ class GeneralUserController extends Controller
                 ], 409);
             }
         }
+        // Un admin no cambia su propio estado (ni se activa ni se desactiva
+        // solo): la regla vive en el backend, sin depender del cliente (D-4).
+        if ($cambiaEstado && $esPropiaCuenta && $esAdmin) {
+            return response()->json(['message' => 'No puedes cambiar tu propio estado.'], 422);
+        }
 
         // Un instructor con fichas a cargo no puede dejar de ser instructor: las
         // fichas quedarían sin responsable. Se exige reasignarlas primero.

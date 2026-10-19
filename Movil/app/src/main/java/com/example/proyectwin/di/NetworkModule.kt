@@ -53,6 +53,20 @@ object NetworkModule {
             .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            // La API responde JSON y emite el 401 como JSON solo si el cliente
+            // declara `Accept: application/json`. Sin esta cabecera, Laravel
+            // convierte el no-autenticado en un redirect a la ruta web `login`
+            // (inexistente en la API) y devuelve 500. Se respeta cualquier
+            // `Accept` explícito que ya venga en la petición.
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val conAccept = if (original.header("Accept") == null) {
+                    original.newBuilder().header("Accept", "application/json").build()
+                } else {
+                    original
+                }
+                chain.proceed(conAccept)
+            }
             .addInterceptor(authInterceptor)
 
         if (BuildConfig.DEBUG) {

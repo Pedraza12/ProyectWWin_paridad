@@ -6,12 +6,7 @@ import { iniciales } from '../../utils/helpers'
 import Tooltip from '../Tooltip/Tooltip'
 import s from './TopNav.module.css'
 import { ROL_LABEL } from '../../constants/badgeVariants'
-
-const RUTA_NOTIFICACIONES = {
-  aprendiz: '/aprendiz/alertas',
-  instructor: '/instructor/alertas',
-  admin: '/admin/notificaciones',
-}
+import { RUTA_ALERTAS_POR_ROL } from '../../constants/routes'
 
 const RUTA_CREAR = {
   aprendiz: '/aprendiz/propuestas?crear=1',
@@ -80,7 +75,7 @@ export default function TopNav({ titulo = '', usuario = null, notificaciones = 0
   }
 
   const irANotificaciones = () => {
-    const ruta = RUTA_NOTIFICACIONES[role]
+    const ruta = RUTA_ALERTAS_POR_ROL[role]
     if (ruta) navigate(ruta)
   }
 

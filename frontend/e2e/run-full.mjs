@@ -4,6 +4,9 @@
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { exigirEntornoE2E } from './guardas-e2e.mjs'
+
+exigirEntornoE2E('full')
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const raiz = path.resolve(here, '..')

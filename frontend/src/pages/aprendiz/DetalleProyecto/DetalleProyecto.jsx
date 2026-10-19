@@ -20,6 +20,7 @@ import SimilitudesHistoricas from '../../../components/SimilitudesHistoricas/Sim
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
 import { proyectos, similitudes as similitudesApi, observaciones as observacionesApi, aprendices } from '../../../lib/recursos'
+import { toFieldErrors } from '../../../lib/api'
 import { agruparObservaciones, fechaDesdeApi, esPropietarioProyecto, nombreCompleto } from '../../../utils/helpers'
 import { MAX_TITULO, MAX_DESCRIPCION, MAX_DESCRIPCION_CORTA } from '../../../utils/validation'
 import s from '../../../components/DetalleProyectoBase/DetalleProyectoBase.module.css'
@@ -245,7 +246,14 @@ export default function DetalleProyecto() {
           ? 'Propuesta actualizada. Sigue en revisión; el instructor verá los cambios.'
           : 'Propuesta actualizada correctamente.')
     } catch (err) {
-      setErrores({ titulo: err?.data?.message || 'No se pudo actualizar la propuesta.' })
+      // Errores 422 por campo (mismas claves que el formulario); si no hay,
+      // se conserva el mensaje general bajo el título.
+      const campos = toFieldErrors(err?.data)
+      setErrores(
+        Object.keys(campos).length > 0
+          ? campos
+          : { titulo: err?.data?.message || 'No se pudo actualizar la propuesta.' }
+      )
     } finally {
       setGuardando(false)
     }
@@ -563,7 +571,7 @@ export default function DetalleProyecto() {
       <ConfirmModal
         open={modalEliminar}
         titulo="Eliminar propuesta"
-        mensaje={`¿Eliminar "${project.titulo}"? Se borrarán también sus similitudes y observaciones. Esta acción no se puede deshacer.`}
+        mensaje={`¿Eliminar "${project.titulo}"? Solo se elimina si está en borrador o rechazada y no tiene similitudes compartidas; las observaciones se borrarán. Esta acción no se puede deshacer.`}
         textoConfirmar={eliminando ? 'Eliminando…' : 'Sí, eliminar'}
         onCancelar={() => setModalEliminar(false)}
         onConfirmar={eliminarPropuesta}

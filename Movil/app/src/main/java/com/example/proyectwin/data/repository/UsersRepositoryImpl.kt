@@ -10,6 +10,7 @@ import com.example.proyectwin.data.mapper.toDomain
 import com.example.proyectwin.data.mapper.toUpdateRequest
 import com.example.proyectwin.data.model.CredencialesUsuario
 import com.example.proyectwin.data.model.GeneralUser
+import com.example.proyectwin.data.model.PaginaUsuarios
 import com.example.proyectwin.domain.repository.UsersRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -29,6 +30,36 @@ class UsersRepositoryImpl @Inject constructor(
     ): Result<List<GeneralUser>> =
         safeApiCall { api.listar(search, role, estado, fichaId, null, INCLUDE_CUENTA) }
             .map { lista -> lista.map { it.toDomain() } }
+
+    override suspend fun listarPaginado(
+        page: Int,
+        porPagina: Int,
+        search: String?,
+        role: String?,
+        estado: String?,
+        fichaId: String?,
+        programa: String?,
+    ): Result<PaginaUsuarios> =
+        safeApiCall {
+            api.listarPaginado(
+                paginado = 1,
+                page = page,
+                porPagina = porPagina,
+                search = search,
+                role = role,
+                estado = estado,
+                fichaId = fichaId,
+                programa = programa,
+                included = INCLUDE_CUENTA,
+            )
+        }.map { dto ->
+            PaginaUsuarios(
+                items = dto.data.map { it.toDomain() },
+                currentPage = dto.currentPage,
+                lastPage = dto.lastPage,
+                total = dto.total,
+            )
+        }
 
     override suspend fun obtener(id: Int): Result<GeneralUser> =
         safeApiCall { api.obtener(id, INCLUDE_CUENTA) }.map { it.toDomain() }

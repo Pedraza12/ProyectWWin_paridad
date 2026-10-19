@@ -1,5 +1,13 @@
 # INFORME DE AUDITORÍA INTEGRAL — ProyecTWIN MVP
 
+> ## ⚠️ Nota de vigencia (18-oct-2026)
+>
+> **Documento histórico:** este informe es un snapshot del 5-oct-2026 y su cuerpo se conserva sin cambios (no se reescribe la historia). La mayoría de los hallazgos fue corregida y verificada después: ver `HISTORIAL-FIXES.md`, los commits del repo y las suites.
+>
+> **Estado actual resumido (18-oct-2026):** backend **314/314 pruebas (1797 aserciones)**; gate E2E integral **5/5 etapas · 347/347 pruebas** (los 4 specs nuevos del Lote 2, ejecutados y aprobados); frontend unit **63 tests en 18 archivos**, lint **0 errores**; Android **139 tests unitarios en 23 archivos, 0 fallos** + `assembleDebug` OK. La guarda de evidencia D-2b × BUG-007 está implementada: `DELETE /projects/{id}` y las cascadas de instructor/programa/red responden 409 con pares vigentes o históricos.
+>
+> Los conteos y afirmaciones del cuerpo (p. ej. «218 tests backend», «46 archivos E2E») corresponden a la fecha del snapshot y están desactualizados.
+
 **Fecha:** 5 de octubre de 2026
 **Alcance:** `MVP/backend` (Laravel 10), `MVP/frontend` (React), BD MySQL `proyectwin_mvp`, tests, seeders y documentación.
 **Método:** revisión estática de código + consultas SQL de solo lectura + ejecución de ESLint + verificación cruzada de hallazgos. **No se modificó ningún archivo ni dato; no se ejecutaron migraciones/seeders; no se hicieron commits.**

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,15 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
-import com.example.proyectwin.ui.viewmodel.AdminUiState
-import com.example.proyectwin.ui.viewmodel.AdminViewModel
+import com.example.proyectwin.ui.viewmodel.UserManagementUiState
+import com.example.proyectwin.ui.viewmodel.UserManagementViewModel
 
 data class UserItem(
     val id: Int,
@@ -35,22 +32,37 @@ data class UserItem(
     val photo: String? = null,
 )
 
+/**
+ * Gestión de usuarios (admin): listado con paginación del servidor y filtros
+ * reales del contrato (`search`, `role`, `estado`, `ficha_id`, `programa`),
+ * como la página web de Usuarios.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementScreen(
     onBack: () -> Unit,
     onNavigate: (String) -> Unit,
     bottomBar: @Composable () -> Unit = {},
-    adminViewModel: AdminViewModel = hiltViewModel()
+    userManagementViewModel: UserManagementViewModel = hiltViewModel()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf("Todos") }
+    val uiState by userManagementViewModel.uiState.collectAsState()
+    val filtros by userManagementViewModel.filtros.collectAsState()
+    val fichas by userManagementViewModel.fichas.collectAsState()
+    val programas by userManagementViewModel.programas.collectAsState()
+    val errorAccion by userManagementViewModel.errorAccion.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var userToDelete by remember { mutableStateOf<UserItem?>(null) }
-    val adminState by adminViewModel.uiState.collectAsState()
-    val isLoading = adminState is AdminUiState.Loading
+    val isLoading = uiState is UserManagementUiState.Loading
 
-    if (adminState is AdminUiState.Loading) {
+    LaunchedEffect(errorAccion) {
+        errorAccion?.let { mensaje ->
+            snackbarHostState.showSnackbar(mensaje)
+            userManagementViewModel.limpiarErrorAccion()
+        }
+    }
+
+    if (isLoading) {
         Box(modifier = Modifier.fillMaxSize().padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 SenaSkeletonLine(width = 180.dp, height = 24.dp)
@@ -62,21 +74,20 @@ fun UserManagementScreen(
         return
     }
 
-    if (adminState is AdminUiState.Error) {
+    if (uiState is UserManagementUiState.Error) {
         Box(modifier = Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-            SenaErrorState(message = (adminState as AdminUiState.Error).message, onRetry = { adminViewModel.refresh() })
+            SenaErrorState(
+                message = (uiState as UserManagementUiState.Error).message,
+                onRetry = { userManagementViewModel.recargar() },
+            )
         }
         return
     }
 
-    val adminSuccess = adminState as AdminUiState.Success
+    val pagina = (uiState as UserManagementUiState.Success).pagina
 
-    val roles = remember(adminSuccess.users) {
-        listOf("Todos") + adminSuccess.users.map { it.roleDisplayName }.distinct().sorted()
-    }
-
-    val usersList = remember(adminSuccess.users) {
-        adminSuccess.users.map { user ->
+    val usersList = remember(pagina.items) {
+        pagina.items.map { user ->
             UserItem(
                 id = user.id,
                 name = user.name,
@@ -89,16 +100,8 @@ fun UserManagementScreen(
         }
     }
 
-    val filteredUsers = usersList.filter { user ->
-        val matchesRole = if (selectedRole == "Todos") true else user.role == selectedRole
-        val matchesSearch = user.name.contains(searchQuery, ignoreCase = true) ||
-                user.email.contains(searchQuery, ignoreCase = true) ||
-                user.document.contains(searchQuery, ignoreCase = true)
-        matchesRole && matchesSearch
-    }
-
     Scaffold(
-        snackbarHost = { SnackbarHost(SnackbarHostState()) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             SenaTopBar(
                 title = "ProyecTwin",
@@ -123,7 +126,7 @@ fun UserManagementScreen(
     ) { paddingValues ->
         SenaPullRefresh(
             isRefreshing = isLoading,
-            onRefresh = { adminViewModel.refresh() },
+            onRefresh = { userManagementViewModel.recargar() },
             modifier = Modifier.padding(paddingValues)
         ) {
             LazyColumn(
@@ -141,48 +144,118 @@ fun UserManagementScreen(
 
                 // Filter Section
                 item {
-                    SenaFilterBar(title = "Filtros de búsqueda") {
+                    SenaFilterBar(title = "Buscar y filtrar") {
                         SenaTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            value = filtros.search,
+                            onValueChange = { userManagementViewModel.buscar(it) },
                             label = "",
                             placeholder = "Buscar por nombre, correo o documento...",
                             leadingIcon = Icons.Default.Search
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            roles.forEach { role ->
-                                SenaChip(
-                                    text = role,
-                                    color = when(role) {
-                                        "Aprendiz" -> senaColors().success
-                                        "Instructor" -> senaColors().warning
-                                        "Administrador" -> senaColors().danger
-                                        else -> senaColors().green
-                                    },
-                                    isSelected = selectedRole == role,
-                                    onClick = { selectedRole = role }
+
+                        if (filtros.hayFiltros) {
+                            TextButton(onClick = { userManagementViewModel.limpiarFiltros() }) {
+                                Text(
+                                    "Limpiar filtros",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = senaColors().green,
                                 )
                             }
                         }
+
+                        ChipsFiltro(
+                            etiqueta = "Rol",
+                            opciones = listOf(
+                                Triple(null, "Todos", senaColors().green),
+                                Triple("aprendiz", "Aprendiz", senaColors().success),
+                                Triple("instructor", "Instructor", senaColors().warning),
+                                Triple("admin", "Administrador", senaColors().danger),
+                            ),
+                            seleccion = filtros.role,
+                            onSelect = { userManagementViewModel.filtrarRol(it) },
+                        )
+
+                        ChipsFiltro(
+                            etiqueta = "Estado",
+                            opciones = listOf(
+                                Triple(null, "Todos", senaColors().green),
+                                Triple("activo", "Activo", senaColors().success),
+                                Triple("suspendido", "Suspendido", senaColors().danger),
+                            ),
+                            seleccion = filtros.estado,
+                            onSelect = { userManagementViewModel.filtrarEstado(it) },
+                        )
+
+                        ChipsFiltro(
+                            etiqueta = "Ficha",
+                            opciones = buildList {
+                                add(Triple(null, "Todas", senaColors().green))
+                                add(Triple("sin", "Sin ficha", senaColors().warning))
+                                fichas.forEach { ficha ->
+                                    add(Triple(ficha.id.toString(), ficha.codigo, senaColors().info))
+                                }
+                            },
+                            seleccion = filtros.fichaId,
+                            onSelect = { userManagementViewModel.filtrarFicha(it) },
+                        )
+
+                        ChipsFiltro(
+                            etiqueta = "Programa",
+                            opciones = buildList {
+                                add(Triple(null, "Todos", senaColors().green))
+                                programas.forEach { programa ->
+                                    add(Triple(programa.nombre, programa.nombre, senaColors().info))
+                                }
+                            },
+                            seleccion = filtros.programa,
+                            onSelect = { userManagementViewModel.filtrarPrograma(it) },
+                        )
+
+                        Text(
+                            "${pagina.total} usuario${if (pagina.total != 1) "s" else ""}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = senaColors().textLight,
+                        )
                     }
                 }
 
-                if (filteredUsers.isEmpty()) {
+                if (usersList.isEmpty()) {
                     item {
+                        val accionLimpiar: (@Composable () -> Unit)? = if (filtros.hayFiltros) {
+                            {
+                                TextButton(onClick = { userManagementViewModel.limpiarFiltros() }) {
+                                    Text("Limpiar filtros", color = senaColors().green)
+                                }
+                            }
+                        } else {
+                            null
+                        }
                         SenaEmptyState(
-                            message = "No hay usuarios que coincidan con los criterios de búsqueda.",
-                            icon = Icons.Default.GroupOff
+                            message = if (filtros.hayFiltros) {
+                                "Ningún usuario coincide con los filtros aplicados."
+                            } else {
+                                "Aún no hay usuarios registrados. Crea el primero con el botón +."
+                            },
+                            icon = Icons.Default.GroupOff,
+                            action = accionLimpiar,
                         )
                     }
                 } else {
-                    items(filteredUsers) { user ->
+                    items(usersList) { user ->
                         UserCard(
                             user = user,
                             onEdit = { onNavigate(AppNavigation.ADMIN_USER_DETAIL.replace("{userId}", user.id.toString())) },
                             onDelete = { userToDelete = user; showDeleteDialog = true }
+                        )
+                    }
+
+                    item {
+                        PaginacionUsuarios(
+                            currentPage = pagina.currentPage,
+                            lastPage = pagina.lastPage,
+                            total = pagina.total,
+                            onAnterior = { userManagementViewModel.paginaAnterior() },
+                            onSiguiente = { userManagementViewModel.paginaSiguiente() },
                         )
                     }
                 }
@@ -193,18 +266,33 @@ fun UserManagementScreen(
     }
 
     if (showDeleteDialog) {
+        // Confirmación tipada: el estado se reinicia al abrir/cerrar el diálogo
+        // (remember(userToDelete?.id) + salida de composición).
+        var confirmacion by remember(userToDelete?.id) { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Eliminar Usuario") },
-            text = { Text("¿Estás seguro de que deseas eliminar a ${userToDelete?.name}? Esta acción no se puede deshacer.") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("¿Estás seguro de que deseas eliminar a ${userToDelete?.name}? Esta acción no se puede deshacer.")
+                    SenaTextField(
+                        value = confirmacion,
+                        onValueChange = { confirmacion = it },
+                        label = "Escribe ELIMINAR para confirmar",
+                    )
+                }
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    showDeleteDialog = false
-                    val targetId = userToDelete?.id
-                    if (targetId != null) {
-                        adminViewModel.deleteUser(targetId)
-                    }
-                }) {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        val targetId = userToDelete?.id
+                        if (targetId != null) {
+                            userManagementViewModel.eliminarUsuario(targetId)
+                        }
+                    },
+                    enabled = confirmacion.trim() == "ELIMINAR",
+                ) {
                     Text("Eliminar", color = senaColors().danger)
                 }
             },
@@ -215,6 +303,72 @@ fun UserManagementScreen(
             },
             shape = RoundedCornerShape(24.dp)
         )
+    }
+}
+
+/** Fila de chips con etiqueta para un filtro (valor null = "todos"). */
+@Composable
+private fun ChipsFiltro(
+    etiqueta: String,
+    opciones: List<Triple<String?, String, Color>>,
+    seleccion: String?,
+    onSelect: (String?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            etiqueta,
+            style = MaterialTheme.typography.labelSmall,
+            color = senaColors().textLight,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            opciones.forEach { (valor, texto, color) ->
+                SenaChip(
+                    text = texto,
+                    color = color,
+                    isSelected = seleccion == valor,
+                    onClick = { onSelect(valor) }
+                )
+            }
+        }
+    }
+}
+
+/** Controles de paginación del servidor (anterior / página actual / siguiente). */
+@Composable
+private fun PaginacionUsuarios(
+    currentPage: Int,
+    lastPage: Int,
+    total: Int,
+    onAnterior: () -> Unit,
+    onSiguiente: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        IconButton(onClick = onAnterior, enabled = currentPage > 1) {
+            Icon(
+                Icons.Default.ChevronLeft,
+                contentDescription = "Página anterior",
+                tint = if (currentPage > 1) senaColors().green else senaColors().border,
+            )
+        }
+        Text(
+            "Página $currentPage de $lastPage · $total usuario${if (total != 1) "s" else ""}",
+            style = MaterialTheme.typography.labelMedium,
+            color = senaColors().textSecondary,
+        )
+        IconButton(onClick = onSiguiente, enabled = currentPage < lastPage) {
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "Página siguiente",
+                tint = if (currentPage < lastPage) senaColors().green else senaColors().border,
+            )
+        }
     }
 }
 
@@ -233,7 +387,7 @@ fun UserCard(user: UserItem, onEdit: () -> Unit, onDelete: () -> Unit) {
                         nombre = user.name,
                         modifier = Modifier.size(40.dp),
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
                             user.name,

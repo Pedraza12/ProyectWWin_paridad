@@ -2,6 +2,7 @@ package com.example.proyectwin.domain.repository
 
 import com.example.proyectwin.data.model.CredencialesUsuario
 import com.example.proyectwin.data.model.GeneralUser
+import com.example.proyectwin.data.model.PaginaUsuarios
 
 /** Cuentas de usuario (`general-users`): listado admin, gestión y credenciales. */
 interface UsersRepository {
@@ -12,6 +13,20 @@ interface UsersRepository {
         estado: String? = null,
         fichaId: Int? = null,
     ): Result<List<GeneralUser>>
+
+    /**
+     * Listado paginado del servidor (panel admin). `fichaId` acepta el id de la
+     * ficha como texto o `sin` (usuarios sin ficha); `null` = sin filtrar.
+     */
+    suspend fun listarPaginado(
+        page: Int,
+        porPagina: Int,
+        search: String? = null,
+        role: String? = null,
+        estado: String? = null,
+        fichaId: String? = null,
+        programa: String? = null,
+    ): Result<PaginaUsuarios>
 
     suspend fun obtener(id: Int): Result<GeneralUser>
 

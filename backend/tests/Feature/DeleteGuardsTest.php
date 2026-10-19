@@ -9,6 +9,7 @@ use App\Models\Instructor;
 use App\Models\KnowledgeNetwork;
 use App\Models\Notification;
 use App\Models\Project;
+use App\Models\Similarity;
 use App\Models\TrainingProgram;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
@@ -183,5 +184,100 @@ class DeleteGuardsTest extends TestCase
         ])->assertStatus(409);
 
         $this->assertTrue($admin->fresh()->estado);
+    }
+
+    // ---------------------------------------------------------------- NF-04
+    // El creador conserva borrar borradores y rechazadas; una propuesta ya
+    // enviada (pendiente/aprobada) protege su evidencia compartida (D-2).
+
+    private function aprendizConFicha(ClassGroup $ficha): GeneralUser
+    {
+        $user = $this->usuario('aprendiz');
+        Apprentice::create([
+            'codigo' => 'AP-' . uniqid(),
+            'id_usuario' => $user->id,
+            'id_class_group' => $ficha->id,
+            'id_programa' => $ficha->id_programa,
+        ]);
+
+        return $user;
+    }
+
+    public function test_el_creador_no_borra_una_propuesta_en_revision(): void
+    {
+        $ficha = $this->ficha();
+        $creador = $this->aprendizConFicha($ficha);
+        $proyecto = $this->proyecto($creador, $ficha); // pendiente
+
+        $this->como($creador)
+            ->deleteJson('/v1/projects/' . $proyecto->id)
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('projects', ['id' => $proyecto->id, 'estado' => 'pendiente']);
+    }
+
+    public function test_el_creador_no_borra_una_aprobada_y_la_evidencia_compartida_sobrevive(): void
+    {
+        $ficha = $this->ficha();
+        $creador = $this->aprendizConFicha($ficha);
+        $contraparte = $this->usuario('aprendiz');
+
+        $aprobada = $this->proyecto($creador, $ficha);
+        $aprobada->update(['estado' => 'aprobado']);
+        $otro = $this->proyecto($contraparte, $ficha);
+
+        $par = Similarity::create([
+            'id_proyecto_1' => min($aprobada->id, $otro->id),
+            'id_proyecto_2' => max($aprobada->id, $otro->id),
+            'porcentaje' => 80,
+            'fecha' => now()->toDateString(),
+        ]);
+
+        $this->como($creador)
+            ->deleteJson('/v1/projects/' . $aprobada->id)
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('projects', ['id' => $aprobada->id, 'estado' => 'aprobado']);
+        $this->assertDatabaseHas('projects', ['id' => $otro->id]);
+        $this->assertDatabaseHas('similarities', ['id' => $par->id]);
+    }
+
+    public function test_el_creador_si_borra_un_borrador(): void
+    {
+        $ficha = $this->ficha();
+        $creador = $this->aprendizConFicha($ficha);
+        $proyecto = $this->proyecto($creador, $ficha);
+        $proyecto->update(['estado' => 'borrador']);
+
+        $this->como($creador)->deleteJson('/v1/projects/' . $proyecto->id)->assertOk();
+        $this->assertDatabaseMissing('projects', ['id' => $proyecto->id]);
+    }
+
+    public function test_el_creador_si_borra_una_rechazada(): void
+    {
+        $ficha = $this->ficha();
+        $creador = $this->aprendizConFicha($ficha);
+        $proyecto = $this->proyecto($creador, $ficha);
+        $proyecto->update(['estado' => 'rechazado']);
+
+        $this->como($creador)->deleteJson('/v1/projects/' . $proyecto->id)->assertOk();
+        $this->assertDatabaseMissing('projects', ['id' => $proyecto->id]);
+    }
+
+    public function test_un_instructor_no_borra_propuestas(): void
+    {
+        $instructorUser = $this->usuario('instructor');
+        $instructor = Instructor::create(['fecha_ingreso' => '2024-01-01', 'id_usuario' => $instructorUser->id]);
+        $ficha = $this->ficha();
+        $ficha->update(['id_instructor' => $instructor->id]);
+        $creador = $this->aprendizConFicha($ficha);
+        $proyecto = $this->proyecto($creador, $ficha);
+        $proyecto->update(['estado' => 'borrador']);
+
+        $this->como($instructorUser)
+            ->deleteJson('/v1/projects/' . $proyecto->id)
+            ->assertStatus(403);
+
+        $this->assertDatabaseHas('projects', ['id' => $proyecto->id]);
     }
 }

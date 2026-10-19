@@ -29,8 +29,8 @@ test.describe('Revisión de propuestas (instructor)', () => {
   })
 })
 
-test.describe('Detección de similitudes al aprobar', () => {
-  test('aprobar una propuesta genera coincidencias contra el corpus aprobado', async ({ page }) => {
+test.describe('Detección de similitudes al enviar', () => {
+  test('una propuesta enviada con solapamiento genera coincidencias que el instructor ve al aprobarla', async ({ page }) => {
     // 1. El aprendiz crea una propuesta cuyas palabras clave solapan con
     //    'Sistema de Gestión de Inventarios' (aprobada en el seed) → Jaccard ≈ 0.71
     await login(page, 'aprendiz')

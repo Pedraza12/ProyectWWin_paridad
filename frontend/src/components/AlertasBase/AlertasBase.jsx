@@ -127,8 +127,8 @@ export default function AlertasBase({ titulo, subtitle, detallePath, emptyAction
           <ul className={s.list}>
             {alertas.map((n) => {
               const info = TIPO_CONFIG[n.tipo] || TIPO_CONFIG.sistema
-              const { projectId, reporteId } = decodificarEnlace(n.enlace)
-              const puedeAbrir = Boolean(projectId) || Boolean(reporteId && detallePath === '/admin')
+              const { projectId, reporteId, fichaId } = decodificarEnlace(n.enlace)
+              const puedeAbrir = Boolean(projectId) || Boolean(reporteId && detallePath === '/admin') || Boolean(fichaId)
               return (
                 <li key={n.id} className={s.row}>
                   <button

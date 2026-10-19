@@ -3,6 +3,7 @@ package com.example.proyectwin.data.api.service
 import com.example.proyectwin.data.api.dto.CredencialesRequest
 import com.example.proyectwin.data.api.dto.FotoUpdateRequest
 import com.example.proyectwin.data.api.dto.GeneralUserDto
+import com.example.proyectwin.data.api.dto.PaginaGeneralUsersDto
 import com.example.proyectwin.data.api.dto.PerfilDto
 import com.example.proyectwin.data.api.dto.ProfileUpdateRequest
 import com.example.proyectwin.data.api.dto.UserCreateRequest
@@ -29,6 +30,23 @@ interface UsersApi {
         @Query("programa") programa: String? = null,
         @Query("included") included: String? = null,
     ): List<GeneralUserDto>
+
+    /**
+     * Listado paginado del servidor (`paginado=1`), usado por el panel admin.
+     * `ficha_id` viaja como texto porque el contrato acepta id, `sin` y `todos`.
+     */
+    @GET("general-users")
+    suspend fun listarPaginado(
+        @Query("paginado") paginado: Int? = 1,
+        @Query("page") page: Int? = null,
+        @Query("por_pagina") porPagina: Int? = null,
+        @Query("search") search: String? = null,
+        @Query("role") role: String? = null,
+        @Query("estado") estado: String? = null,
+        @Query("ficha_id") fichaId: String? = null,
+        @Query("programa") programa: String? = null,
+        @Query("included") included: String? = null,
+    ): PaginaGeneralUsersDto
 
     @GET("general-users/{id}")
     suspend fun obtener(

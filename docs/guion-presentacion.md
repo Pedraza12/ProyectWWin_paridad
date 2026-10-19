@@ -1,7 +1,7 @@
 # Guion — Recorrido de una petición (ProyecTwin)
 
 > Idea para decir en una frase:
-> **“La pantalla pide → la petición viaja por internet con un token → el backend verifica y consulta la base de datos → y la respuesta vuelve como JSON para pintar la pantalla.”**
+> **“La pantalla pide → la petición viaja por internet con la cookie de sesión (httpOnly) y, en las escrituras, el token CSRF → el backend verifica y consulta la base de datos → y la respuesta vuelve como JSON para pintar la pantalla.”**
 
 Ejemplo que usamos: el aprendiz abre **“Mis Propuestas”** → `GET /v1/projects`.
 
@@ -17,13 +17,13 @@ Ejemplo que usamos: el aprendiz abre **“Mis Propuestas”** → `GET /v1/proje
    “Un *hook* pide la lista de propuestas y maneja el estado: **cargando**, **error** o **datos**.”
 
 4. **Cliente HTTP (api.js)**
-   “Aquí se **arma la petición**: el método (`GET`), la dirección (`/v1/projects`) y el **token** que identifica al usuario. `fetch` la envía por internet.”
+   “Aquí se **arma la petición**: el método (`GET`), la dirección (`/v1/projects`) y la **cookie de sesión** (httpOnly) que identifica al usuario. `fetch` la envía por internet.”
 
 5. **Proxy (Vite)**
    “En desarrollo, todo sale por el **mismo origen**; el proxy manda `/v1` al servidor backend.”
 
 6. **Ruta + Middleware (Laravel)**
-   “El backend la recibe en una **ruta**. Antes de atenderla, **verifica permisos**: token válido, cuenta activa y rol autorizado.”
+   “El backend la recibe en una **ruta**. Antes de atenderla, **verifica permisos**: sesión válida (cookie httpOnly), cuenta activa y rol autorizado.”
 
 7. **Controlador**
    “El **controlador** valida los datos, aplica las reglas (por ejemplo, mostrar solo lo que te corresponde) y pide los datos.”

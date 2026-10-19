@@ -10,6 +10,7 @@ use App\Similarity\Recomputador;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SimilarityController extends Controller
 {
@@ -87,9 +88,19 @@ class SimilarityController extends Controller
         }
 
         // Whitelist: el estado de vigencia lo controla el motor, no el cliente.
-        $item = Similarity::create($request->only([
-            'porcentaje', 'detalles', 'fecha', 'id_proyecto_1', 'id_proyecto_2',
-        ]));
+        // D-2b: la creación manual comparte el mutex del motor para serializarse
+        // con las detecciones y los borrados; ningún par confirmado puede colarse
+        // entre la comprobación y el borrado de una propuesta.
+        $item = DB::transaction(function () use ($request) {
+            // Inicialización canónica (igual que Recomputador): garantiza la fila
+            // del motor también en el arranque y toma SIEMPRE el mutex.
+            $config = MotorConfig::firstOrCreate([], ['umbral' => 0.30, 'meses' => 12]);
+            MotorConfig::whereKey($config->id)->lockForUpdate()->first();
+
+            return Similarity::create($request->only([
+                'porcentaje', 'detalles', 'fecha', 'id_proyecto_1', 'id_proyecto_2',
+            ]));
+        });
         return response()->json($item, 201);
     }
 

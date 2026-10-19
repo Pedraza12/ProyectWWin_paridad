@@ -44,6 +44,10 @@ import com.example.proyectwin.data.model.TeamMember
 import com.example.proyectwin.data.model.TrainingProgram
 import com.example.proyectwin.data.model.UserRole
 import java.time.LocalDate
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /** Fecha de hoy en formato `yyyy-MM-dd` (lo exigen `fecha` en reportes/notificaciones). */
 fun hoy(): String = LocalDate.now().toString()
@@ -366,6 +370,23 @@ fun com.example.proyectwin.data.api.dto.DemoSimilitudResponse.toDomain(): DemoRe
 
 // ------------------------------------------------------------ Bitácora
 
+/**
+ * `detalleTexto` de la bitácora web: `clave: valor · clave: valor`; los
+ * arreglos se unen con ", " y los valores nulos quedan como `null`, igual
+ * que en la web.
+ */
+private fun detalleAuditoriaTexto(detalle: JsonObject): String =
+    detalle.entries.joinToString(" · ") { (clave, valor) ->
+        val texto = when (valor) {
+            is JsonArray -> valor.joinToString(", ") { elemento -> elemento.aTextoPlano() }
+            else -> valor.aTextoPlano()
+        }
+        "$clave: $texto"
+    }
+
+private fun JsonElement.aTextoPlano(): String =
+    if (this is JsonPrimitive) content else toString()
+
 fun AuditLogDto.toDomain(): AuditLog = AuditLog(
     id = id,
     accion = accion,
@@ -373,7 +394,7 @@ fun AuditLogDto.toDomain(): AuditLog = AuditLog(
     entidadId = entidadId,
     usuarioId = idUsuario,
     usuarioNombre = user?.nombreCompleto(),
-    detalle = detalle?.toString(),
+    detalle = detalle?.let { detalleAuditoriaTexto(it) },
     ip = ip,
     createdAt = createdAt,
 )

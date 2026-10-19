@@ -1,34 +1,35 @@
 import { Link } from 'react-router-dom'
 import { CONTACTO } from '../../constants/contacto'
+import { RUTA_POR_ROL, RUTA_ALERTAS_POR_ROL, RUTA_SOPORTE_POR_ROL } from '../../constants/routes'
 import { Phone, Envelope, Copyright } from 'phosphor-react'
 import s from './Footer.module.css'
 
 const FOOTER_BY_ROLE = {
   aprendiz: {
     links: [
-      { label: 'Dashboard', to: '/aprendiz/dashboard' },
+      { label: 'Dashboard', to: RUTA_POR_ROL.aprendiz },
       { label: 'Propuestas', to: '/aprendiz/propuestas' },
       { label: 'Similitudes', to: '/aprendiz/similitudes' },
       { label: 'Ficha', to: '/aprendiz/ficha' },
-      { label: 'Alertas', to: '/aprendiz/alertas' },
+      { label: 'Alertas', to: RUTA_ALERTAS_POR_ROL.aprendiz },
       { label: 'Mi Perfil', to: '/aprendiz/perfil' },
-      { label: 'Soporte', to: '/aprendiz/reportar-falla' },
+      { label: 'Soporte', to: RUTA_SOPORTE_POR_ROL.aprendiz },
     ],
   },
   instructor: {
     links: [
-      { label: 'Dashboard', to: '/instructor/dashboard' },
+      { label: 'Dashboard', to: RUTA_POR_ROL.instructor },
       { label: 'Revisión Propuestas', to: '/instructor/revision-propuestas' },
       { label: 'Similitudes', to: '/instructor/similitudes' },
       { label: 'Fichas', to: '/instructor/fichas' },
-      { label: 'Alertas', to: '/instructor/alertas' },
+      { label: 'Alertas', to: RUTA_ALERTAS_POR_ROL.instructor },
       { label: 'Mi Perfil', to: '/instructor/perfil' },
-      { label: 'Soporte', to: '/instructor/reportar-falla' },
+      { label: 'Soporte', to: RUTA_SOPORTE_POR_ROL.instructor },
     ],
   },
   admin: {
     links: [
-      { label: 'Dashboard', to: '/admin/dashboard' },
+      { label: 'Dashboard', to: RUTA_POR_ROL.admin },
       { label: 'Usuarios', to: '/admin/usuarios' },
       { label: 'Propuestas', to: '/admin/proyectos' },
       { label: 'Similitudes', to: '/admin/similitudes' },

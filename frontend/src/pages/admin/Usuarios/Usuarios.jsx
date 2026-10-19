@@ -214,6 +214,7 @@ export default function Usuarios() {
 
   const onSubmit = async (e) => {
     e.preventDefault()
+    if (guardando) return
     const err = validar()
     if (Object.keys(err).length) {
       setErrores(err)

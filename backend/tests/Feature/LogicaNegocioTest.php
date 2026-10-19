@@ -204,7 +204,7 @@ class LogicaNegocioTest extends TestCase
         $this->assertSame('pendiente', $project->fresh()->estado);
     }
 
-    public function test_guardar_estado_no_devuelve_a_pendiente_si_no_cambia_el_contenido(): void
+    public function test_admin_no_aprueba_directamente_una_rechazada(): void
     {
         $programa = $this->programa();
         $ficha = $this->ficha($programa);
@@ -220,7 +220,9 @@ class LogicaNegocioTest extends TestCase
             'id_class_group' => $ficha->id,
         ]);
 
-        // Solo cambia el estado (contenido idéntico): debe quedar aprobado.
+        // D-1: la aprobación directa desde `rechazado` rompería la coherencia
+        // con el análisis (quedaría sin detección vigente); el camino válido
+        // es el reenvío del aprendiz, que re-analiza el contenido.
         $this->como($admin)
             ->putJson('/v1/projects/' . $project->id, [
                 'titulo' => 'Rechazada',
@@ -229,9 +231,10 @@ class LogicaNegocioTest extends TestCase
                 'id_creador' => $aprendiz->id,
                 'estado' => 'aprobado',
             ])
-            ->assertOk();
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Una propuesta rechazada no puede aprobarse directamente: debe reenviarse y analizarse primero.');
 
-        $this->assertSame('aprobado', $project->fresh()->estado);
+        $this->assertSame('rechazado', $project->fresh()->estado);
     }
 
     // ---------------------------------------------------------------- Rol / perfil

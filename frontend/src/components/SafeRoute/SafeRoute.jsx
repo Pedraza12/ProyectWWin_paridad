@@ -2,15 +2,8 @@ import ErrorBoundary from '../ErrorBoundary/ErrorBoundary'
 import Actions from '../Actions/Actions'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { WarningCircle, ArrowCounterClockwise, Bug } from 'phosphor-react'
-import { RUTA_POR_ROL } from '../../constants/routes'
+import { RUTA_POR_ROL, RUTA_SOPORTE_POR_ROL } from '../../constants/routes'
 import s from './SafeRoute.module.css'
-
-// El admin no tiene formulario propio: va al listado de reportes
-const REPORTE_POR_ROL = {
-  aprendiz: '/aprendiz/reportar-falla',
-  instructor: '/instructor/reportar-falla',
-  admin: '/admin/reportes-fallas',
-}
 
 function derivarRol(pathname) {
   if (pathname.startsWith('/instructor')) return 'instructor'
@@ -39,7 +32,7 @@ export default function SafeRoute({ children }) {
               <button type="button" className={s.primary} onClick={() => navigate(home)}>
                 <ArrowCounterClockwise size={16} /> Volver al dashboard
               </button>
-              <button type="button" className={s.secondary} onClick={() => navigate(REPORTE_POR_ROL[role] || home)}>
+              <button type="button" className={s.secondary} onClick={() => navigate(RUTA_SOPORTE_POR_ROL[role] || home)}>
                 <Bug size={16} /> Solicitar soporte
               </button>
             </Actions>

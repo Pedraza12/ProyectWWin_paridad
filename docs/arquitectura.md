@@ -18,7 +18,7 @@ sequenceDiagram
     U->>C: abre "Mis Propuestas"
     C->>D: useApi(() => proyectos.listar())
     D->>H: apiFetch('/projects')
-    H->>API: GET /v1/projects  (Authorization: Bearer)
+    H->>API: GET /v1/projects  (cookie de sesión httpOnly)
     API->>M: Project::included()->paraUsuario()->get()
     M->>DB: SELECT ... FROM projects
     DB-->>M: filas
@@ -55,15 +55,15 @@ flowchart LR
 
 | Capa | Archivo | Fragmento |
 |---|---|---|
-| Componente | `frontend/src/pages/aprendiz/Propuestas/Propuestas.jsx:98` | `useApi(() => proyectos.listar({ included: INCLUDE_PROYECTOS }), [], { inicial: [] })` |
+| Componente | `frontend/src/pages/aprendiz/Propuestas/Propuestas.jsx:81-85` | `useApi(() => proyectos.listar({ included: INCLUDE_PROYECTOS }), [], { inicial: [] })` |
 | Hook | `frontend/src/lib/useApi.js:10` | `{ data, cargando, error, recargar }` |
-| Recurso | `frontend/src/lib/recursos.js:69` | `apiFetch(`/projects${qs({ included: '...', ...filtros })}`).then(lista)` |
-| Cliente HTTP | `frontend/src/lib/api.js:80` | `headers.Authorization = `Bearer ${token}` · await fetch(url, { method, headers })` |
-| Proxy | `frontend/vite.config.js:10` | `'/v1': { target: 'http://127.0.0.1:8000', changeOrigin: true }` |
-| Ruta | `backend/routes/api-v1.php:107` | `Route::get('projects', [ProjectController::class, 'index'])` |
-| Middleware | `backend/app/Http/Kernel.php:42` | `'cuenta.activa' => CuentaActiva::class` · `'rol' => RolMiddleware::class` |
-| Controlador | `backend/app/Http/Controllers/Api/ProjectController.php:18` | `Project::included()->paraUsuario($user)->get()` |
-| Modelo | `backend/app/Models/Project.php:74` | `scopeParaUsuario(Builder $q, $user)` |
+| Recurso | `frontend/src/lib/recursos.js:116-120` | `apiFetch(`/projects${qs({ included: '...', ...filtros })}`).then(lista)` |
+| Cliente HTTP | `frontend/src/lib/api.js:97` | `credentials: "include"` (cookie de sesión httpOnly; `apiFetch` :144, `apiDescargar` :225) · en escrituras `X-XSRF-TOKEN` leído de la cookie `XSRF-TOKEN` (:131) · `await fetch(url, { method, headers })` |
+| Proxy | `frontend/vite.config.js:13` | `'/v1': { target: 'http://127.0.0.1:8000', changeOrigin: true }` |
+| Ruta | `backend/routes/api-v1.php:121` | `Route::get('projects', [ProjectController::class, 'index'])` |
+| Middleware | `backend/app/Http/Kernel.php:46-47` | `'cuenta.activa' => CuentaActiva::class` · `'rol' => RolMiddleware::class` |
+| Controlador | `backend/app/Http/Controllers/Api/ProjectController.php:22/32` | `Project::included()->paraUsuario($user)->get()` |
+| Modelo | `backend/app/Models/Project.php:99` | `scopeParaUsuario(Builder $q, $user)` |
 | Base de datos | — | `SELECT ... FROM projects` (MySQL) |
 
 ## Leyenda

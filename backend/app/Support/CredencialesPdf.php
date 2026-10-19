@@ -13,9 +13,11 @@ use Symfony\Component\HttpFoundation\Response;
 // definido la definitiva (después se muestra "ya establecida").
 class CredencialesPdf
 {
-    public static function generar(Collection $usuarios, array $contexto = []): Response
+    // Filas del PDF (separadas de la generación para poder verificar el
+    // contenido en pruebas sin depender del binario comprimido del PDF).
+    public static function filas(Collection $usuarios, array $contexto = []): Collection
     {
-        $filas = $usuarios->map(function (GeneralUser $usuario) use ($contexto) {
+        return $usuarios->map(function (GeneralUser $usuario) use ($contexto) {
             $temporal = null;
             $errorTemporal = false;
             if ($usuario->must_change_password && $usuario->password_temporal) {
@@ -43,6 +45,11 @@ class CredencialesPdf
                 'rol' => ucfirst($usuario->rol),
             ];
         });
+    }
+
+    public static function generar(Collection $usuarios, array $contexto = []): Response
+    {
+        $filas = self::filas($usuarios, $contexto);
 
         $pdf = Pdf::loadView('pdf.credenciales', [
             'filas' => $filas,

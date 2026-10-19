@@ -1,5 +1,7 @@
 # Historial de Fixes - ProyecTwin
 
+> **Nota de vigencia (18-oct-2026):** documento **histórico** (agosto 2026). Cita archivos ya eliminados (`mockData.js`, `MockDataProvider.kt`, `FlowStore.kt`) y no describe el estado actual del código. El estado verificado vigente está en `docs/inventario-pendientes.md` y `docs/entorno-pruebas-seguro.md`.
+
 **Fecha:** Agosto 2026
 **Ruta:** D:\ADSO YDMV\Proyecto\ProyecTwin-master\MVP
 

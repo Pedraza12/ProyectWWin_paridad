@@ -7,6 +7,7 @@ import {
   ClipboardText, BookOpen, BookBookmark, UsersThree, MagnifyingGlass, GraduationCap, GearSix,
   ClockCounterClockwise, TreeStructure
 } from 'phosphor-react'
+import { RUTA_POR_ROL, RUTA_ALERTAS_POR_ROL, RUTA_SOPORTE_POR_ROL } from '../../constants/routes'
 import GovernmentBar from '../../components/GovernmentBar/GovernmentBar'
 import TopNav from '../../components/TopNav/TopNav'
 import Sidebar from '../../components/Sidebar/Sidebar'
@@ -15,29 +16,29 @@ import s from './DashboardLayout.module.css'
 
 const LINKS = {
   aprendiz: [
-    { to: '/aprendiz/dashboard', icon: <House size={20} weight="regular" />, label: 'Dashboard' },
+    { to: RUTA_POR_ROL.aprendiz, icon: <House size={20} weight="regular" />, label: 'Dashboard' },
     { to: '/aprendiz/propuestas', icon: <FolderOpen size={20} weight="regular" />, label: 'Propuestas', activeFor: ['/aprendiz/detalle-proyecto'] },
     { to: '/aprendiz/similitudes', icon: <MagnifyingGlass size={20} weight="regular" />, label: 'Similitudes', activeFor: ['/aprendiz/detalle-similitud', '/aprendiz/resultado-analisis'] },
     { to: '/aprendiz/ficha', icon: <GraduationCap size={20} weight="regular" />, label: 'Ficha', activeFor: ['/aprendiz/detalle-ficha'] },
-    { to: '/aprendiz/alertas', icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
+    { to: RUTA_ALERTAS_POR_ROL.aprendiz, icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
     { to: '/aprendiz/perfil', icon: <UserCircle size={20} weight="regular" />, label: 'Mi Perfil' },
-    { to: '/aprendiz/reportar-falla', icon: <Bug size={20} weight="regular" />, label: 'Soporte' },
+    { to: RUTA_SOPORTE_POR_ROL.aprendiz, icon: <Bug size={20} weight="regular" />, label: 'Soporte' },
   ],
   instructor: [
-    { to: '/instructor/dashboard', icon: <House size={20} weight="regular" />, label: 'Dashboard' },
+    { to: RUTA_POR_ROL.instructor, icon: <House size={20} weight="regular" />, label: 'Dashboard' },
     { to: '/instructor/revision-propuestas', icon: <ClipboardText size={20} weight="regular" />, label: 'Revisión Propuestas', activeFor: ['/instructor/detalle-proyecto'] },
     { to: '/instructor/similitudes', icon: <MagnifyingGlass size={20} weight="regular" />, label: 'Similitudes', activeFor: ['/instructor/detalle-similitud'] },
     { to: '/instructor/fichas', icon: <BookOpen size={20} weight="regular" />, label: 'Fichas', activeFor: ['/instructor/detalle-ficha', '/instructor/directorio-ficha'] },
-    { to: '/instructor/alertas', icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
+    { to: RUTA_ALERTAS_POR_ROL.instructor, icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
     { to: '/instructor/perfil', icon: <UserCircle size={20} weight="regular" />, label: 'Mi Perfil' },
-    { to: '/instructor/reportar-falla', icon: <Bug size={20} weight="regular" />, label: 'Soporte' },
+    { to: RUTA_SOPORTE_POR_ROL.instructor, icon: <Bug size={20} weight="regular" />, label: 'Soporte' },
   ],
   admin: [
-    { to: '/admin/dashboard', icon: <House size={20} weight="regular" />, label: 'Dashboard' },
+    { to: RUTA_POR_ROL.admin, icon: <House size={20} weight="regular" />, label: 'Dashboard' },
     { to: '/admin/proyectos', icon: <FolderOpen size={20} weight="regular" />, label: 'Propuestas', activeFor: ['/admin/detalle-proyecto'] },
     { to: '/admin/similitudes', icon: <MagnifyingGlass size={20} weight="regular" />, label: 'Similitudes', activeFor: ['/admin/detalle-similitud'] },
-    { to: '/admin/reportes-fallas', icon: <Bug size={20} weight="regular" />, label: 'Soporte', activeFor: ['/admin/detalle-reporte'] },
-    { to: '/admin/notificaciones', icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
+    { to: RUTA_SOPORTE_POR_ROL.admin, icon: <Bug size={20} weight="regular" />, label: 'Soporte', activeFor: ['/admin/detalle-reporte'] },
+    { to: RUTA_ALERTAS_POR_ROL.admin, icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
     { to: '/admin/usuarios', icon: <UsersThree size={20} weight="regular" />, label: 'Usuarios', activeFor: ['/admin/detalle-usuario'] },
     { to: '/admin/fichas', icon: <BookBookmark size={20} weight="regular" />, label: 'Fichas', activeFor: ['/admin/detalle-ficha'] },
     { to: '/admin/bitacora', icon: <ClockCounterClockwise size={20} weight="regular" />, label: 'Bitácora' },

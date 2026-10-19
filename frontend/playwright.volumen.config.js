@@ -19,7 +19,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run preview -- --strictPort',
     url: 'http://localhost:4173',
-    reuseExistingServer: true,
+    // Nunca reutilizar un preview ya abierto: podría apuntar a otro backend
+    // (proxy PROYECTWIN_API) y ejecutar la suite de volumen contra datos ajenos.
+    reuseExistingServer: false,
     timeout: 60000,
   },
 })

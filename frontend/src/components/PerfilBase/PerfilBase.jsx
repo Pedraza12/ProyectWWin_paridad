@@ -155,6 +155,7 @@ export default function PerfilBase({
   }
 
   async function guardarCuenta() {
+    if (guardando) return
     setGuardando(true)
     try {
       const nombreCompleto = `${form.nombre.trim()} ${form.apellido.trim()}`.trim()
@@ -191,6 +192,7 @@ export default function PerfilBase({
   }
 
   async function guardarCorreo() {
+    if (guardandoCorreo) return
     const errs = {}
     if (!esEmailValido(correoForm.correo.trim())) {
       errs.correo = 'Ingresa un correo electrónico válido.'

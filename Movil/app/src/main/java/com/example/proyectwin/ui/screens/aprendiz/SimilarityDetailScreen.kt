@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +18,8 @@ import com.example.proyectwin.data.model.Similarity
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
+import com.example.proyectwin.ui.util.formatearFechaLocal
+import com.example.proyectwin.ui.viewmodel.EstadoObservaciones
 import com.example.proyectwin.ui.viewmodel.SimilarityDetailUiState
 import com.example.proyectwin.ui.viewmodel.SimilarityDetailViewModel
 
@@ -63,6 +66,17 @@ fun SimilarityDetailScreen(
             is SimilarityDetailUiState.Success -> {
                 val data = estado.data
                 val par = data.similarity
+
+                // Observaciones: la web (`DetalleSimilitud`) muestra solo las de la
+                // propuesta propia del par; sin propuesta propia (instructor) se
+                // muestra cada propuesta por separado para no mezclar observaciones
+                // de proyectos distintos.
+                val seccionesObservaciones: List<Pair<String, Project>> = data.miProyecto?.let { mios ->
+                    listOf("Observaciones de tu propuesta" to mios)
+                } ?: listOfNotNull(
+                    par.project1?.let { "Observaciones · ${it.title}" to it },
+                    par.project2?.let { "Observaciones · ${it.title}" to it },
+                )
 
                 Column(
                     modifier = Modifier
@@ -183,6 +197,16 @@ fun SimilarityDetailScreen(
                         }
                     }
 
+                    seccionesObservaciones.forEach { (titulo, proyecto) ->
+                        val estadoObs = data.observaciones[proyecto.id]
+                        val conConteo = estadoObs != null && !estadoObs.cargando && estadoObs.error == null
+                        ObservacionesPropuesta(
+                            titulo = if (conConteo) "$titulo (${estadoObs.comentarios.size})" else titulo,
+                            estado = estadoObs,
+                            onRetry = { similarityDetailViewModel.reintentarObservaciones(proyecto.id) },
+                        )
+                    }
+
                     Spacer(Modifier.height(40.dp))
                 }
             }
@@ -228,6 +252,90 @@ private fun PanelPropuesta(proyecto: Project?, onClick: () -> Unit) {
                 style = MaterialTheme.typography.labelSmall,
                 color = senaColors().green,
             )
+        }
+    }
+}
+
+/** Observaciones de UNA propuesta del par (solo lectura, con estados). */
+@Composable
+private fun ObservacionesPropuesta(
+    titulo: String,
+    estado: EstadoObservaciones?,
+    onRetry: () -> Unit,
+) {
+    val actual = estado ?: EstadoObservaciones()
+    SenaSectionHeader(title = titulo)
+    SenaCard(elevation = 1.dp) {
+        when {
+            actual.cargando -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = senaColors().green,
+                    )
+                    Text(
+                        "Cargando observaciones…",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = senaColors().textSecondary,
+                    )
+                }
+            }
+
+            actual.error != null -> {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        actual.error.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = senaColors().danger,
+                    )
+                    TextButton(onClick = onRetry) {
+                        Text("Reintentar", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+
+            actual.comentarios.isEmpty() -> SenaEmptyState(
+                message = "Aún no hay observaciones en esta propuesta.",
+                icon = Icons.AutoMirrored.Filled.Chat,
+            )
+
+            else -> {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    actual.comentarios.forEach { comentario ->
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                SenaAvatar(
+                                    fotoBase64 = comentario.autorFoto,
+                                    nombre = comentario.autorNombre ?: "Usuario",
+                                    modifier = Modifier.size(28.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        comentario.autorNombre ?: "Usuario",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Text(
+                                        formatearFechaLocal(comentario.createdAt),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = senaColors().textLight,
+                                    )
+                                }
+                            }
+                            Text(
+                                comentario.texto,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = senaColors().textSecondary,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

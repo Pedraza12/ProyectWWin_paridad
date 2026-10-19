@@ -302,6 +302,13 @@ class ClassGroupController extends Controller
 
         // Cambio de ficha atómico: ficha + aprendices + recálculo (todo o nada).
         DB::transaction(function () use ($class_group, $datos, $request, $programaAnterior, $estadoAnterior, $numeroAnterior, $nombreAnterior, $instructorAnterior, $cambiaInstructor, $seAnula) {
+            // O1 (D-2b × BUG-007): el mutex del motor se toma al inicio de la
+            // transacción —antes de bloquear ficha/aprendices—; el recálculo por
+            // cambio de programa lo reutiliza. Evita el ciclo de bloqueos con las
+            // cascadas de BorradoCascada (que también empiezan por el mutex).
+            $config = \App\Models\MotorConfig::firstOrCreate([], ['umbral' => 0.30, 'meses' => 12]);
+            \App\Models\MotorConfig::whereKey($config->id)->lockForUpdate()->first();
+
             $class_group->update($datos);
 
             // Aprendices seleccionados en el formulario (si vino el campo).

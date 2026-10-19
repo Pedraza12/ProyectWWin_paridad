@@ -51,7 +51,7 @@ Los usuarios creados por el flujo real reciben contraseña temporal y
 ## Pruebas
 
 ```bash
-php artisan test          # Feature/Unit (MySQL de .env)
+php artisan test          # Feature/Unit contra proyectwin_test (phpunit.xml + guarda en tests/CreatesApplication.php; NO usa el .env de desarrollo)
 ```
 
 E2E (Playwright) se ejecuta desde `../frontend`:
@@ -65,10 +65,20 @@ cd ../frontend && npm run test:e2e
 - **Estados de propuesta:** `borrador → pendiente → aprobado|rechazado`. El
   aprendiz edita en borrador, en revisión y rechazado; aprobado queda bloqueado
   (el admin conserva la intervención excepcional).
-- **Motor de similitudes:** corre al **enviar/reenviar** y al editar en revisión;
-  no al crear ni al aprobar. Tras una intervención admin se archiva la detección
-  anterior y se analiza el contenido nuevo. Los pares históricos se conservan
+- **Motor de similitudes:** corre al **enviar/reenviar** y al editar en revisión
+  (archiva la detección anterior y re-analiza el contenido nuevo); **aprobar no
+  ejecuta el motor**. Tras una intervención admin que devuelve a revisión se
+  archiva y se re-detecta igual. Los pares históricos se conservan
   (`vigente=false`) y nunca se borran al rechazar/reenviar.
+- **Guarda de evidencia (D-2b × BUG-007):** `DELETE /projects/{id}` responde
+  **409** si el proyecto tiene **cualquier** par de similitud (vigente o
+  histórico): la evidencia es compartida con la contraparte. Las cascadas de
+  instructor/programa/red también responden 409 si alguna propuesta de su
+  subárbol tiene pares (mensajes fijos por entidad en `BorradoCascada`); en el
+  borrado directo (`DELETE /class-groups/{id}`), la ficha con aprendices o
+  propuestas no se borra, se **anula** (conserva todo y libera el número) y
+  solo se elimina físicamente si está vacía. En cambio, las cascadas sí las
+  eliminan físicamente (con sus propuestas) cuando no hay pares.
 - **Ventana temporal (intencional):** el corpus compara contra aprobadas dentro
   de la ventana de `meses`; un par vigente se conserva si cualquiera de los dos
   proyectos está en ventana. Los antiguos se reanalizan al recalibrar desde

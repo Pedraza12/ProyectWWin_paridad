@@ -176,15 +176,30 @@ fun AdminFichasScreen(
         }
 
         fichaParaEliminar?.let { ficha ->
+            // Confirmación tipada: el estado vive con el diálogo y se reinicia al
+            // abrirlo/cerrarlo (remember(ficha.id) + salida de composición).
+            var confirmacion by remember(ficha.id) { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = { fichaParaEliminar = null },
                 title = { Text("Eliminar ficha") },
-                text = { Text("Si tiene aprendices o propuestas quedará anulada; si no, se eliminará.") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Si tiene aprendices o propuestas quedará anulada; si no, se eliminará.")
+                        SenaTextField(
+                            value = confirmacion,
+                            onValueChange = { confirmacion = it },
+                            label = "Escribe ELIMINAR para confirmar",
+                        )
+                    }
+                },
                 confirmButton = {
-                    TextButton(onClick = {
-                        fichaParaEliminar = null
-                        adminFichasViewModel.eliminar(ficha.id)
-                    }) { Text("Eliminar", color = senaColors().danger) }
+                    TextButton(
+                        onClick = {
+                            fichaParaEliminar = null
+                            adminFichasViewModel.eliminar(ficha.id)
+                        },
+                        enabled = confirmacion.trim() == "ELIMINAR",
+                    ) { Text("Eliminar", color = senaColors().danger) }
                 },
                 dismissButton = { TextButton(onClick = { fichaParaEliminar = null }) { Text("Cancelar") } },
             )

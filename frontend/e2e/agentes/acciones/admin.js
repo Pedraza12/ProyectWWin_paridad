@@ -113,12 +113,32 @@ export async function admin(h) {
     await page.getByRole('button', { name: /^Guardar$/i }).click()
     await h.esperar('Estado actualizado correctamente.', 10000)
 
+    // Contrato real: editar el contenido de una APROBADA la devuelve a revisión
+    // (intervención administrativa) y así lo anuncia; en cualquier otro estado
+    // el aviso es el simple. La expectativa se deriva del estado ya persistido.
+    const eraAprobada = (await sel.inputValue()) === 'aprobado'
+
     h.usar('Editar')
     await page.getByRole('button', { name: /^Editar$/i }).click()
     await page.getByLabel('Título').fill(`Propuesta moderada ${h.sufijo}`)
     h.usar('Guardar contenido')
-    await page.getByRole('button', { name: /Guardar contenido/i }).click()
-    await h.esperar('Contenido actualizado correctamente.', 10000)
+    // La verificación del retorno a revisión se hace contra la RESPUESTA del
+    // servidor (fuente de verdad): el selector de estado conserva el valor
+    // elegido por el moderador y no refleja la transición automática.
+    const guardada = await h.capturar('PUT', '/v1/projects/4', () =>
+      page.getByRole('button', { name: /Guardar contenido/i }).click()
+    )
+    await h.esperar(
+      eraAprobada
+        ? 'Contenido actualizado. La propuesta volvió a En revisión'
+        : 'Contenido actualizado correctamente.',
+      10000
+    )
+    if (eraAprobada && guardada?.estado !== 'pendiente') {
+      throw new Error(
+        `la intervención no devolvió la propuesta a revisión (estado persistido: ${guardada?.estado})`
+      )
+    }
 
     await page.getByLabel('Observación sobre esta propuesta').fill(`Observación admin ${h.sufijo}`)
     h.usar('Agregar observación')

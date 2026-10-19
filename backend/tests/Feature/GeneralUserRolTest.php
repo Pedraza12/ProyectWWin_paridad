@@ -147,4 +147,66 @@ class GeneralUserRolTest extends TestCase
 
         $this->assertTrue($objetivo->fresh()->estado);
     }
+
+    // ------------------------------------------------ D-4: auto-estado admin
+
+    public function test_un_admin_no_cambia_su_propio_estado(): void
+    {
+        $admin = $this->crearUsuario('admin');
+        $otroAdmin = $this->crearUsuario('admin'); // garantiza ≥2 admins activos
+        $token = $this->token($admin);
+
+        $this->withToken($token)
+            ->putJson('/v1/general-users/' . $admin->id, [
+                'nombre' => $admin->nombre,
+                'apellido' => $admin->apellido,
+                'correo' => $admin->correo,
+                'estado' => false,
+            ])
+            ->assertStatus(422);
+
+        $this->assertTrue($admin->fresh()->estado);
+
+        // La propia sesión sigue válida: nada se tocó.
+        $this->app['auth']->forgetGuards();
+        $this->withToken($token)->getJson('/v1/auth/me')->assertOk();
+    }
+
+    public function test_otro_admin_si_gestiona_el_estado_y_las_demas_sesiones_no_se_afectan(): void
+    {
+        $adminA = $this->crearUsuario('admin');
+        $adminB = $this->crearUsuario('admin');
+        $tokenA = $this->token($adminA);
+        $tokenB = $this->token($adminB);
+
+        // B suspende a A (permitido: la regla solo prohíbe la autogestión).
+        $this->withToken($tokenB)
+            ->putJson('/v1/general-users/' . $adminA->id, [
+                'nombre' => $adminA->nombre,
+                'apellido' => $adminA->apellido,
+                'correo' => $adminA->correo,
+                'estado' => false,
+            ])
+            ->assertOk();
+        $this->assertFalse($adminA->fresh()->estado);
+
+        // El token de A queda bloqueado por el middleware de cuenta activa…
+        $this->app['auth']->forgetGuards();
+        $this->withToken($tokenA)->getJson('/v1/auth/me')->assertStatus(403);
+
+        // …y la sesión de B (quien gestionó) permanece intacta.
+        $this->app['auth']->forgetGuards();
+        $this->withToken($tokenB)->getJson('/v1/auth/me')->assertOk();
+
+        // B puede reactivarlo; la protección del último admin no se altera.
+        $this->withToken($tokenB)
+            ->putJson('/v1/general-users/' . $adminA->id, [
+                'nombre' => $adminA->nombre,
+                'apellido' => $adminA->apellido,
+                'correo' => $adminA->correo,
+                'estado' => true,
+            ])
+            ->assertOk();
+        $this->assertTrue($adminA->fresh()->estado);
+    }
 }

@@ -105,10 +105,10 @@ class InstructorController extends Controller
     public function destroy(Instructor $instructor)
     {
         // Admin sin restricciones: borra sus fichas (con su cascada) y luego el
-        // perfil de instructor.
-        $fichas = ClassGroup::where('id_instructor', $instructor->id)->get();
-        \Illuminate\Support\Facades\DB::transaction(function () use ($instructor, $fichas) {
-            $fichas->each(fn ($f) => \App\Support\BorradoCascada::ficha($f));
+        // perfil de instructor. La guarda de evidencia compartida (D-2b ×
+        // BUG-007) responde 409 si alguna propuesta de sus fichas tiene pares.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($instructor) {
+            \App\Support\BorradoCascada::instructor($instructor);
             \App\Support\Auditoria::registrar('eliminar_instructor', 'instructors', $instructor->id, [
                 'id_usuario' => $instructor->id_usuario,
             ]);

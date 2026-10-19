@@ -273,6 +273,40 @@ export default function Propuestas() {
             equipoFallidos.push(Number(idAprendiz))
           }
         }
+      } else {
+        // W-01: reintento tras un fallo. Antes de reenviar se persisten las
+        // correcciones del formulario y el equipo, y se CONFIRMAN leyendo.
+        await proyectos.actualizar(id, {
+          titulo: form.title.trim(),
+          resumen: form.description.trim(),
+          palabras_clave: form.keywords.trim() || null,
+          area_aplicacion: form.areaAplicacion,
+          objetivo_general: form.objetivoGeneral.trim(),
+          objetivos_especificos: objetivosValidos,
+        })
+
+        const fresco = await proyectos.obtener(id)
+        const contenidoConfirmado =
+          fresco?.titulo === form.title.trim() &&
+          (fresco?.resumen || '') === form.description.trim() &&
+          (fresco?.area_aplicacion || '') === form.areaAplicacion &&
+          (fresco?.objetivo_general || '') === form.objetivoGeneral.trim()
+        if (!contenidoConfirmado) {
+          setErrorGeneral('No se pudo confirmar el guardado de los cambios. Vuelve a intentarlo.')
+          return
+        }
+
+        for (const idAprendiz of seleccionados) {
+          try {
+            await proyectos.agregarAlEquipo(Number(idAprendiz), Number(id))
+          } catch {
+            equipoFallidos.push(Number(idAprendiz))
+          }
+        }
+        if (equipoFallidos.length > 0) {
+          setErrorGeneral('No se pudieron guardar todos los integrantes del equipo. Vuelve a intentarlo.')
+          return
+        }
       }
 
       // 2) Envío explícito: el backend valida, detecta similitudes y avisa al
@@ -293,7 +327,7 @@ export default function Propuestas() {
       if (Object.keys(traducidos).length === 0) {
         setErrorGeneral(
           id
-            ? 'La propuesta quedó guardada como borrador. Corrige lo indicado y reenvíala desde la tarjeta.'
+            ? 'La propuesta quedó guardada como borrador. Corrige lo indicado y vuelve a intentar el envío.'
             : (err?.data?.message || err?.message || 'No se pudo enviar la propuesta. Intenta de nuevo.')
         )
       }

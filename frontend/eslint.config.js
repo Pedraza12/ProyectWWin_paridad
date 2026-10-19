@@ -18,4 +18,12 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  // Los arneses E2E corren en Node (process, etc.). `Buffer` se excluye porque
+  // los specs que lo usan ya lo declaran con /*global Buffer*/.
+  {
+    files: ['e2e/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: { ...globals.node, Buffer: 'off' },
+    },
+  },
 ])
