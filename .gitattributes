@@ -1,0 +1,9 @@
+# Archivos que se ejecutan o interpretan en Linux: forzar LF siempre.
+# Evita el bug de CRLF (core.autocrlf en Windows) que rompe el shebang del
+# entrypoint y tumba el contenedor al arrancar.
+docker/*.sh text eol=lf
+docker/*.conf text eol=lf
+Dockerfile text eol=lf
+railway.json text eol=lf
+.dockerignore text eol=lf
+.railwayignore text eol=lf
