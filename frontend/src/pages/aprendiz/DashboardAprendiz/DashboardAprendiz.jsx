@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Bell, CaretRight, Clock, FolderOpen, MagnifyingGlass, PlusCircle, Sparkle, Tray } from 'phosphor-react'
 import DashboardLayout from '../../../layouts/DashboardLayout/DashboardLayout'
 import DashboardHero from '../../../components/DashboardHero/DashboardHero'
+import DashboardMetrics from '../../../components/DashboardMetrics/DashboardMetrics'
 import DashboardGrid from '../../../components/DashboardGrid/DashboardGrid'
 import MetricCard from '../../../components/MetricCard/MetricCard'
 import DataPanel from '../../../components/DataPanel/DataPanel'
@@ -13,7 +14,7 @@ import GradeBadge from '../../../components/GradeBadge/GradeBadge'
 import EmptyState from '../../../components/EmptyState/EmptyState'
 import ApiState from '../../../components/ApiState/ApiState'
 import { useApi } from '../../../lib/useApi'
-import { proyectos, similitudes as similitudesApi, notificaciones, INCLUDE_PROYECTOS } from '../../../lib/recursos'
+import { proyectos, similitudes as similitudesApi, notificaciones, INCLUDE_PROYECTOS, metricas } from '../../../lib/recursos'
 import { PROJECT_ESTADO_VARIANT, PROJECT_ESTADO_LABEL as ESTADO_LABEL } from '../../../constants/badgeVariants'
 import { useAuth } from '../../../contexts/AuthContext'
 import { fechaDesdeApi, esPropietarioProyecto, infoSimilitud } from '../../../utils/helpers'
@@ -38,6 +39,9 @@ const esMio = esPropietarioProyecto
 export default function DashboardAprendiz() {
   const { user } = useAuth()
   const navigate = useNavigate()
+
+  // Métricas agregadas en el backend (una sola carga para las gráficas).
+  const { data: metricasData } = useApi(() => metricas.obtener(), [user.id], { inicial: null })
 
   // Propuestas, similitudes y notificaciones: fuente única la API.
   const { data: todosProyectos, cargando, error, recargar } = useApi(
@@ -118,6 +122,8 @@ export default function DashboardAprendiz() {
           <MetricCard to="/aprendiz/similitudes" icon={<MagnifyingGlass size={22} />} label="Similitudes detectadas" value={similitudesPropias} variant="warning" />
           <MetricCard to="/aprendiz/alertas" icon={<Bell size={22} />} label="Alertas sin leer" value={sinLeer} variant="info" />
         </section>
+
+        <DashboardMetrics rol="aprendiz" data={metricasData} />
 
         <DashboardGrid
           left={

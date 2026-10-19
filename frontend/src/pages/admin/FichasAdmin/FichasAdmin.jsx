@@ -15,8 +15,9 @@ import EmptyState from '../../../components/EmptyState/EmptyState'
 import DataTable from '../../../components/DataTable/DataTable'
 import ApiState from '../../../components/ApiState/ApiState'
 import ConfirmModal from '../../../components/ConfirmModal/ConfirmModal'
-import { Books, ChartBar, CheckCircle, Eye, Lifebuoy, Plus, Trash, Warning, DownloadSimple } from 'phosphor-react'
+import { Books, ChartBar, CheckCircle, Eye, Lifebuoy, Plus, Trash, Warning, DownloadSimple, MagnifyingGlass } from 'phosphor-react'
 import { useApi } from '../../../lib/useApi'
+import { useDebounced } from '../../../lib/useDebounced'
 import { fichas, programas, redes, instructores, proyectos, usuarios } from '../../../lib/recursos'
 import { toFieldErrors } from '../../../lib/api'
 import { norm, fechaDesdeApi, nombreCompleto } from '../../../utils/helpers'
@@ -40,6 +41,8 @@ export default function FichasAdmin() {
 
   /* ---------- Lista ---------- */
   const [busqueda, setBusqueda] = useState('')
+  const [campoBusqueda, setCampoBusqueda] = useState('todos')
+  const busquedaDebounced = useDebounced(busqueda, 300)
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [filtroInstructor, setFiltroInstructor] = useState('todos')
   const [filtroPrograma, setFiltroPrograma] = useState('todos')
@@ -49,29 +52,38 @@ export default function FichasAdmin() {
   const [pagina, setPagina] = useState(1)
   const [aEliminar, setAEliminar] = useState(null)
 
-  // Fuente única: la API. Fichas + catálogos + propuestas (conteo) + aprendices.
-  const { data, cargando, error, recargar } = useApi(
+  // Catálogos (una sola carga) y fichas con búsqueda server-side + debounce.
+  const { data: catalogos, cargando: cargandoCatalogos, recargar: recargarCatalogos } = useApi(
     async () => {
-      const [listaFichas, listaProgramas, listaRedes, listaInstructores, listaProyectos, listaAprendices] = await Promise.all([
-        fichas.listar('program,instructor.generalUser,apprentices.generalUser'),
+      const [listaProgramas, listaRedes, listaInstructores, listaProyectos, listaAprendices] = await Promise.all([
         programas.listar(),
         redes.listar(),
         instructores.listar('generalUser'),
         proyectos.listar(),
         usuarios.listar({ role: 'aprendiz' }),
       ])
-      return { listaFichas, listaProgramas, listaRedes, listaInstructores, listaProyectos, listaAprendices }
+      return { listaProgramas, listaRedes, listaInstructores, listaProyectos, listaAprendices }
     },
     [],
     { inicial: null }
   )
 
-  const listaFichas = data?.listaFichas || []
-  const listaProgramas = data?.listaProgramas || []
-  const listaRedes = data?.listaRedes || []
-  const listaInstructores = data?.listaInstructores || []
-  const listaProyectos = data?.listaProyectos || []
-  const listaAprendices = data?.listaAprendices || []
+  const { data: listaFichas, cargando, error, recargar: recargarFichas } = useApi(
+    () => fichas.listar('program,instructor.generalUser,apprentices.generalUser', {
+      buscar: busquedaDebounced,
+      campo: campoBusqueda,
+    }),
+    [busquedaDebounced, campoBusqueda],
+    { inicial: [] }
+  )
+
+  const recargar = async () => { await Promise.all([recargarFichas(), recargarCatalogos()]) }
+
+  const listaProgramas = catalogos?.listaProgramas || []
+  const listaRedes = catalogos?.listaRedes || []
+  const listaInstructores = catalogos?.listaInstructores || []
+  const listaProyectos = catalogos?.listaProyectos || []
+  const listaAprendices = catalogos?.listaAprendices || []
 
   // Propuestas por ficha (id_class_group).
   const propuestasPorFicha = new Map()
@@ -81,22 +93,13 @@ export default function FichasAdmin() {
   }
 
   const filtradas = listaFichas.filter((f) => {
-    const q = norm(busqueda.trim())
-    const instructorNombre = nombreCompleto(f.instructor?.generalUser)
-    const coincideQ =
-      !q ||
-      norm(f.nombre).includes(q) ||
-      norm(f.codigo).includes(q) ||
-      norm(f.numero).includes(q) ||
-      norm(f.program?.nombre).includes(q) ||
-      norm(instructorNombre).includes(q)
     const coincideEstado = filtroEstado === 'todos' || f.estado === filtroEstado
     const coincideInstructor = filtroInstructor === 'todos' || String(f.id_instructor || '') === String(filtroInstructor)
     const coincidePrograma = filtroPrograma === 'todos' || String(f.id_programa || '') === String(filtroPrograma)
     const coincideRed = filtroRed === 'todos' || String(f.program?.knowledge_network_id || '') === String(filtroRed)
     const fecha = String(f.created_at || '').slice(0, 10)
     const coincideFecha = (!desde || fecha >= desde) && (!hasta || fecha <= hasta)
-    return coincideQ && coincideEstado && coincideInstructor && coincidePrograma && coincideRed && coincideFecha
+    return coincideEstado && coincideInstructor && coincidePrograma && coincideRed && coincideFecha
   })
 
   const paginadas = filtradas.slice(
@@ -106,6 +109,7 @@ export default function FichasAdmin() {
 
   const limpiarFiltros = () => {
     setBusqueda('')
+    setCampoBusqueda('todos')
     setFiltroEstado('todos')
     setFiltroInstructor('todos')
     setFiltroPrograma('todos')
@@ -114,6 +118,11 @@ export default function FichasAdmin() {
     setHasta('')
     setPagina(1)
   }
+
+  const hayFiltros = Boolean(
+    busqueda || filtroEstado !== 'todos' || filtroInstructor !== 'todos'
+    || filtroPrograma !== 'todos' || filtroRed !== 'todos' || desde || hasta
+  )
 
   useEffect(() => () => { if (msgTimer.current) clearTimeout(msgTimer.current) }, [])
 
@@ -415,7 +424,7 @@ export default function FichasAdmin() {
             </form>
           </DataPanel>
         ) : (
-          <ApiState cargando={cargando} error={error} onReintentar={recargar}>
+          <ApiState cargando={cargando || cargandoCatalogos} error={error} onReintentar={recargar}>
             {creadaMsg && (
               <Alert>
                 <CheckCircle size={14} /> Ficha creada correctamente.
@@ -430,17 +439,43 @@ export default function FichasAdmin() {
               <Alert><CheckCircle size={14} /> {avisoMsg}</Alert>
             )}
 
-            <FilterBar title="Buscar y filtrar">
+            <FilterBar
+              title="Buscar y filtrar"
+              actions={hayFiltros && (
+                <Button type="button" variant="secondary" size="sm" onClick={limpiarFiltros}>
+                  Limpiar filtros
+                </Button>
+              )}
+            >
               <label className={s.field}>
-                <span className={s.label}>Buscar</span>
-                <Input
-                  value={busqueda}
+                <span className={s.label}>Buscar por</span>
+                <Select
+                  value={campoBusqueda}
                   onChange={(e) => {
-                    setBusqueda(e.target.value)
+                    setCampoBusqueda(e.target.value)
                     setPagina(1)
                   }}
-                  placeholder="Nombre, código, número, programa o instructor…"
-                />
+                >
+                  <option value="todos">Todos los campos</option>
+                  <option value="codigo">Código</option>
+                  <option value="nombre">Nombre</option>
+                  <option value="numero">Número de ficha</option>
+                </Select>
+              </label>
+              <label className={s.field}>
+                <span className={s.label}>Buscar</span>
+                <span className={s.searchBox}>
+                  <MagnifyingGlass size={16} aria-hidden="true" />
+                  <Input
+                    className={s.searchInput}
+                    value={busqueda}
+                    onChange={(e) => {
+                      setBusqueda(e.target.value)
+                      setPagina(1)
+                    }}
+                    placeholder="Escribe código, nombre o número…"
+                  />
+                </span>
               </label>
               <label className={s.field}>
                 <span className={s.label}>Estado</span>
@@ -534,12 +569,12 @@ export default function FichasAdmin() {
                 icon={<Books />}
                 title="No hay fichas"
                 message={
-                  listaFichas.length === 0
-                    ? 'Aún no se han creado fichas de formación. Crea la primera.'
-                    : 'Ninguna ficha coincide con los filtros aplicados.'
+                  hayFiltros
+                    ? 'Ninguna ficha coincide con los filtros aplicados.'
+                    : 'Aún no se han creado fichas de formación. Crea la primera.'
                 }
-                actionLabel={listaFichas.length === 0 ? 'Crear primera ficha' : 'Limpiar filtros'}
-                onAction={listaFichas.length === 0 ? abrirCreacion : limpiarFiltros}
+                actionLabel={hayFiltros ? 'Limpiar filtros' : 'Crear primera ficha'}
+                onAction={hayFiltros ? limpiarFiltros : abrirCreacion}
               />
             ) : (
               <>

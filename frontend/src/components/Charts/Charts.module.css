@@ -1,0 +1,160 @@
+.empty {
+  margin: 0;
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--c-text-3);
+}
+
+/* ------ Donut ------ */
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+}
+.donutBox {
+  position: relative;
+  flex: 0 0 auto;
+}
+.donutTrack {
+  stroke: var(--c-border-2);
+}
+.donutCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.donutValue {
+  font-family: var(--mono);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1;
+}
+.donutLabel {
+  margin-top: var(--sp-1);
+  font-size: var(--text-xs);
+  color: var(--c-text-3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 150px;
+  flex: 1;
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  color: var(--c-text-2);
+}
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.legendText {
+  flex: 1;
+}
+.legendValue {
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+/* ------ Barras horizontales ------ */
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.barRow {
+  display: grid;
+  grid-template-columns: 110px 1fr 40px;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.barLabel {
+  font-size: var(--text-sm);
+  color: var(--c-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.barTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--c-border-2);
+  overflow: hidden;
+}
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+.barValue {
+  text-align: right;
+  font-size: var(--text-sm);
+  color: var(--c-text);
+}
+
+/* ------ Línea ------ */
+.lineWrap {
+  width: 100%;
+}
+.lineSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gridLine {
+  stroke: var(--c-border-2);
+  stroke-width: 1;
+}
+.axisText {
+  fill: var(--c-text-3);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+.lineArea {
+  fill: var(--c-primary-10, var(--c-primary));
+  opacity: .08;
+}
+.linePath {
+  fill: none;
+  stroke: var(--c-primary);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.lineDot {
+  fill: var(--c-surface);
+  stroke: var(--c-primary);
+  stroke-width: 2;
+}
+
+@media (max-width: 640px) {
+  .donutWrap {
+    justify-content: center;
+  }
+  .barRow {
+    grid-template-columns: 90px 1fr 32px;
+    gap: var(--sp-2);
+  }
+}

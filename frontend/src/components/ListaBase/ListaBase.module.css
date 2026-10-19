@@ -30,6 +30,25 @@
   color: var(--c-text-2);
 }
 
+/* Caja de búsqueda con icono (fichas: código / nombre / número). */
+.searchBox {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchBox > svg {
+  position: absolute;
+  left: var(--sp-3);
+  z-index: 1;
+  color: var(--c-text-3);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: 2.2rem;
+}
+
 /* ── Table system: retirado (los listados usan DataTable) ── */
 
 

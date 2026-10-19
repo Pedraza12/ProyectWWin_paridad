@@ -9,6 +9,7 @@ use App\Models\Instructor;
 use App\Models\Project;
 use App\Support\CredencialesPdf;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,20 +20,47 @@ class ClassGroupController extends Controller
     // fichas (el código es la credencial para unirse).
     public function index(Request $request)
     {
+        $request->validate([
+            'buscar' => 'nullable|string|max:100',
+            'campo' => 'nullable|in:codigo,nombre,numero,todos',
+        ]);
+
         $user = $request->user();
         $query = ClassGroup::included();
 
         if (optional($user)->rol === 'admin') {
-            return $query->get();
-        }
-
-        if ($user && $user->rol === 'instructor') {
+            // Todas.
+        } elseif ($user && $user->rol === 'instructor') {
             $instructorId = $user->instructor()->value('id');
-            return $instructorId ? $query->where('id_instructor', $instructorId)->get() : collect();
+            $query->where('id_instructor', $instructorId ?: 0);
+        } else {
+            $fichaId = Apprentice::where('id_usuario', optional($user)->id)->value('id_class_group');
+            $query->where('id', $fichaId ?: 0);
         }
 
-        $fichaId = Apprentice::where('id_usuario', optional($user)->id)->value('id_class_group');
-        return $fichaId ? $query->where('id', $fichaId)->get() : collect();
+        // Búsqueda server-side por código, nombre o número de ficha (así el
+        // cliente no filtra sobre una lista ya cargada). Insensible a
+        // mayúsculas según la colación de la base.
+        $buscar = trim((string) $request->query('buscar'));
+        if ($buscar !== '') {
+            $campo = $request->query('campo', 'todos');
+            $t = '%' . $buscar . '%';
+            $query->where(function (Builder $q) use ($campo, $t) {
+                if ($campo === 'codigo') {
+                    $q->where('codigo', 'like', $t);
+                } elseif ($campo === 'nombre') {
+                    $q->where('nombre', 'like', $t);
+                } elseif ($campo === 'numero') {
+                    $q->where('numero', 'like', $t);
+                } else {
+                    $q->where('codigo', 'like', $t)
+                        ->orWhere('nombre', 'like', $t)
+                        ->orWhere('numero', 'like', $t);
+                }
+            });
+        }
+
+        return $query->orderByDesc('id')->get();
     }
 
     public function store(Request $request)

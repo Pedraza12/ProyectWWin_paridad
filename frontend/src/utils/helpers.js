@@ -42,6 +42,20 @@ export function fechaDesdeApi(valor) {
   return formatearFecha(`${fecha.getDate()}/${fecha.getMonth() + 1}/${fecha.getFullYear()}`)
 }
 
+// Fecha + hora uniforme (zona local) para bitácora y actividad reciente.
+export function fechaHoraDesdeApi(valor) {
+  if (!valor) return ''
+  const fecha = new Date(valor)
+  if (Number.isNaN(fecha.getTime())) return String(valor)
+  return fecha.toLocaleString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // Agrupa observaciones planas en hilos: [{ ...obsRaiz, respuestas: [...] }]
 export function agruparObservaciones(lista) {
   const nodos = new Map(lista.map((o) => [o.id, { ...o, respuestas: [] }]))

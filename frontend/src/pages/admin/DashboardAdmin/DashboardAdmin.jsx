@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { UsersThree, FolderOpen, MagnifyingGlass, Bug, Bell, Sparkle, SlidersHorizontal, Gauge, Database } from 'phosphor-react'
 import DashboardLayout from '../../../layouts/DashboardLayout/DashboardLayout'
 import DashboardHero from '../../../components/DashboardHero/DashboardHero'
+import DashboardMetrics from '../../../components/DashboardMetrics/DashboardMetrics'
 import DashboardGrid from '../../../components/DashboardGrid/DashboardGrid'
 import StatChip from '../../../components/StatChip/StatChip'
 import DataPanel from '../../../components/DataPanel/DataPanel'
@@ -15,7 +16,7 @@ import EmptyState from '../../../components/EmptyState/EmptyState'
 import ApiState from '../../../components/ApiState/ApiState'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
-import { usuarios, proyectos, similitudes, reportes, notificaciones, motor } from '../../../lib/recursos'
+import { usuarios, proyectos, similitudes, reportes, notificaciones, motor, metricas } from '../../../lib/recursos'
 import { fechaDesdeApi } from '../../../utils/helpers'
 import { RECIENTES } from '../../../constants/pagination'
 import s from './DashboardAdmin.module.css'
@@ -31,6 +32,9 @@ const TIPO_NOTIF = {
 
 export default function DashboardAdmin() {
   const { user } = useAuth()
+
+  // Métricas agregadas en el backend (una sola carga para las gráficas).
+  const { data: metricasData } = useApi(() => metricas.obtener(), [user?.id], { inicial: null })
 
   // Fuente única: la API. Se piden todos los recursos del tablero en paralelo.
   const { data, cargando, error, recargar } = useApi(
@@ -112,6 +116,8 @@ export default function DashboardAdmin() {
           title={<>¡Hola, {saludo}!</>}
           text="Monitorea usuarios, propuestas, similitudes detectadas y reportes de fallas de toda la plataforma ProyecTwin."
         />
+
+        <DashboardMetrics rol="admin" data={metricasData} />
 
         <ApiState cargando={cargando} error={error} onReintentar={recargar}>
           <DataPanel
