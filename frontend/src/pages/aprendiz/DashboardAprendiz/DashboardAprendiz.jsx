@@ -121,7 +121,7 @@ export default function DashboardAprendiz() {
         <section className={s.stats} aria-label="Resumen de actividad">
           <MetricCard to="/aprendiz/propuestas" icon={<FolderOpen size={22} />} label="Propuestas registradas" value={misProyectos.length} variant="primary" />
           <MetricCard to="/aprendiz/similitudes" icon={<MagnifyingGlass size={22} />} label="Similitudes detectadas" value={similitudesPropias} variant="warning" />
-          <MetricCard to={RUTA_ALERTAS_POR_ROL.aprendiz} icon={<Bell size={22} />} label="Alertas sin leer" value={sinLeer} variant="info" />
+          <MetricCard to={RUTA_ALERTAS_POR_ROL.aprendiz} icon={<Bell size={22} />} label="Notificaciones sin leer" value={sinLeer} variant="info" />
         </section>
 
         <DashboardMetrics rol="aprendiz" data={metricasData} />

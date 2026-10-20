@@ -5,10 +5,10 @@
 .table tbody td{padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--c-border-2);vertical-align:middle}
 .table tbody tr:last-child td{border-bottom:none}
 .table tbody tr{transition:background var(--dur-fast) var(--ease-out)}
-.table tbody tr:hover{background:var(--c-chip-hover)}
+.table tbody tr:hover{background:var(--c-surface-alt)}
 .align-start{text-align:left}.align-center{text-align:center}.align-end{text-align:right}
 .table thead th.stickyCol{position:sticky;right:0;z-index:2}
-.table tbody td.stickyCol{position:sticky;right:0;z-index:1;background:var(--c-surface);box-shadow:-12px 0 12px -12px rgba(0,0,0,.5)}
+.table tbody td.stickyCol{position:sticky;right:0;z-index:1;background:var(--c-surface);transition:background var(--dur-fast) var(--ease-out);box-shadow:-12px 0 12px -12px rgba(0,0,0,.5)}
 .table tbody tr:hover td.stickyCol{background:var(--c-surface-alt)}
 .empty{padding:var(--sp-6);text-align:center;color:var(--c-text-3);border:1px dashed var(--c-border);border-radius:var(--r-xl)}
 .expandRow td{background:var(--c-surface-alt);border-top:1px dashed var(--c-border);padding:var(--sp-4)}
@@ -20,4 +20,5 @@
   .table tbody td{border-bottom:none;padding:var(--sp-1_5) var(--sp-4);display:flex;justify-content:space-between;gap:var(--sp-4);text-align:right}
   .table tbody td::before{content:attr(data-label);font-weight:600;color:var(--c-text-3);text-align:left}
   .table thead th.stickyCol,.table tbody td.stickyCol{position:static;box-shadow:none}
+  .table tbody td.stickyCol{background:transparent}
 }

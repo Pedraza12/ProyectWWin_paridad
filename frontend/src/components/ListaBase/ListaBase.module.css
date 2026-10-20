@@ -103,11 +103,6 @@
   color: var(--c-text);
 }
 
-.userCell:hover .userName {
-  color: var(--c-primary);
-  text-decoration: underline;
-}
-
 /* ── Email text ── */
 .email {
   color: var(--c-text-2);

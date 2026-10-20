@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { NavLink, matchPath, useLocation } from 'react-router-dom'
 import s from './Sidebar.module.css'
 
@@ -9,7 +10,7 @@ function CloseIcon() {
   )
 }
 
-// Navegación lateral: iconos + etiquetas, nada más.
+// Navegación lateral: iconos + etiquetas, con grupos visuales opcionales.
 export default function Sidebar({ isOpen = false, onClose, role = '', links = [] }) {
   const { pathname } = useLocation()
   const items = links
@@ -25,21 +26,26 @@ export default function Sidebar({ isOpen = false, onClose, role = '', links = []
         </button>
 
         <nav className={s.menu}>
-          {items.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end
-              viewTransition
-              onClick={onClose}
-              className={({ isActive }) =>
-                isActive || activoExtra(link) ? `${s.link} ${s.linkActive}` : s.link
-              }
-            >
-              <span className={s.icon} aria-hidden="true">{link.icon}</span>
-              <span>{link.label}</span>
-            </NavLink>
-          ))}
+          {items.map((link, index) => {
+            const mostrarGrupo = Boolean(link.group) && (index === 0 || items[index - 1].group !== link.group)
+            return (
+              <Fragment key={link.to}>
+                {mostrarGrupo && <span className={s.groupLabel}>{link.group}</span>}
+                <NavLink
+                  to={link.to}
+                  end
+                  viewTransition
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    isActive || activoExtra(link) ? `${s.link} ${s.linkActive}` : s.link
+                  }
+                >
+                  <span className={s.icon} aria-hidden="true">{link.icon}</span>
+                  <span>{link.label}</span>
+                </NavLink>
+              </Fragment>
+            )
+          })}
         </nav>
       </aside>
     </>

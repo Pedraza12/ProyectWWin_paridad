@@ -71,7 +71,7 @@ export default function MiPerfil() {
         role="aprendiz"
         stats={[
           { value: totalProyectos, label: 'Proyectos' },
-          { value: sinLeer, label: 'Alertas sin leer' },
+          { value: sinLeer, label: 'Notificaciones sin leer' },
           { value: ficha?.program?.nombre || '—', label: 'Programa' },
         ]}
         detalles={[

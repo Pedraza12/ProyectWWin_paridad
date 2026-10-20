@@ -150,21 +150,19 @@ export default function DashboardAdmin() {
 
           <DashboardGrid
             left={
-              <div className={s.accionesPanel}>
-                <DataPanel title="Acciones rápidas" icon={<Sparkle size={18} />}>
-                  <QuickActions items={quick} variant="stack" />
-                </DataPanel>
-              </div>
+              <DataPanel title="Acciones rápidas" icon={<Sparkle size={18} />}>
+                <QuickActions items={quick} variant="stack" />
+              </DataPanel>
             }
             right={
               <DataPanel
-                title="Alertas recientes"
+                title="Notificaciones recientes"
                 icon={<Bell size={18} />}
                 action={<Link to={RUTA_ALERTAS_POR_ROL.admin} viewTransition className={s.panelLink}>Ver todas</Link>}
               >
                 <ActivityList
                   items={itemsAlertas}
-                  empty={<EmptyState title="Sin alertas" message="No tienes notificaciones recientes." />}
+                  empty={<EmptyState title="Sin notificaciones" message="No tienes notificaciones recientes." />}
                 />
               </DataPanel>
             }

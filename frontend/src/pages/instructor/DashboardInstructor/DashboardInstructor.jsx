@@ -139,7 +139,7 @@ export default function DashboardInstructor() {
                 <StatChip icon={<MagnifyingGlass size={14} />} label="Similitudes" value={similitudesPropias} />
               </Link>
               <Link to={RUTA_ALERTAS_POR_ROL.instructor} viewTransition className={s.chipLink}>
-                <StatChip icon={<Bell size={14} />} label="Alertas" value={sinLeer} />
+                <StatChip icon={<Bell size={14} />} label="Notificaciones" value={sinLeer} />
               </Link>
             </>
           }

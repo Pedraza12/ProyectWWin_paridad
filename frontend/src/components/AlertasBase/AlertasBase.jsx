@@ -111,14 +111,14 @@ export default function AlertasBase({ titulo, subtitle, detallePath, emptyAction
       <ApiState cargando={cargando} error={error} onReintentar={recargar}>
         {sinLeer > 0 && (
           <p className={s.summary}>
-            Tienes <strong className={`mono ${s.sinLeer}`}>{sinLeer}</strong> alerta{sinLeer !== 1 ? 's' : ''} sin leer.
+            Tienes <strong className={`mono ${s.sinLeer}`}>{sinLeer}</strong> notificaci{sinLeer !== 1 ? 'ones' : 'ón'} sin leer.
           </p>
         )}
 
         {alertas.length === 0 ? (
           <EmptyState
             icon={<Bell size={40} />}
-            title="Sin alertas por ahora"
+            title="Sin notificaciones por ahora"
             message="Cuando haya novedades sobre tus proyectos o similitudes, aparecerán aquí."
             actionLabel={emptyActionLabel}
             onAction={emptyActionTo ? () => navigate(emptyActionTo) : undefined}

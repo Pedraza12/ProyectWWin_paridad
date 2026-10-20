@@ -20,7 +20,7 @@ const LINKS = {
     { to: '/aprendiz/propuestas', icon: <FolderOpen size={20} weight="regular" />, label: 'Propuestas', activeFor: ['/aprendiz/detalle-proyecto'] },
     { to: '/aprendiz/similitudes', icon: <MagnifyingGlass size={20} weight="regular" />, label: 'Similitudes', activeFor: ['/aprendiz/detalle-similitud', '/aprendiz/resultado-analisis'] },
     { to: '/aprendiz/ficha', icon: <GraduationCap size={20} weight="regular" />, label: 'Ficha', activeFor: ['/aprendiz/detalle-ficha'] },
-    { to: RUTA_ALERTAS_POR_ROL.aprendiz, icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
+    { to: RUTA_ALERTAS_POR_ROL.aprendiz, icon: <Bell size={20} weight="regular" />, label: 'Notificaciones' },
     { to: '/aprendiz/perfil', icon: <UserCircle size={20} weight="regular" />, label: 'Mi Perfil' },
     { to: RUTA_SOPORTE_POR_ROL.aprendiz, icon: <Bug size={20} weight="regular" />, label: 'Soporte' },
   ],
@@ -29,7 +29,7 @@ const LINKS = {
     { to: '/instructor/revision-propuestas', icon: <ClipboardText size={20} weight="regular" />, label: 'Revisión Propuestas', activeFor: ['/instructor/detalle-proyecto'] },
     { to: '/instructor/similitudes', icon: <MagnifyingGlass size={20} weight="regular" />, label: 'Similitudes', activeFor: ['/instructor/detalle-similitud'] },
     { to: '/instructor/fichas', icon: <BookOpen size={20} weight="regular" />, label: 'Fichas', activeFor: ['/instructor/detalle-ficha', '/instructor/directorio-ficha'] },
-    { to: RUTA_ALERTAS_POR_ROL.instructor, icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
+    { to: RUTA_ALERTAS_POR_ROL.instructor, icon: <Bell size={20} weight="regular" />, label: 'Notificaciones' },
     { to: '/instructor/perfil', icon: <UserCircle size={20} weight="regular" />, label: 'Mi Perfil' },
     { to: RUTA_SOPORTE_POR_ROL.instructor, icon: <Bug size={20} weight="regular" />, label: 'Soporte' },
   ],
@@ -38,12 +38,12 @@ const LINKS = {
     { to: '/admin/proyectos', icon: <FolderOpen size={20} weight="regular" />, label: 'Propuestas', activeFor: ['/admin/detalle-proyecto'] },
     { to: '/admin/similitudes', icon: <MagnifyingGlass size={20} weight="regular" />, label: 'Similitudes', activeFor: ['/admin/detalle-similitud'] },
     { to: RUTA_SOPORTE_POR_ROL.admin, icon: <Bug size={20} weight="regular" />, label: 'Soporte', activeFor: ['/admin/detalle-reporte'] },
-    { to: RUTA_ALERTAS_POR_ROL.admin, icon: <Bell size={20} weight="regular" />, label: 'Alertas' },
+    { to: RUTA_ALERTAS_POR_ROL.admin, icon: <Bell size={20} weight="regular" />, label: 'Notificaciones' },
     { to: '/admin/usuarios', icon: <UsersThree size={20} weight="regular" />, label: 'Usuarios', activeFor: ['/admin/detalle-usuario'] },
     { to: '/admin/fichas', icon: <BookBookmark size={20} weight="regular" />, label: 'Fichas', activeFor: ['/admin/detalle-ficha'] },
     { to: '/admin/bitacora', icon: <ClockCounterClockwise size={20} weight="regular" />, label: 'Bitácora' },
-    { to: '/admin/redes-conocimiento', icon: <TreeStructure size={20} weight="regular" />, label: 'Redes y programas', activeFor: ['/admin/redes-conocimiento'] },
-    { to: '/admin/config-similitud', icon: <GearSix size={20} weight="regular" />, label: 'Motor de similitud' },
+    { to: '/admin/redes-conocimiento', icon: <TreeStructure size={20} weight="regular" />, label: 'Redes y programas', activeFor: ['/admin/redes-conocimiento'], group: 'Configuración' },
+    { to: '/admin/config-similitud', icon: <GearSix size={20} weight="regular" />, label: 'Motor de similitud', group: 'Configuración' },
     { to: '/admin/perfil', icon: <UserCircle size={20} weight="regular" />, label: 'Mi Perfil' },
   ],
 }
@@ -81,7 +81,7 @@ export default function DashboardLayout({ role = 'aprendiz', titulo = '', childr
       />
       <div className={s.body}>
         <main className={s.main}>{children}</main>
-        <Footer role={role} />
+        <Footer />
       </div>
     </div>
   )

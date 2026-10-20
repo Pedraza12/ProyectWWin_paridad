@@ -3,9 +3,9 @@ import AlertasBase from '../../../components/AlertasBase/AlertasBase'
 
 export default function AlertasInstructor() {
   return (
-    <DashboardLayout role="instructor" titulo="Alertas">
+    <DashboardLayout role="instructor" titulo="Notificaciones">
       <AlertasBase
-        titulo="Alertas"
+        titulo="Notificaciones"
         subtitle="Notificaciones sobre revisión de proyectos, similitudes detectadas y actividad del sistema."
         detallePath="/instructor"
         emptyActionLabel="Ir a revision de propuestas"

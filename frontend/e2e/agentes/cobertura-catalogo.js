@@ -38,7 +38,7 @@ export const CUBIERTOS = [
 ]
 
 // Etiquetas de navegación/migas (enlaces internos).
-export const NAVEGACION = /^dashboard$|^propuestas$|^proyectos$|^fichas$|^similitudes$|^usuarios$|^mi perfil$|^perfil$|^soporte$|^alertas$|^bit[áa]cora$|^redes|^motor|^inicio$|^volver$|^ir a/i
+export const NAVEGACION = /^dashboard$|^propuestas$|^proyectos$|^fichas$|^similitudes$|^usuarios$|^mi perfil$|^perfil$|^soporte$|^alertas$|^notificaciones$|^bit[áa]cora$|^redes|^motor|^inicio$|^volver$|^ir a/i
 
 export function clasificar(control) {
   if (control.deshabilitado) return { estado: 'justificado', motivo: 'deshabilitado por diseño' }
