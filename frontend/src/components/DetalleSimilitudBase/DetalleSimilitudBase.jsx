@@ -1,14 +1,15 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Books, CalendarBlank, FileText, MagnifyingGlass, User } from 'phosphor-react'
+import { ArrowLeft, ArrowRight, ChartLineUp, Gauge, MagnifyingGlass, User } from 'phosphor-react'
 import PageHeader from '../PageHeader/PageHeader'
 import DataPanel from '../DataPanel/DataPanel'
 import Badge from '../Badge/Badge'
 import GradeBadge from '../GradeBadge/GradeBadge'
 import Tag from '../Tag/Tag'
 import EmptyState from '../EmptyState/EmptyState'
-import SimilarityGraph from '../SimilarityGraph/SimilarityGraph'
+import { ThresholdDial, SimilarityPlane } from '../SimilarityCards/SimilarityCards'
 import { useAuth } from '../../contexts/AuthContext'
+import { useMotor } from '../../contexts/MotorContext'
 import { useApi } from '../../lib/useApi'
 import { similitudes, fichas } from '../../lib/recursos'
 import { fechaDesdeApi, esPropietarioProyecto, nombreCompleto } from '../../utils/helpers'
@@ -43,6 +44,7 @@ export default function DetalleSimilitudBase({
   const ruta = RUTA_DETALLE_POR_ROL[role] || RUTA_DETALLE_POR_ROL.aprendiz
   const { user } = useAuth()
   const esInstructor = role === 'instructor'
+  const { umbralPct } = useMotor()
 
   // Proyectos del par: vienen incluidos en la similitud (project1/project2).
   const proyecto1 = similitud?.project1 || null
@@ -59,12 +61,20 @@ export default function DetalleSimilitudBase({
     [proyecto1, proyecto2, user?.id]
   )
 
-  // Orden mostrado: si una es mía, va como A (yo la subí); la otra es B.
+  // Orden mostrado: A es la propuesta pendiente; B es la referencia aprobada.
+  // Aprendiz: su propuesta es A (aunque esté aprobada) y la contraparte es B.
+  // Staff: el lado no aprobado es A y el aprobado es B.
   const [propuestaA, propuestaB] = useMemo(() => {
     if (!proyecto1 || !proyecto2) return [proyecto1, proyecto2]
     const p1Mia = misIds.has(Number(proyecto1.id))
     const p2Mia = misIds.has(Number(proyecto2.id))
-    return p2Mia && !p1Mia ? [proyecto2, proyecto1] : [proyecto1, proyecto2]
+    if (p1Mia || p2Mia) return p2Mia && !p1Mia ? [proyecto2, proyecto1] : [proyecto1, proyecto2]
+
+    const aprobados = [proyecto1, proyecto2].filter((p) => p.estado === 'aprobado')
+    if (aprobados.length === 1) {
+      return proyecto1.estado === 'aprobado' ? [proyecto2, proyecto1] : [proyecto1, proyecto2]
+    }
+    return [proyecto1, proyecto2]
   }, [proyecto1, proyecto2, misIds])
 
   // Fichas del instructor: se identifican por el generalUser anidado.
@@ -196,19 +206,6 @@ export default function DetalleSimilitudBase({
     ? `Detectada el ${fechaDesdeApi(similitud.fecha)} · ${propuestaA.titulo} vs. ${propuestaB.titulo}`
     : `Detectada el ${fechaDesdeApi(similitud.fecha)}`
 
-  // Campos reales disponibles en la propuesta (sin inventar tecnologías).
-  const listaClaves = (valor) => {
-    if (!valor) return []
-    if (Array.isArray(valor)) return valor.filter(Boolean)
-    return String(valor).split(',').map((x) => x.trim()).filter(Boolean)
-  }
-  const objetivosDe = (p) => (Array.isArray(p?.objetivos_especificos) ? p.objetivos_especificos.filter(Boolean) : [])
-  const fichaDe = (p) => {
-    if (!p?.classGroup) return ''
-    // Sin `codigo`: es la credencial para unirse a una ficha y no debe exponerse.
-    return p.classGroup.nombre || ''
-  }
-
   const detalles = similitud.detalles || null
   const terminos = Array.isArray(detalles?.terminos) ? detalles.terminos : []
   const pasajes = Array.isArray(detalles?.pasajes) ? detalles.pasajes : []
@@ -229,19 +226,6 @@ export default function DetalleSimilitudBase({
       {p ? (
         <>
           <h2 className={s.cardTitle}>{p.titulo}</h2>
-          <p className={s.cardMeta}>
-            <User size={14} /> {autorDe(p)}
-            <span className={s.dot}>·</span>
-            <CalendarBlank size={14} /> {fechaDesdeApi(p.created_at)}
-            {fichaDe(p) && (
-              <>
-                <span className={s.dot}>·</span>
-                <Books size={14} /> {fichaDe(p)}
-              </>
-            )}
-          </p>
-
-          {p.resumen && <p className={s.cardResumen}>{p.resumen}</p>}
 
           {puedeVerProyecto(p.id) ? (
             <Link to={`/${role}${projectPath}/${p.id}`} className={s.link}>
@@ -266,80 +250,23 @@ export default function DetalleSimilitudBase({
         breadcrumb={[...crumbPrevio, { label: `#${similitud.id}` }]}
       />
 
-      <SimilarityGraph porcentaje={pct} etiqueta="Índice de similitud" />
+      <div className={s.chartsGrid}>
+        <DataPanel title="Umbral de similitud" icon={<Gauge size={18} />}>
+          <ThresholdDial umbralPct={umbralPct} />
+        </DataPanel>
+        <DataPanel title="Comparación A/B" icon={<ChartLineUp size={18} />}>
+          <SimilarityPlane porcentaje={pct} />
+        </DataPanel>
+      </div>
+
       <p className={s.note}>
-        Medida calculada por el motor de ProyecTwin. No es una prueba de plagio ni un veredicto definitivo.
+        Medida de similitud calculada por el motor de ProyecTwin. No es una prueba de plagio ni un veredicto definitivo.
       </p>
 
       <div className={s.cardsRow}>
         {tarjetaProyecto(propuestaA, 'A')}
         {tarjetaProyecto(propuestaB, 'B')}
       </div>
-
-      <DataPanel title="Detalle de las propuestas" icon={<FileText />}>
-        <div className={s.detailsGrid}>
-          {[['A', propuestaA], ['B', propuestaB]].map(([tag, p]) => (
-            <section key={tag} className={s.detalle} aria-label={`Detalles del proyecto ${tag}`}>
-              <header className={s.detalleHead}>
-                <Tag variant={tag === 'A' ? 'a' : 'b'}>Proyecto {tag}</Tag>
-                <h3 className={s.detalleTitulo}>{p?.titulo || 'Proyecto no disponible'}</h3>
-              </header>
-              {p ? (
-                <dl className={s.fields}>
-                  {p.resumen && (
-                    <div className={s.field}>
-                      <dt>Resumen</dt>
-                      <dd>{p.resumen}</dd>
-                    </div>
-                  )}
-                  {p.objetivo_general && (
-                    <div className={s.field}>
-                      <dt>Objetivo general</dt>
-                      <dd>{p.objetivo_general}</dd>
-                    </div>
-                  )}
-                  {objetivosDe(p).length > 0 && (
-                    <div className={s.field}>
-                      <dt>Objetivos específicos</dt>
-                      <dd>
-                        <ul className={s.lista}>
-                          {objetivosDe(p).map((objetivo, i) => (
-                            <li key={`${tag}-obj-${i}`}>{objetivo}</li>
-                          ))}
-                        </ul>
-                      </dd>
-                    </div>
-                  )}
-                  {listaClaves(p.palabras_clave).length > 0 && (
-                    <div className={s.field}>
-                      <dt>Palabras clave</dt>
-                      <dd className={s.tags}>
-                        {listaClaves(p.palabras_clave).map((clave, i) => (
-                          <span key={`${tag}-kw-${i}`} className={s.kw}>{clave}</span>
-                        ))}
-                      </dd>
-                    </div>
-                  )}
-                  {p.area_aplicacion && (
-                    <div className={s.field}>
-                      <dt>Área de aplicación</dt>
-                      <dd>{p.area_aplicacion}</dd>
-                    </div>
-                  )}
-                  {fichaDe(p) && (
-                    <div className={s.field}>
-                      <dt>Ficha</dt>
-                      <dd>{fichaDe(p)}</dd>
-                    </div>
-                  )}
-                </dl>
-              ) : (
-                <p className={s.muted}>Este proyecto ya no está disponible.</p>
-              )}
-            </section>
-          ))}
-        </div>
-      </DataPanel>
 
       {(detalles || terminos.length > 0 || pasajes.length > 0) && (
         <DataPanel title="Coincidencias detectadas por el motor" icon={<MagnifyingGlass />}>

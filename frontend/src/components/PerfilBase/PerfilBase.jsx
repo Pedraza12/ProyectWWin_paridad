@@ -17,7 +17,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useApi } from '../../lib/useApi'
 import { usuarios } from '../../lib/recursos'
 import { toFieldErrors } from '../../lib/api'
-import { procesarFoto } from '../../utils/foto'
+import { resolverFotoPerfil } from '../../utils/foto'
 import s from './PerfilBase.module.css'
 import { esEmailValido, esPasswordValida } from '../../utils/validation'
 import { payloadCuenta } from '../../utils/helpers'
@@ -105,8 +105,8 @@ export default function PerfilBase({
     setSubiendoFoto(true)
     setFotoError('')
     try {
-      const dataUrl = await procesarFoto(file)
-      await actualizarFoto(dataUrl)
+      const fotoUrl = await resolverFotoPerfil(file)
+      await actualizarFoto(fotoUrl)
       mostrarFotoMsg('Foto actualizada')
     } catch (err) {
       setFotoError(err.message || 'No fue posible actualizar la foto.')

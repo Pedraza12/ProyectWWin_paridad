@@ -21,19 +21,79 @@
   grid-template-columns: minmax(0, 640px);
   justify-content: center;
 }
-/* Propuestas por mes: ancho grande pero algo menor que el original. */
-.linePanel {
-  width: 100%;
-  max-width: 980px;
-  margin-inline: auto;
+/* Grid inferior 8/4: gráfica mensual + actividad reciente. */
+.lower {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: stretch;
+}
+.actividadScroll {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: var(--sp-1);
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border) transparent;
+}
+.actividadScroll::-webkit-scrollbar {
+  width: 6px;
+}
+.actividadScroll::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 999px;
+}
+.actividadScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* Selector temporal (3m / 30d / 7d) */
+.periodos {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface-alt);
+}
+.periodoBtn {
+  border: 0;
+  background: transparent;
+  color: var(--c-text-2);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.periodoBtn:hover {
+  color: var(--c-text);
+}
+.periodoActivo {
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
 }
 
 @media (max-width: 900px) {
-  .charts {
+  .charts,
+  .lower {
     grid-template-columns: 1fr;
   }
   .single {
     justify-content: stretch;
     grid-template-columns: 1fr;
+  }
+  .actividadScroll {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 640px) {
+  .periodos {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .periodoBtn {
+    padding-inline: 8px;
   }
 }

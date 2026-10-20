@@ -19,7 +19,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
 import { usuarios, aprendices, fichas, proyectos, similitudes } from '../../../lib/recursos'
 import { esEmailValido } from '../../../utils/validation'
-import { procesarFoto } from '../../../utils/foto'
+import { resolverFotoPerfil } from '../../../utils/foto'
 import { PROJECT_ESTADO_VARIANT, PROJECT_ESTADO_LABEL as PROYECTO_ESTADO_LABEL, ROL_LABEL } from '../../../constants/badgeVariants'
 import { fechaDesdeApi, infoSimilitud, nombreCompleto, payloadCuenta } from '../../../utils/helpers'
 
@@ -194,8 +194,8 @@ export default function DetalleUsuario() {
     setSubiendoFoto(true)
     setFotoError('')
     try {
-      const dataUrl = await procesarFoto(file)
-      setForm((f) => ({ ...f, fotoUrl: dataUrl }))
+      const fotoUrl = await resolverFotoPerfil(file)
+      setForm((f) => ({ ...f, fotoUrl }))
     } catch (err) {
       setFotoError(err.message || 'No fue posible procesar la imagen.')
     } finally {

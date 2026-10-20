@@ -204,6 +204,75 @@ export async function apiFetch(
   return peticion;
 }
 
+// Sube un archivo (multipart/form-data) con la sesión y el token CSRF.
+// Se usa para la foto de perfil (Cloudinary) manteniendo la cookie de sesión.
+export async function apiSubirArchivo(path, archivo, { nombre = "archivo.jpg", campo = "foto", timeout = 30000 } = {}) {
+  const url = `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  const enviar = async () => {
+    await asegurarCsrf();
+    const headers = { Accept: "application/json" };
+    const xsrf = leerCookie("XSRF-TOKEN");
+    if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
+
+    const form = new FormData();
+    form.append(campo, archivo, nombre);
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: form,
+        credentials: "include",
+        signal: ctrl.signal,
+      });
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = text;
+      }
+      return { res, data };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  try {
+    let { res, data } = await enviar();
+    if (res.status === 419) {
+      await refrescarCsrf();
+      ({ res, data } = await enviar());
+    }
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        try {
+          window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA));
+        } catch {
+          /* entornos sin window */
+        }
+      }
+      const err = new Error(data?.message || `Error ${res.status}`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+
+    return data;
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      const e = new Error("El servidor tardó demasiado en responder.");
+      e.status = 0;
+      throw e;
+    }
+    throw err;
+  }
+}
+
 // Descarga un archivo binario (p. ej. el PDF de credenciales) respetando la
 // sesión por cookie y el token CSRF. Dispara la descarga en el navegador.
 export async function apiDescargar(path, { method = "GET", body, nombre = "archivo.pdf", timeout = 15000 } = {}) {

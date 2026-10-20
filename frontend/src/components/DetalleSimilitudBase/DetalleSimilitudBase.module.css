@@ -1,36 +1,21 @@
 .wrapper{display:flex;flex-direction:column;gap:var(--sp-5)}
 
-/* Nota del indicador (calculado por el motor, no es veredicto) */
+/* Dos tarjetas gráficas (umbral + plano A/B) */
+.chartsGrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);align-items:stretch}
 .note{margin:0;font-size:var(--text-xs);line-height:1.5;color:var(--c-text-3);text-align:center}
 
-/* ── Tarjetas A/B en una fila (escritorio) ── */
-.cardsRow{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-5);align-items:stretch}
-.card{display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-5);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-xl);box-shadow:var(--sh-card)}
+/* Tarjetas compactas A/B (solo identificación y enlace) */
+.cardsRow{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);align-items:stretch}
+.card{display:flex;flex-direction:column;gap:var(--sp-2_5);padding:var(--sp-4) var(--sp-5);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-xl);box-shadow:var(--sh-card)}
 .cardHead{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
 .cardId{margin-left:auto;color:var(--c-text-3);font-size:var(--text-sm)}
 .tuya{font-size:var(--text-xs);color:var(--c-primary);font-weight:600}
-.cardTitle{margin:0;font-size:var(--text-lg);line-height:1.3;color:var(--c-text)}
-.cardMeta{display:flex;align-items:center;gap:var(--sp-1_5);flex-wrap:wrap;margin:0;font-size:var(--text-xs);color:var(--c-text-2)}
-.dot{opacity:.5}
-.cardResumen{margin:0;font-size:var(--text-sm);line-height:var(--leading-relaxed);color:var(--c-text-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cardTitle{margin:0;font-size:var(--text-base);line-height:1.3;color:var(--c-text)}
 .link{display:inline-flex;align-items:center;gap:var(--sp-1_5);margin-top:auto;padding-top:var(--sp-1);font-size:var(--text-sm);font-weight:600;color:var(--c-primary);text-decoration:none}
 .link:hover{text-decoration:underline}
 .muted{margin:0;font-size:var(--text-sm);color:var(--c-text-3)}
 
-/* ── Detalle completo debajo (dos columnas en escritorio) ── */
-.detailsGrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-6)}
-.detalle{display:flex;flex-direction:column;gap:var(--sp-3);min-width:0}
-.detalleHead{display:flex;flex-direction:column;gap:var(--sp-2);align-items:flex-start}
-.detalleTitulo{margin:0;font-size:var(--text-base);line-height:1.3;color:var(--c-text)}
-.fields{display:flex;flex-direction:column;gap:var(--sp-3);margin:0}
-.field{display:grid;grid-template-columns:150px 1fr;gap:var(--sp-3);align-items:start}
-.field dt{font-family:var(--mono);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--c-text-3);padding-top:2px}
-.field dd{margin:0;font-size:var(--text-sm);line-height:var(--leading-relaxed);color:var(--c-text-2);word-break:break-word}
-.lista{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:var(--sp-1)}
-.tags{display:flex;flex-wrap:wrap;gap:var(--sp-1_5)}
-.kw{padding:2px 8px;border-radius:999px;background:var(--c-surface-alt);border:1px solid var(--c-border-2);font-size:var(--text-xs);color:var(--c-text-2)}
-
-/* ── Detalle del motor (métricas + términos + pasajes) ── */
+/* Detalle del motor (métricas + términos + pasajes) */
 .detailsNote{margin:0 0 var(--sp-3);font-size:var(--text-sm);color:var(--c-text-2);line-height:var(--leading-relaxed)}
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:var(--sp-3);margin:0 0 var(--sp-2)}
 .metric{padding:var(--sp-3);border:1px solid var(--c-border-2);border-radius:var(--r-md);background:var(--c-surface-alt)}
@@ -38,13 +23,15 @@
 .metric dd{margin:var(--sp-1) 0 0;font-size:var(--text-lg);font-weight:700;color:var(--c-text)}
 .detailBlock{margin-top:var(--sp-4)}
 .detailTitle{margin:0 0 var(--sp-2);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--c-text-3)}
+.tags{display:flex;flex-wrap:wrap;gap:var(--sp-1_5)}
+.kw{padding:2px 8px;border-radius:999px;background:var(--c-surface-alt);border:1px solid var(--c-border-2);font-size:var(--text-xs);color:var(--c-text-2)}
 .pasajes{display:flex;flex-direction:column;gap:var(--sp-3);margin:0;padding:0;list-style:none}
 .pasaje{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);padding:var(--sp-3) var(--sp-4);border:1px solid var(--c-border-2);border-radius:var(--r-md);background:var(--c-surface-alt)}
 .pasajeTexto{margin:0;font-size:var(--text-sm);line-height:var(--leading-relaxed);color:var(--c-text-2)}
 .pasajeSep{position:absolute;left:50%;top:var(--sp-3);bottom:var(--sp-3);width:1px;background:var(--c-border);transform:translateX(-50%)}
 .pasajeScore{grid-column:1 / -1;justify-self:end;font-size:var(--text-xs);color:var(--c-text-3)}
 
-/* ── Otras coincidencias ── */
+/* Otras coincidencias */
 .otrasList{display:flex;flex-direction:column;gap:var(--sp-2_5);margin:0;padding:0;list-style:none}
 .otrasRow{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--r-md);text-decoration:none;transition:border-color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out),background var(--dur-fast) ease}
 .otrasRow:hover{background:var(--c-border)}
@@ -57,10 +44,9 @@
 .backLink:hover{background:var(--c-surface-alt);color:var(--c-text)}
 
 @media (max-width:900px){
-  .cardsRow,.detailsGrid{grid-template-columns:1fr}
+  .chartsGrid,.cardsRow{grid-template-columns:1fr}
 }
 @media (max-width:768px){
-  .field{grid-template-columns:1fr;gap:var(--sp-1)}
   .card{padding:var(--sp-4)}
   .pasaje{grid-template-columns:1fr;gap:var(--sp-2)}
   .pasajeSep{display:none}

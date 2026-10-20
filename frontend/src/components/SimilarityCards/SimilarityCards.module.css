@@ -1,0 +1,121 @@
+.dialWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0 var(--sp-2);
+}
+.dialSvg {
+  width: 150px;
+  height: 150px;
+}
+.dialTrack {
+  fill: none;
+  stroke: var(--c-border-2);
+  stroke-width: 9;
+}
+.dialArc {
+  fill: none;
+  stroke: var(--par-a);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.dialValue {
+  fill: var(--c-text);
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 700;
+}
+.dialLabel {
+  fill: var(--c-text-3);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+.dialHelp {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--c-text-3);
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+.planeWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0 var(--sp-2);
+}
+.planeSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.eje {
+  stroke: var(--c-border);
+  stroke-width: 1.5;
+}
+.tick {
+  stroke: var(--c-border-2);
+  stroke-width: 1;
+}
+.axis {
+  fill: var(--c-text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.distancia {
+  stroke: var(--par-a);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  opacity: .65;
+}
+.guia {
+  stroke: var(--c-border);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.puntoA {
+  fill: var(--c-surface);
+  stroke: var(--par-a);
+  stroke-width: 3.5;
+}
+.puntoB {
+  fill: var(--c-surface);
+  stroke: var(--par-b);
+  stroke-width: 3.5;
+}
+.etiquetaA {
+  fill: var(--par-a-strong, var(--par-a));
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+}
+.etiquetaB {
+  fill: var(--par-b-strong, var(--par-b));
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+}
+.pct {
+  fill: var(--c-text);
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 700;
+}
+.pctLabel {
+  fill: var(--c-text-3);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.planeHelp {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--c-text-3);
+  line-height: 1.5;
+}

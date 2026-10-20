@@ -26,8 +26,9 @@ data class AppUpdateUiState(
  * Detecta si hay una versión más reciente del APK y gobierna el aviso.
  *
  * Política (sin consultas constantes ni avisos repetidos):
- *  - Una consulta de red por proceso y, entre procesos, como máximo una cada
- *    6 horas (marca persistida en DataStore).
+ *  - Una consulta de red por proceso (arranque de la app). No se conserva un
+ *    "última consulta" entre arranques: si se publica una versión nueva, al
+ *    volver a abrir la app se detecta.
  *  - "Más tarde" silencia esa misma versión durante 24 h; una versión más
  *    nueva vuelve a avisar de inmediato.
  *  - La actualización obligatoria (solo si el servidor la define con
@@ -41,8 +42,12 @@ class AppUpdateViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        /** Entre procesos: no se consulta la red más de una vez cada 6 h. */
-        internal const val INTERVALO_CONSULTA_MS = 6L * 60 * 60 * 1000
+        /**
+         * Sin caché entre procesos: cada arranque hace UNA consulta (el flag
+         * `consultaEnSesion` impide repetirla dentro del mismo proceso). Así una
+         * versión publicada se detecta al volver a abrir la aplicación.
+         */
+        internal const val INTERVALO_CONSULTA_MS = 0L
 
         /** Tras "Más tarde", la misma versión no reaparece hasta 24 h después. */
         internal const val INTERVALO_POSPUESTO_MS = 24L * 60 * 60 * 1000

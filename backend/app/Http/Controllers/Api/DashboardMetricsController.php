@@ -16,25 +16,37 @@ use Illuminate\Support\Carbon;
 
 /**
  * Métricas reales de los paneles, calculadas en el backend y acotadas al rol
- * autenticado (el cliente no elige el rol). Devuelve una sola carga para
- * todas las gráficas del tablero.
+ * autenticado (el cliente no elige el rol).
+ *
+ * `periodo` (3m|30d|7d) cambia realmente el rango de la serie temporal:
+ *  - 3m: últimos 3 meses (buckets mensuales).
+ *  - 30d: últimos 30 días (buckets diarios).
+ *  - 7d: últimos 7 días (buckets diarios).
+ * Cada bucket incluye los títulos de las propuestas del periodo (máx. 6) para
+ * el tooltip del dashboard; el resto se informa en `restantes`.
  */
 class DashboardMetricsController extends Controller
 {
-    private const MESES = 6;
+    private const PERIODOS = ['3m', '30d', '7d'];
+    private const MAX_TITULOS = 6;
+    private const MAX_ACTIVIDAD = 12;
 
     public function show(Request $request)
     {
         $user = $request->user();
+        $periodo = $request->query('periodo', '3m');
+        if (!in_array($periodo, self::PERIODOS, true)) {
+            $periodo = '3m';
+        }
 
         return match ($user->rol) {
-            'admin' => $this->admin(),
-            'instructor' => $this->instructor($user),
-            default => $this->aprendiz($user),
+            'admin' => $this->admin($periodo),
+            'instructor' => $this->instructor($user, $periodo),
+            default => $this->aprendiz($user, $periodo),
         };
     }
 
-    private function admin(): array
+    private function admin(string $periodo): array
     {
         $usuarios = GeneralUser::selectRaw('rol, count(*) as total')
             ->groupBy('rol')
@@ -42,6 +54,7 @@ class DashboardMetricsController extends Controller
 
         return [
             'rol' => 'admin',
+            'periodo' => $periodo,
             'usuarios' => [
                 'total' => (int) $usuarios->sum(),
                 'aprendices' => (int) ($usuarios['aprendiz'] ?? 0),
@@ -51,17 +64,17 @@ class DashboardMetricsController extends Controller
             'fichas' => ['total' => ClassGroup::count()],
             'aprendices' => ['total' => Apprentice::count()],
             'propuestas' => $this->porEstado(Project::query()),
-            'evolucion' => $this->evolucion(Project::query()),
+            'evolucion' => $this->evolucionProyectos(Project::query(), $periodo),
             'actividad' => $this->actividadAuditoria(),
         ];
     }
 
-    private function instructor(GeneralUser $user): array
+    private function instructor(GeneralUser $user, string $periodo): array
     {
         $instructorId = Instructor::where('id_usuario', $user->id)->value('id');
 
         $fichasIds = ClassGroup::query()
-            ->when(true, fn ($q) => $q->where('id_instructor', $instructorId ?: 0))
+            ->where('id_instructor', $instructorId ?: 0)
             ->pluck('id');
 
         $proyectos = Project::query()->where(function ($q) use ($instructorId, $fichasIds) {
@@ -75,6 +88,7 @@ class DashboardMetricsController extends Controller
 
         return [
             'rol' => 'instructor',
+            'periodo' => $periodo,
             'fichas' => ['total' => $fichasIds->count()],
             'aprendices' => [
                 'total' => $fichasIds->isEmpty()
@@ -82,12 +96,12 @@ class DashboardMetricsController extends Controller
                     : Apprentice::whereIn('id_class_group', $fichasIds)->count(),
             ],
             'propuestas' => $this->porEstado($proyectos),
-            'evolucion' => $this->evolucionRevisiones($idsProyectos),
+            'evolucion' => $this->evolucionRevisiones($idsProyectos, $periodo),
             'actividad' => $this->actividadProyectos($idsProyectos),
         ];
     }
 
-    private function aprendiz(GeneralUser $user): array
+    private function aprendiz(GeneralUser $user, string $periodo): array
     {
         $proyectos = Project::query()->deAutor($user);
         $ids = (clone $proyectos)->pluck('id');
@@ -95,9 +109,9 @@ class DashboardMetricsController extends Controller
         $observaciones = $ids->isEmpty()
             ? []
             : Comment::whereIn('id_proyecto', $ids)
-                ->with('user')
+                ->with('user:id,nombre,apellido,rol')
                 ->orderByDesc('id')
-                ->limit(6)
+                ->limit(self::MAX_ACTIVIDAD)
                 ->get()
                 ->map(function (Comment $comentario) {
                     $texto = trim((string) $comentario->texto);
@@ -107,6 +121,8 @@ class DashboardMetricsController extends Controller
                         'id' => $comentario->id,
                         'titulo' => mb_strlen($texto) > 120 ? mb_substr($texto, 0, 120) . '…' : $texto,
                         'meta' => $autor !== '' ? 'Observación de ' . $autor : 'Observación',
+                        'usuario' => $autor,
+                        'proyecto_id' => $comentario->id_proyecto,
                         'fecha' => optional($comentario->created_at)->toIso8601String(),
                     ];
                 })
@@ -115,8 +131,9 @@ class DashboardMetricsController extends Controller
 
         return [
             'rol' => 'aprendiz',
+            'periodo' => $periodo,
             'propuestas' => $this->porEstado($proyectos),
-            'evolucion' => $this->evolucion($proyectos),
+            'evolucion' => $this->evolucionProyectos($proyectos, $periodo),
             'actividad' => $observaciones,
         ];
     }
@@ -138,48 +155,92 @@ class DashboardMetricsController extends Controller
         ];
     }
 
-    /** Serie mensual de los últimos 6 meses (incluye meses sin registros). */
-    private function evolucion($query, string $columna = 'created_at'): array
+    /** Rango real del periodo (inicio/fin) y claves de agrupación. */
+    private function rango(string $periodo): array
     {
-        $desde = Carbon::now()->subMonths(self::MESES - 1)->startOfMonth();
-        $fechas = (clone $query)->where($columna, '>=', $desde)->pluck($columna);
-
-        return $this->serieMensual($fechas);
+        return match ($periodo) {
+            '7d' => [now()->subDays(6)->startOfDay(), 'Y-m-d', 7, 'dia'],
+            '30d' => [now()->subDays(29)->startOfDay(), 'Y-m-d', 30, 'dia'],
+            default => [now()->subMonths(2)->startOfMonth(), 'Y-m', 3, 'mes'],
+        };
     }
 
-    private function evolucionRevisiones($idsProyectos): array
+    /** Serie de propuestas creadas en el periodo (con títulos para el tooltip). */
+    private function evolucionProyectos($query, string $periodo): array
     {
-        if ($idsProyectos->isEmpty()) {
-            return $this->serieMensual(collect());
-        }
+        [$inicio, $formato, $cantidad, $tipo] = $this->rango($periodo);
 
-        return $this->serieMensual(
-            ProjectHistory::whereIn('id_proyecto', $idsProyectos)
-                ->where('accion', 'revisar_propuesta')
-                ->where('created_at', '>=', Carbon::now()->subMonths(self::MESES - 1)->startOfMonth())
-                ->pluck('created_at')
-        );
-    }
+        $proyectos = (clone $query)
+            ->where('created_at', '>=', $inicio)
+            ->get(['id', 'titulo', 'created_at']);
 
-    private function serieMensual($fechas): array
-    {
-        $porMes = [];
-        foreach ($fechas as $fecha) {
-            if (! $fecha) {
-                continue;
+        $grupos = [];
+        foreach ($proyectos as $proyecto) {
+            $fecha = Carbon::parse($proyecto->created_at);
+            $clave = $fecha->format($formato);
+            if (!isset($grupos[$clave])) {
+                $grupos[$clave] = ['total' => 0, 'titulos' => []];
             }
-            $clave = Carbon::parse($fecha)->format('Y-m');
-            $porMes[$clave] = ($porMes[$clave] ?? 0) + 1;
+            $grupos[$clave]['total']++;
+            if (count($grupos[$clave]['titulos']) < self::MAX_TITULOS) {
+                $grupos[$clave]['titulos'][] = $proyecto->titulo;
+            }
         }
 
+        return $this->construirSerie($periodo, $tipo, $cantidad, $grupos);
+    }
+
+    /** Revisiones del instructor en el periodo (historiales "revisar_propuesta"). */
+    private function evolucionRevisiones($idsProyectos, string $periodo): array
+    {
+        [$inicio, $formato, $cantidad, $tipo] = $this->rango($periodo);
+
+        if ($idsProyectos->isEmpty()) {
+            return $this->construirSerie($periodo, $tipo, $cantidad, []);
+        }
+
+        $historiales = ProjectHistory::with('project:id,titulo')
+            ->whereIn('id_proyecto', $idsProyectos)
+            ->where('accion', 'revisar_propuesta')
+            ->where('created_at', '>=', $inicio)
+            ->get(['id', 'id_proyecto', 'created_at']);
+
+        $grupos = [];
+        foreach ($historiales as $historial) {
+            $clave = Carbon::parse($historial->created_at)->format($formato);
+            if (!isset($grupos[$clave])) {
+                $grupos[$clave] = ['total' => 0, 'titulos' => []];
+            }
+            $grupos[$clave]['total']++;
+            $titulo = optional($historial->project)->titulo;
+            if ($titulo && !in_array($titulo, $grupos[$clave]['titulos'], true) && count($grupos[$clave]['titulos']) < self::MAX_TITULOS) {
+                $grupos[$clave]['titulos'][] = $titulo;
+            }
+        }
+
+        return $this->construirSerie($periodo, $tipo, $cantidad, $grupos);
+    }
+
+    /** Genera los buckets completos (incluye periodos sin registros). */
+    private function construirSerie(string $periodo, string $tipo, int $cantidad, array $grupos): array
+    {
         $serie = [];
-        for ($i = self::MESES - 1; $i >= 0; $i--) {
-            $mes = Carbon::now()->subMonths($i);
-            $clave = $mes->format('Y-m');
+        for ($i = $cantidad - 1; $i >= 0; $i--) {
+            $fecha = $tipo === 'mes' ? now()->subMonths($i) : now()->subDays($i);
+            $clave = $fecha->format($tipo === 'mes' ? 'Y-m' : 'Y-m-d');
+            $datos = $grupos[$clave] ?? ['total' => 0, 'titulos' => []];
+
             $serie[] = [
-                'mes' => $clave,
-                'label' => $mes->locale('es')->isoFormat('MMM'),
-                'total' => $porMes[$clave] ?? 0,
+                'clave' => $clave,
+                'label' => $tipo === 'mes'
+                    ? $fecha->locale('es')->isoFormat('MMM')
+                    : $fecha->format('d/m'),
+                'fecha' => $tipo === 'mes'
+                    ? $fecha->locale('es')->isoFormat('MMMM [de] YYYY')
+                    : $fecha->locale('es')->isoFormat('ddd D [de] MMMM'),
+                'total' => $datos['total'],
+                'propuestas' => $datos['titulos'],
+                'restantes' => max(0, $datos['total'] - count($datos['titulos'])),
             ];
         }
 
@@ -188,9 +249,9 @@ class DashboardMetricsController extends Controller
 
     private function actividadAuditoria(): array
     {
-        return AuditLog::with('user')
+        return AuditLog::with(['user:id,nombre,apellido,rol'])
             ->orderByDesc('id')
-            ->limit(6)
+            ->limit(self::MAX_ACTIVIDAD)
             ->get()
             ->map(function (AuditLog $log) {
                 $usuario = trim((string) optional($log->user)->nombre . ' ' . (string) optional($log->user)->apellido);
@@ -200,6 +261,7 @@ class DashboardMetricsController extends Controller
                     'titulo' => (string) $log->accion,
                     'meta' => trim(($log->entidad ?? '') . ($log->entidad_id ? ' #' . $log->entidad_id : '')) ?: 'Sistema',
                     'usuario' => $usuario,
+                    'proyecto_id' => null,
                     'fecha' => optional($log->created_at)->toIso8601String(),
                 ];
             })
@@ -214,9 +276,9 @@ class DashboardMetricsController extends Controller
         }
 
         return ProjectHistory::whereIn('id_proyecto', $idsProyectos)
-            ->with(['user', 'project'])
+            ->with(['user:id,nombre,apellido,rol', 'project:id,titulo'])
             ->orderByDesc('id')
-            ->limit(6)
+            ->limit(self::MAX_ACTIVIDAD)
             ->get()
             ->map(function (ProjectHistory $historial) {
                 $usuario = trim((string) optional($historial->user)->nombre . ' ' . (string) optional($historial->user)->apellido);
@@ -226,6 +288,7 @@ class DashboardMetricsController extends Controller
                     'titulo' => (string) $historial->accion,
                     'meta' => optional($historial->project)->titulo ?: 'Propuesta',
                     'usuario' => $usuario,
+                    'proyecto_id' => $historial->id_proyecto,
                     'fecha' => optional($historial->created_at)->toIso8601String(),
                 ];
             })

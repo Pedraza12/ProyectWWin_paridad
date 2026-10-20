@@ -220,6 +220,20 @@ Requisitos en la cuenta de Brevo:
 Diagnóstico: si un envío falla, el detalle queda en `railway logs`
 (p. ej. `401 unrecognised IP address` o `400 remitente no verificado`).
 
+## Fotos de perfil con Cloudinary (opcional)
+
+Variables del servicio (si faltan, la web guarda la foto localmente como antes):
+
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `CLOUDINARY_FOLDER` (por defecto `proyecttwin/perfiles`)
+
+Con las credenciales configuradas, `POST /v1/media/foto` (autenticado, multipart
+`foto`, máx. 5 MB) sube la imagen al servidor y devuelve `foto_url` + `public_id`;
+la web guarda esa URL en `users.foto_url`. Las fotos históricas (data URL base64)
+siguen funcionando sin migración. El secreto nunca se expone al frontend ni al APK.
+
 ## Notas de despliegue (redeploys)
 
 - **Builder del servicio**: el monorepo solo compila con el Dockerfile de la

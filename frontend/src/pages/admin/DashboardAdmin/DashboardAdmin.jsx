@@ -16,7 +16,7 @@ import EmptyState from '../../../components/EmptyState/EmptyState'
 import ApiState from '../../../components/ApiState/ApiState'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
-import { usuarios, proyectos, similitudes, reportes, notificaciones, motor, metricas } from '../../../lib/recursos'
+import { usuarios, proyectos, similitudes, reportes, notificaciones, motor } from '../../../lib/recursos'
 import { fechaDesdeApi } from '../../../utils/helpers'
 import { RECIENTES } from '../../../constants/pagination'
 import { RUTA_ALERTAS_POR_ROL, RUTA_SOPORTE_POR_ROL } from '../../../constants/routes'
@@ -33,9 +33,6 @@ const TIPO_NOTIF = {
 
 export default function DashboardAdmin() {
   const { user } = useAuth()
-
-  // Métricas agregadas en el backend (una sola carga para las gráficas).
-  const { data: metricasData } = useApi(() => metricas.obtener(), [user?.id], { inicial: null })
 
   // Fuente única: la API. Se piden todos los recursos del tablero en paralelo.
   const { data, cargando, error, recargar } = useApi(
@@ -118,7 +115,7 @@ export default function DashboardAdmin() {
           text="Monitorea usuarios, propuestas, similitudes detectadas y reportes de fallas de toda la plataforma ProyecTwin."
         />
 
-        <DashboardMetrics rol="admin" data={metricasData} />
+        <DashboardMetrics rol="admin" />
 
         <ApiState cargando={cargando} error={error} onReintentar={recargar}>
           <DataPanel

@@ -232,6 +232,7 @@ export const auditoria = {
 
 // ---------------------------------------------------------------- Métricas
 // Agregados reales por rol (el backend deriva el rol del token).
+// `periodo` (3m|30d|7d) filtra realmente la serie temporal.
 export const metricas = {
-  obtener: () => apiFetch("/dashboard-metrics"),
+  obtener: (periodo = "3m") => apiFetch(`/dashboard-metrics${qs({ periodo })}`),
 };

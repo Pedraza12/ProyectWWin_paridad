@@ -256,18 +256,18 @@ class AppUpdateViewModelTest {
         coVerify(exactly = 1) { repo.versionPublicada() }
     }
 
-    // 9b. Entre procesos: dentro de las 6 h no se vuelve a consultar la red.
+    // 9b. Sin caché entre procesos: un arranque nuevo vuelve a comprobar.
     @Test
-    fun `respeta el intervalo minimo entre consultas`() = runTest(dispatcher) {
-        ultimaConsulta = ahora - 3_600_000L // hace 1 h
+    fun `nuevo proceso vuelve a comprobar la version`() = runTest(dispatcher) {
+        ultimaConsulta = ahora - 3_600_000L // la consulta anterior fue hace 1 h
         coEvery { repo.versionPublicada() } returns Result.success(info(version = "1.1.0"))
 
         val vm = viewModel()
         vm.verificar("1.0", ahora)
         advanceUntilIdle()
 
-        coVerify(exactly = 0) { repo.versionPublicada() }
-        assertFalse(vm.uiState.value.mostrar)
+        coVerify(exactly = 1) { repo.versionPublicada() }
+        assertTrue(vm.uiState.value.mostrar)
     }
 
     // "Actualizar" en la opcional también silencia 24 h; en la obligatoria
