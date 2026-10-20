@@ -5,16 +5,15 @@ import DataPanel from '../DataPanel/DataPanel'
 import ActivityList from '../ActivityList/ActivityList'
 import EmptyState from '../EmptyState/EmptyState'
 import { BarChart, DonutChart, LineChart } from '../Charts/Charts'
-import { CYBER_COLORS } from '../Charts/palette'
 import { fechaDesdeApi } from '../../utils/helpers'
 import s from './DashboardMetrics.module.css'
 
-// Colores neón exclusivos de las gráficas (coherentes con el panel cyber).
+// Colores semánticos del sistema (mismos tokens que los badges de estado).
 const COLOR_ESTADO = {
-  borrador: CYBER_COLORS.dim,
-  pendiente: CYBER_COLORS.magenta,
-  aprobado: CYBER_COLORS.green,
-  rechazado: CYBER_COLORS.red,
+  borrador: 'var(--c-text-3)',
+  pendiente: 'var(--c-warning)',
+  aprobado: 'var(--c-success)',
+  rechazado: 'var(--c-danger)',
 }
 
 // Panel de métricas reales según el rol. Se alimenta del endpoint
@@ -67,7 +66,7 @@ export default function DashboardMetrics({ rol, data }) {
         </div>
       )}
 
-      <div className={s.charts}>
+      <div className={`${s.charts} ${rol !== 'admin' ? s.single : ''}`}>
         <DataPanel title="Propuestas por estado" icon={<ChartPieSlice size={18} />}>
           <DonutChart
             data={estados}
@@ -81,14 +80,17 @@ export default function DashboardMetrics({ rol, data }) {
             <BarChart
               ariaLabel="Usuarios por rol"
               data={[
-                { label: 'Aprendices', value: data.usuarios?.aprendices || 0, color: CYBER_COLORS.green },
-                { label: 'Instructores', value: data.usuarios?.instructores || 0, color: CYBER_COLORS.cyan },
-                { label: 'Administradores', value: data.usuarios?.admins || 0, color: CYBER_COLORS.magenta },
+                { label: 'Aprendices', value: data.usuarios?.aprendices || 0, color: 'var(--c-primary)' },
+                { label: 'Instructores', value: data.usuarios?.instructores || 0, color: 'var(--c-info)' },
+                { label: 'Administradores', value: data.usuarios?.admins || 0, color: 'var(--c-warning)' },
               ]}
             />
           </DataPanel>
         )}
+      </div>
 
+      {/* Gráfica mensual: grande, pero un poco más angosta que antes. */}
+      <div className={s.linePanel}>
         <DataPanel title={tituloEvolucion} icon={<ChartLineUp size={18} />}>
           <LineChart data={evolucion} ariaLabel={tituloEvolucion} />
         </DataPanel>

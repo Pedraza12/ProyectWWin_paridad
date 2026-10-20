@@ -9,16 +9,31 @@
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: var(--sp-3);
 }
-/* Tres gráficas compactas en escritorio; se apilan solas en pantallas chicas. */
+/* Dona + barras: dos tarjetas del mismo tamaño (misma fila y altura). */
 .charts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--sp-4);
-  align-items: start;
+  align-items: stretch;
+}
+/* Roles sin gráfica de barras: la dona queda centrada y compacta. */
+.single {
+  grid-template-columns: minmax(0, 640px);
+  justify-content: center;
+}
+/* Propuestas por mes: ancho grande pero algo menor que el original. */
+.linePanel {
+  width: 100%;
+  max-width: 980px;
+  margin-inline: auto;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .charts {
-    gap: var(--sp-3);
+    grid-template-columns: 1fr;
+  }
+  .single {
+    justify-content: stretch;
+    grid-template-columns: 1fr;
   }
 }

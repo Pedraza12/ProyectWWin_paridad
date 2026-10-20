@@ -23,9 +23,9 @@ export default function SimilarityGraph({ porcentaje = 0, etiqueta = 'Índice de
       <svg viewBox="0 0 560 150" className={s.svg} aria-hidden="true">
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#39ff88" />
-            <stop offset=".5" stopColor="#22e0ff" />
-            <stop offset="1" stopColor="#ff3fd8" />
+            <stop offset="0" stopColor="var(--par-a)" />
+            <stop offset=".5" stopColor="var(--par-a-strong, var(--par-a))" />
+            <stop offset="1" stopColor="var(--par-b)" />
           </linearGradient>
         </defs>
 
