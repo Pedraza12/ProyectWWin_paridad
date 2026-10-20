@@ -1,8 +1,10 @@
+import { Fragment } from 'react'
 import s from './DataTable.module.css'
 
 // Tabla densa de consola: header sticky + data-label para modo tarjetas en móvil.
 // columns: [{ key, header, render?(row), align?: 'start'|'center'|'end' }]
-export default function DataTable({ columns = [], rows = [], keyOf, empty = 'Sin registros.', ariaLabel, caption, stickyLast = true, className = '' }) {
+// expandRender + expandido permiten una fila expandible (detalle adicional).
+export default function DataTable({ columns = [], rows = [], keyOf, empty = 'Sin registros.', ariaLabel, caption, stickyLast = true, className = '', expandRender = null, expandido = null }) {
   if (rows.length === 0) {
     return <p className={`${s.empty} ${className}`}>{empty}</p>
   }
@@ -18,15 +20,26 @@ export default function DataTable({ columns = [], rows = [], keyOf, empty = 'Sin
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={keyOf ? keyOf(row) : row.id}>
-              {columns.map((c, i) => (
-                <td key={c.key} data-label={c.header} className={`${s[`align-${c.align || 'start'}`]}${stickyLast && i === columns.length - 1 ? ` ${s.stickyCol}` : ''}`}>
-                  {c.render ? c.render(row) : row[c.key]}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const clave = keyOf ? keyOf(row) : row.id
+            const abierto = Boolean(expandRender) && expandido === clave
+            return (
+              <Fragment key={clave}>
+                <tr>
+                  {columns.map((c, i) => (
+                    <td key={c.key} data-label={c.header} className={`${s[`align-${c.align || 'start'}`]}${stickyLast && i === columns.length - 1 ? ` ${s.stickyCol}` : ''}`}>
+                      {c.render ? c.render(row) : row[c.key]}
+                    </td>
+                  ))}
+                </tr>
+                {abierto && (
+                  <tr className={s.expandRow}>
+                    <td colSpan={columns.length}>{expandRender(row)}</td>
+                  </tr>
+                )}
+              </Fragment>
+            )
+          })}
         </tbody>
       </table>
     </div>

@@ -29,6 +29,32 @@ class GeneralUserController extends Controller
         'must_change_password', 'credenciales_enviadas_en', 'credenciales_error',
     ];
 
+    // Proyección opt-in para selectores que solo necesitan identificar al
+    // usuario (p. ej. el filtro de la bitácora). Evita enviar correo y la foto
+    // en base64 de toda la plantilla. Los contratos actuales no cambian: solo
+    // se activa con `resumen=1`.
+    private const CAMPOS_RESUMEN = ['id', 'nombre', 'apellido', 'rol'];
+
+    // La foto de perfil viaja como data URL de imagen generada por los
+    // clientes (web y Android recortan a 256×256 JPEG). Se rechazan URLs
+    // externas, MIME que no sea de imagen y payloads fuera de la columna TEXT
+    // (65.535 bytes). El tope de 65.000 caracteres es seguro para la columna
+    // (ASCII = 1 byte), cubre el peor caso local con ruido del JPEG 256×256
+    // q0.82 (≈60.600 caracteres) y deja que Android mantenga su autocapa de
+    // 60.000. Así ningún flujo actual queda rechazado por el límite.
+    private const MAX_FOTO_URL = 65000;
+
+    private const REGEX_FOTO_URL = '/\Adata:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/]+={0,2}\z/';
+
+    // Reglas en arreglo (no en cadena) porque el regex contiene `|` y el
+    // parser de reglas de Laravel dividiría la expresión por ese carácter.
+    private const REGLAS_FOTO_URL = [
+        'nullable',
+        'string',
+        'max:' . self::MAX_FOTO_URL,
+        'regex:' . self::REGEX_FOTO_URL,
+    ];
+
     public function index(Request $request)
     {
         // Params inválidos (p. ej. arrays) se rechazan con 422, nunca 500.
@@ -38,6 +64,7 @@ class GeneralUserController extends Controller
             'estado' => 'nullable|string',
             'ficha_id' => 'nullable|string',
             'programa' => 'nullable|string',
+            'resumen' => 'nullable|boolean',
         ]);
 
         $query = GeneralUser::included()
@@ -47,15 +74,29 @@ class GeneralUserController extends Controller
             ->byFicha($request->query('ficha_id'))
             ->byPrograma($request->query('programa'));
 
+        // Proyección ligera opt-in (compatible: sin el parámetro todo sigue igual).
+        $resumen = $request->boolean('resumen');
+
         // Paginación opt-in para el panel de administración (miles de filas).
         if ($request->boolean('paginado')) {
             $porPagina = max(1, min((int) $request->query('por_pagina', 10), 100));
-            $pagina = $query->orderBy('id')->paginate($porPagina);
-            $pagina->getCollection()->each->makeVisible(self::CAMPOS_CREDENCIALES);
+            $query->orderBy('id');
+            if ($resumen) {
+                $query->select(self::CAMPOS_RESUMEN);
+            }
+            $pagina = $query->paginate($porPagina);
+            if (!$resumen) {
+                $pagina->getCollection()->each->makeVisible(self::CAMPOS_CREDENCIALES);
+            }
             return $pagina;
         }
 
-        return $query->orderBy('id')->get()->each->makeVisible(self::CAMPOS_CREDENCIALES);
+        $query->orderBy('id');
+        if ($resumen) {
+            return $query->get(self::CAMPOS_RESUMEN);
+        }
+
+        return $query->get()->each->makeVisible(self::CAMPOS_CREDENCIALES);
     }
 
     // Alta exclusiva del administrador (no hay registro público): las
@@ -68,7 +109,7 @@ class GeneralUserController extends Controller
             'tipo_documento' => 'required|in:CC,TI,CE,PPT',
             'numero_documento' => 'required|max:40|unique:general_users,numero_documento',
             'correo' => 'required|email|unique:general_users,correo',
-            'foto_url' => 'nullable',
+            'foto_url' => self::REGLAS_FOTO_URL,
             'rol' => 'required|in:aprendiz,instructor',
             'estado' => 'nullable|boolean',
         ]);
@@ -199,9 +240,13 @@ class GeneralUserController extends Controller
             'nombre' => 'sometimes|required|max:255',
             'apellido' => 'sometimes|required|max:255',
             'correo' => 'sometimes|required|email|unique:general_users,correo,' . $general_user->id,
-            'foto_url' => 'nullable',
+            'foto_url' => self::REGLAS_FOTO_URL,
             'rol' => 'sometimes|required|in:aprendiz,instructor,admin',
             'estado' => 'sometimes|boolean',
+            // Documento de identidad: el admin puede corregirlo (p. ej. un
+            // número mal digitado en el alta). El propio usuario no lo edita.
+            'tipo_documento' => 'sometimes|required|in:CC,TI,CE,PPT',
+            'numero_documento' => 'sometimes|required|max:40|unique:general_users,numero_documento,' . $general_user->id,
         ]);
 
         // Autorización: la propia cuenta, o cualquier cuenta si eres admin.
@@ -260,11 +305,15 @@ class GeneralUserController extends Controller
             }
         }
 
-        // Whitelist: solo campos editables por esta vía. Los campos internos
-        // del flujo de credenciales (username, documentos, must_change_password,
-        // password_temporal, credenciales_*) nunca se aceptan desde el request.
+        // Whitelist: solo campos editables por esta vía. El admin también puede
+        // corregir el documento de identidad; los campos internos del flujo de
+        // credenciales (username, must_change_password, password_temporal,
+        // credenciales_*) nunca se aceptan desde el request.
         $data = $esAdmin
-            ? $request->only(['nombre', 'apellido', 'correo', 'foto_url', 'rol', 'estado'])
+            ? $request->only([
+                'nombre', 'apellido', 'correo', 'foto_url', 'rol', 'estado',
+                'tipo_documento', 'numero_documento',
+            ])
             : $request->only(['nombre', 'apellido', 'correo', 'foto_url']);
 
         // Las contraseñas no se cambian por esta vía: la propia exige la actual
@@ -278,9 +327,11 @@ class GeneralUserController extends Controller
         }
 
         $cambiaNombre = $request->filled('nombre') && $request->nombre !== $general_user->nombre;
+        $cambiaDocumento = ($request->filled('tipo_documento') && $request->tipo_documento !== $general_user->tipo_documento)
+            || ($request->filled('numero_documento') && $request->numero_documento !== $general_user->numero_documento);
 
         // Actualización atómica: cuenta + perfiles + auditoría (todo o nada).
-        DB::transaction(function () use ($general_user, $data, $cambiaRol, $cambiaEstado, $cambiaCorreo, $cambiaNombre) {
+        DB::transaction(function () use ($general_user, $data, $cambiaRol, $cambiaEstado, $cambiaCorreo, $cambiaNombre, $cambiaDocumento) {
             $general_user->update($data);
 
             Auditoria::registrar('actualizar_usuario', 'general_users', $general_user->id, array_filter([
@@ -288,7 +339,12 @@ class GeneralUserController extends Controller
                 'estado' => $cambiaEstado ? (bool) $general_user->estado : null,
                 'correo' => $cambiaCorreo ? $general_user->correo : null,
                 'nombre' => $cambiaNombre ? $general_user->nombre : null,
-            ]));
+                'documento' => $cambiaDocumento
+                    ? $general_user->tipo_documento . ' ' . $general_user->numero_documento
+                    : null,
+            // Solo se descartan los nulos: `estado=false` es un cambio real y
+            // debe quedar registrado (el array_filter por defecto lo perdería).
+            ], fn ($v) => $v !== null));
 
             // Mantiene coherentes los perfiles (admin/instructor/aprendiz) al cambio de rol.
             if ($cambiaRol) {

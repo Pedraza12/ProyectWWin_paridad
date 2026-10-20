@@ -225,4 +225,13 @@ export const observaciones = {
 // ---------------------------------------------------------------- Bitácora (solo admin, inmutable)
 export const auditoria = {
   listar: (filtros = {}) => apiFetch(`/audit-logs${qs(filtros)}`).then(lista),
+  // Consulta paginada del servidor (tabla de bitácora): devuelve el paginador.
+  listarPaginado: (filtros = {}) =>
+    apiFetch(`/audit-logs${qs({ paginado: 1, ...filtros })}`),
+};
+
+// ---------------------------------------------------------------- Métricas
+// Agregados reales por rol (el backend deriva el rol del token).
+export const metricas = {
+  obtener: () => apiFetch("/dashboard-metrics"),
 };

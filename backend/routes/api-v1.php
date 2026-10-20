@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\MotorConfigController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AppVersionController;
+use App\Http\Controllers\Api\DashboardMetricsController;
 
 // ------------------------------------------------------------------ Públicas
 // Login y recuperación de contraseña por correo no exigen token. La creación
@@ -53,6 +54,10 @@ Route::middleware(['auth:sanctum', 'cuenta.activa'])->group(function () {
 
 // ------------------------------------------------------------------ Autenticadas
 Route::middleware(['auth:sanctum', 'cuenta.activa', \App\Http\Middleware\CambioContrasenaObligatorio::class])->group(function () {
+
+    // Métricas del panel: cada rol recibe solo su ámbito (calculadas en el
+    // servidor; el cliente nunca elige el rol).
+    Route::get('dashboard-metrics', [DashboardMetricsController::class, 'show']);
 
     // Configuración del motor de similitudes (la lectura es pública, arriba).
     Route::middleware('rol:admin')->put('config-similitud', [MotorConfigController::class, 'update']);

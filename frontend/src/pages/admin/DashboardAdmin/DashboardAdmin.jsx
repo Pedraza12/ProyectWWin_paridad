@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { UsersThree, FolderOpen, MagnifyingGlass, Bug, Bell, Sparkle, SlidersHorizontal, Gauge, Database } from 'phosphor-react'
 import DashboardLayout from '../../../layouts/DashboardLayout/DashboardLayout'
 import DashboardHero from '../../../components/DashboardHero/DashboardHero'
+import DashboardMetrics from '../../../components/DashboardMetrics/DashboardMetrics'
 import DashboardGrid from '../../../components/DashboardGrid/DashboardGrid'
 import StatChip from '../../../components/StatChip/StatChip'
 import DataPanel from '../../../components/DataPanel/DataPanel'
@@ -15,9 +16,10 @@ import EmptyState from '../../../components/EmptyState/EmptyState'
 import ApiState from '../../../components/ApiState/ApiState'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
-import { usuarios, proyectos, similitudes, reportes, notificaciones, motor } from '../../../lib/recursos'
+import { usuarios, proyectos, similitudes, reportes, notificaciones, motor, metricas } from '../../../lib/recursos'
 import { fechaDesdeApi } from '../../../utils/helpers'
 import { RECIENTES } from '../../../constants/pagination'
+import { RUTA_ALERTAS_POR_ROL, RUTA_SOPORTE_POR_ROL } from '../../../constants/routes'
 import s from './DashboardAdmin.module.css'
 
 // Etiquetas legibles del tipo de notificación (columnas reales de la API).
@@ -31,6 +33,9 @@ const TIPO_NOTIF = {
 
 export default function DashboardAdmin() {
   const { user } = useAuth()
+
+  // Métricas agregadas en el backend (una sola carga para las gráficas).
+  const { data: metricasData } = useApi(() => metricas.obtener(), [user?.id], { inicial: null })
 
   // Fuente única: la API. Se piden todos los recursos del tablero en paralelo.
   const { data, cargando, error, recargar } = useApi(
@@ -83,7 +88,7 @@ export default function DashboardAdmin() {
 
   if (datos.reportesAbiertos > 0) {
     quick.unshift({
-      to: '/admin/reportes-fallas',
+      to: RUTA_SOPORTE_POR_ROL.admin,
       icon: <Bug size={24} weight="regular" />,
       titulo: 'Atender reportes',
       descripcion: `${datos.reportesAbiertos} abiertos`,
@@ -92,13 +97,13 @@ export default function DashboardAdmin() {
 
   const colas = [
     { to: '/admin/proyectos', icon: <FolderOpen size={18} />, nombre: 'Propuestas pendientes', valor: datos.pendientes, total: datos.totalProyectos },
-    { to: '/admin/reportes-fallas', icon: <Bug size={18} />, nombre: 'Reportes abiertos', valor: datos.reportesAbiertos, total: datos.totalReportes },
+    { to: RUTA_SOPORTE_POR_ROL.admin, icon: <Bug size={18} />, nombre: 'Reportes abiertos', valor: datos.reportesAbiertos, total: datos.totalReportes },
     { to: '/admin/usuarios', icon: <UsersThree size={18} />, nombre: 'Cuentas suspendidas', valor: datos.suspendidos, total: datos.totalUsuarios },
   ]
 
   const itemsAlertas = alertas.map((n) => ({
     key: n.id,
-    to: '/admin/notificaciones',
+    to: RUTA_ALERTAS_POR_ROL.admin,
     title: n.titulo,
     meta: `${TIPO_NOTIF[n.tipo] || 'Notificación'} · ${fechaDesdeApi(n.fecha)}`,
     side: !n.leida ? <Badge variant="primary">Nueva</Badge> : null,
@@ -112,6 +117,8 @@ export default function DashboardAdmin() {
           title={<>¡Hola, {saludo}!</>}
           text="Monitorea usuarios, propuestas, similitudes detectadas y reportes de fallas de toda la plataforma ProyecTwin."
         />
+
+        <DashboardMetrics rol="admin" data={metricasData} />
 
         <ApiState cargando={cargando} error={error} onReintentar={recargar}>
           <DataPanel
@@ -153,7 +160,7 @@ export default function DashboardAdmin() {
               <DataPanel
                 title="Alertas recientes"
                 icon={<Bell size={18} />}
-                action={<Link to="/admin/notificaciones" viewTransition className={s.panelLink}>Ver todas</Link>}
+                action={<Link to={RUTA_ALERTAS_POR_ROL.admin} viewTransition className={s.panelLink}>Ver todas</Link>}
               >
                 <ActivityList
                   items={itemsAlertas}

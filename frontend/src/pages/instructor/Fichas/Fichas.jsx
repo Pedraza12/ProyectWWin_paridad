@@ -14,14 +14,16 @@ import Pagination from '../../../components/Pagination/Pagination'
 import EmptyState from '../../../components/EmptyState/EmptyState'
 import ApiState from '../../../components/ApiState/ApiState'
 import ConfirmModal from '../../../components/ConfirmModal/ConfirmModal'
-import { Books, ChartBar, CheckCircle, Copy, Eye, Lifebuoy, Plus, Trash, Warning } from 'phosphor-react'
+import { Books, ChartBar, CheckCircle, Copy, Eye, Lifebuoy, Plus, Trash, Warning, MagnifyingGlass } from 'phosphor-react'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
+import { useDebounced } from '../../../lib/useDebounced'
 import { toFieldErrors } from '../../../lib/api'
 import { fichas, instructores, aprendices, proyectos, redes, programas } from '../../../lib/recursos'
 import { FICHA_ESTADO_VARIANT, FICHA_ESTADO_LABEL as ESTADO_LABEL } from '../../../constants/badgeVariants'
 import { MAX_NOMBRE, MAX_NUMERO_FICHA, esNumeroFichaValido } from '../../../utils/validation'
 import { PAGINA_TABLA } from '../../../constants/pagination'
+import { RUTA_SOPORTE_POR_ROL } from '../../../constants/routes'
 // Estilos reutilizados de las páginas originales (lista + formulario)
 import s from '../../../components/ListaBase/ListaBase.module.css'
 import c from '../../../components/FormularioBase/FormularioBase.module.css'
@@ -49,6 +51,8 @@ export default function Fichas() {
 
   /* ---------- Lista ---------- */
   const [busqueda, setBusqueda] = useState('')
+  const [campoBusqueda, setCampoBusqueda] = useState('todos')
+  const busquedaDebounced = useDebounced(busqueda, 300)
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [filtroRed, setFiltroRed] = useState('todos')
   const [pagina, setPagina] = useState(1)
@@ -59,7 +63,14 @@ export default function Fichas() {
   const { data: instructoresApi } = useApi(() => instructores.listar(), [], { inicial: [] })
   const { data: aprendicesApi } = useApi(() => aprendices.listar(), [], { inicial: [] })
   const { data: todosProyectos } = useApi(() => proyectos.listar(), [], { inicial: [] })
-  const { data: fichasApi, cargando, error, recargar } = useApi(() => fichas.listar(), [], { inicial: [] })
+  const { data: fichasApi, cargando, error, recargar } = useApi(
+    () => fichas.listar(undefined, {
+      buscar: busquedaDebounced,
+      campo: campoBusqueda,
+    }),
+    [busquedaDebounced, campoBusqueda],
+    { inicial: [] }
+  )
   const { data: redesApi } = useApi(() => redes.listar(), [], { inicial: [] })
 
   // Fila de perfil del instructor (instructors) del usuario autenticado.
@@ -75,17 +86,20 @@ export default function Fichas() {
   )
 
   const filtradas = fichasPropias.filter((f) => {
-    const q = busqueda.trim().toLowerCase()
-    const coincideQ =
-      !q ||
-      f.nombre.toLowerCase().includes(q) ||
-      (f.codigo || '').toLowerCase().includes(q) ||
-      String(f.numero || '').toLowerCase().includes(q) ||
-      (f.program?.nombre || '').toLowerCase().includes(q)
     const coincideEstado = filtroEstado === 'todos' || f.estado === filtroEstado
     const coincideRed = filtroRed === 'todos' || String(f.program?.knowledge_network_id || '') === String(filtroRed)
-    return coincideQ && coincideEstado && coincideRed
+    return coincideEstado && coincideRed
   })
+
+  const limpiarFiltros = () => {
+    setBusqueda('')
+    setCampoBusqueda('todos')
+    setFiltroEstado('todos')
+    setFiltroRed('todos')
+    setPagina(1)
+  }
+
+  const hayFiltros = Boolean(busqueda || filtroEstado !== 'todos' || filtroRed !== 'todos')
 
   const paginadas = filtradas.slice(
     (pagina - 1) * ITEMS_POR_PAGINA,
@@ -314,7 +328,7 @@ export default function Fichas() {
                   <Warning size={14} /> El número {numeroDuplicado} ya está registrado en otra ficha.
                   <Button
                     as="link"
-                    to={`/instructor/reportar-falla?numero=${encodeURIComponent(numeroDuplicado)}`}
+                    to={`${RUTA_SOPORTE_POR_ROL.instructor}?numero=${encodeURIComponent(numeroDuplicado)}`}
                     size="sm"
                     variant="secondary"
                   >
@@ -353,17 +367,43 @@ export default function Fichas() {
               </Alert>
             )}
 
-            <FilterBar title="Buscar y filtrar">
+            <FilterBar
+              title="Buscar y filtrar"
+              actions={hayFiltros && (
+                <Button type="button" variant="secondary" size="sm" onClick={limpiarFiltros}>
+                  Limpiar filtros
+                </Button>
+              )}
+            >
               <label className={s.field}>
-                <span className={s.label}>Buscar</span>
-                <Input
-                  value={busqueda}
+                <span className={s.label}>Buscar por</span>
+                <Select
+                  value={campoBusqueda}
                   onChange={(e) => {
-                    setBusqueda(e.target.value)
+                    setCampoBusqueda(e.target.value)
                     setPagina(1)
                   }}
-                  placeholder="Nombre, código, número o programa…"
-                />
+                >
+                  <option value="todos">Todos los campos</option>
+                  <option value="codigo">Código</option>
+                  <option value="nombre">Nombre</option>
+                  <option value="numero">Número de ficha</option>
+                </Select>
+              </label>
+              <label className={s.field}>
+                <span className={s.label}>Buscar</span>
+                <span className={s.searchBox}>
+                  <MagnifyingGlass size={16} aria-hidden="true" />
+                  <Input
+                    className={s.searchInput}
+                    value={busqueda}
+                    onChange={(e) => {
+                      setBusqueda(e.target.value)
+                      setPagina(1)
+                    }}
+                    placeholder="Escribe código, nombre o número…"
+                  />
+                </span>
               </label>
               <label className={s.field}>
                 <span className={s.label}>Estado</span>
@@ -406,12 +446,12 @@ export default function Fichas() {
                   icon={<Books />}
                   title="No hay fichas"
                   message={
-                    fichasPropias.length === 0
-                      ? 'Aún no se han creado fichas de formación. Crea la primera.'
-                      : 'Ninguna ficha coincide con los filtros aplicados.'
+                    hayFiltros
+                      ? 'Ninguna ficha coincide con los filtros aplicados.'
+                      : 'Aún no se han creado fichas de formación. Crea la primera.'
                   }
-                  actionLabel={fichasPropias.length === 0 ? 'Crear primera ficha' : undefined}
-                  onAction={fichasPropias.length === 0 ? abrirCreacion : undefined}
+                  actionLabel={hayFiltros ? 'Limpiar filtros' : (fichasPropias.length === 0 ? 'Crear primera ficha' : undefined)}
+                  onAction={hayFiltros ? limpiarFiltros : (fichasPropias.length === 0 ? abrirCreacion : undefined)}
                 />
               ) : (
                 <>

@@ -11,6 +11,7 @@
 .table tbody td.stickyCol{position:sticky;right:0;z-index:1;background:var(--c-surface);box-shadow:-12px 0 12px -12px rgba(0,0,0,.5)}
 .table tbody tr:hover td.stickyCol{background:var(--c-surface-alt)}
 .empty{padding:var(--sp-6);text-align:center;color:var(--c-text-3);border:1px dashed var(--c-border);border-radius:var(--r-xl)}
+.expandRow td{background:var(--c-surface-alt);border-top:1px dashed var(--c-border);padding:var(--sp-4)}
 @media (max-width:640px){
   .table{min-width:0}
   .table thead{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}

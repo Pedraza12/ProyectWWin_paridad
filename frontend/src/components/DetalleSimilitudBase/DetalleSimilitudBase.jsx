@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, CalendarBlank, FileText, MagnifyingGlass, User } from 'phosphor-react'
+import { ArrowLeft, ArrowRight, Books, CalendarBlank, FileText, MagnifyingGlass, User } from 'phosphor-react'
 import PageHeader from '../PageHeader/PageHeader'
 import DataPanel from '../DataPanel/DataPanel'
 import Badge from '../Badge/Badge'
 import GradeBadge from '../GradeBadge/GradeBadge'
-import ScoreDial from '../ScoreDial/ScoreDial'
 import Tag from '../Tag/Tag'
 import EmptyState from '../EmptyState/EmptyState'
+import SimilarityGraph from '../SimilarityGraph/SimilarityGraph'
 import { useAuth } from '../../contexts/AuthContext'
 import { useApi } from '../../lib/useApi'
 import { similitudes, fichas } from '../../lib/recursos'
@@ -15,7 +15,7 @@ import { fechaDesdeApi, esPropietarioProyecto, nombreCompleto } from '../../util
 import s from './DetalleSimilitudBase.module.css'
 import { PROJECT_ESTADO_LABEL as ESTADO_PROYECTO_LABEL, PROJECT_ESTADO_VARIANT as ESTADO_PROYECTO_VARIANT } from '../../constants/badgeVariants'
 
-const RUTA_POR_ROL = {
+const RUTA_DETALLE_POR_ROL = {
   aprendiz: { volver: '/aprendiz/propuestas', label: 'Mis Propuestas' },
   instructor: { volver: '/instructor/dashboard', label: 'Dashboard' },
   admin: { volver: '/admin/similitudes', label: 'Similitudes' },
@@ -40,7 +40,7 @@ export default function DetalleSimilitudBase({
   backLabel,
 }) {
   const navigate = useNavigate()
-  const ruta = RUTA_POR_ROL[role] || RUTA_POR_ROL.aprendiz
+  const ruta = RUTA_DETALLE_POR_ROL[role] || RUTA_DETALLE_POR_ROL.aprendiz
   const { user } = useAuth()
   const esInstructor = role === 'instructor'
 
@@ -172,10 +172,6 @@ export default function DetalleSimilitudBase({
   }
 
   const pct = Math.round(Number(similitud.porcentaje) || 0)
-  const proyectos = [
-    { p: propuestaA, tag: 'A' },
-    { p: propuestaB, tag: 'B' },
-  ]
 
   // Ver proyecto: propio de la ficha o mismo programa exacto (ADSO solo con ADSO, etc.)
   function puedeVerProyecto(pid) {
@@ -185,7 +181,7 @@ export default function DetalleSimilitudBase({
 
   function autorDe(p) {
     const nombre = nombreCompleto(p?.creator)
-    return nombre || p?.classGroup?.program?.nombre || p?.classGroup?.codigo || '—'
+    return nombre || p?.classGroup?.program?.nombre || '—'
   }
 
   const crumbPrevio =
@@ -200,54 +196,200 @@ export default function DetalleSimilitudBase({
     ? `Detectada el ${fechaDesdeApi(similitud.fecha)} · ${propuestaA.titulo} vs. ${propuestaB.titulo}`
     : `Detectada el ${fechaDesdeApi(similitud.fecha)}`
 
+  // Campos reales disponibles en la propuesta (sin inventar tecnologías).
+  const listaClaves = (valor) => {
+    if (!valor) return []
+    if (Array.isArray(valor)) return valor.filter(Boolean)
+    return String(valor).split(',').map((x) => x.trim()).filter(Boolean)
+  }
+  const objetivosDe = (p) => (Array.isArray(p?.objetivos_especificos) ? p.objetivos_especificos.filter(Boolean) : [])
+  const fichaDe = (p) => {
+    if (!p?.classGroup) return ''
+    // Sin `codigo`: es la credencial para unirse a una ficha y no debe exponerse.
+    return p.classGroup.nombre || ''
+  }
+
+  const detalles = similitud.detalles || null
+  const terminos = Array.isArray(detalles?.terminos) ? detalles.terminos : []
+  const pasajes = Array.isArray(detalles?.pasajes) ? detalles.pasajes : []
+
+  // Tarjeta de una propuesta con los campos reales del modelo.
+  const tarjetaProyecto = (p, tag) => (
+    <article className={s.card} key={tag} aria-label={`Proyecto ${tag}`}>
+      <header className={s.cardHead}>
+        <Tag variant={tag === 'A' ? 'a' : 'b'}>Proyecto {tag}</Tag>
+        {p?.estado && (
+          <Badge variant={ESTADO_PROYECTO_VARIANT[p.estado] || 'neutral'}>
+            {ESTADO_PROYECTO_LABEL[p.estado] || p.estado}
+          </Badge>
+        )}
+        {p && esMia(p) && <span className={s.tuya}>Tu propuesta</span>}
+        {p && <span className={`mono ${s.cardId}`}>#{p.id}</span>}
+      </header>
+      {p ? (
+        <>
+          <h2 className={s.cardTitle}>{p.titulo}</h2>
+          <p className={s.cardMeta}>
+            <User size={14} /> {autorDe(p)}
+            <span className={s.dot}>·</span>
+            <CalendarBlank size={14} /> {fechaDesdeApi(p.created_at)}
+            {fichaDe(p) && (
+              <>
+                <span className={s.dot}>·</span>
+                <Books size={14} /> {fichaDe(p)}
+              </>
+            )}
+          </p>
+
+          {p.resumen && <p className={s.cardResumen}>{p.resumen}</p>}
+
+          {puedeVerProyecto(p.id) ? (
+            <Link to={`/${role}${projectPath}/${p.id}`} className={s.link}>
+              Ver proyecto <ArrowRight size={14} />
+            </Link>
+          ) : (
+            <span className={s.muted}>Propuesta de otra ficha</span>
+          )}
+        </>
+      ) : (
+        <p className={s.muted}>Este proyecto ya no está disponible.</p>
+      )}
+    </article>
+  )
+
   return (
     <div className={s.wrapper}>
       <PageHeader
-        title={`Similitud #${similitud.id}`}
+        title="Comparación de similitudes"
         subtitle={subtitulo}
         icon={<MagnifyingGlass />}
         breadcrumb={[...crumbPrevio, { label: `#${similitud.id}` }]}
       />
 
-      <section className={s.score}>
-        <ScoreDial value={pct} size={120} label="Índice de similitud" />
-        <div className={s.scoreInfo}>
-          <p className={s.scoreLabel}>Índice de similitud</p>
-          <GradeBadge score={pct} />
-        </div>
-      </section>
+      <SimilarityGraph porcentaje={pct} etiqueta="Índice de similitud" />
+      <p className={s.note}>
+        Medida calculada por el motor de ProyecTwin. No es una prueba de plagio ni un veredicto definitivo.
+      </p>
 
-      <div className={s.grid}>
-        {proyectos.map(({ p, tag }) => (
-          <DataPanel key={tag} title={`Propuesta ${tag}`} icon={<FileText />}>
-            {p ? (
-              <div className={s.projectCard}>
-                <h3 className={s.projectTitle}>{p.titulo}</h3>
-                {esMia(p) && <span className={s.muted}>Tu propuesta</span>}
-                <p className={s.projectMeta}>
-                  <User size={14} /> {autorDe(p)}
-                </p>
-                <p className={s.projectMeta}>
-                  <CalendarBlank size={14} /> {fechaDesdeApi(p.created_at)}
-                </p>
-                <p className={s.projectDesc}>{p.resumen}</p>
-                <Badge variant={ESTADO_PROYECTO_VARIANT[p.estado]}>
-                  {ESTADO_PROYECTO_LABEL[p.estado] || p.estado}
-                </Badge>
-                {puedeVerProyecto(p.id) ? (
-                  <Link to={`/${role}${projectPath}/${p.id}`} className={s.link}>
-                    Ver proyecto <ArrowRight size={14} />
-                  </Link>
-                ) : (
-                  <span className={s.muted}>Propuesta de otra ficha</span>
-                )}
-              </div>
-            ) : (
-              <p className={s.muted}>Este proyecto ya no está disponible.</p>
-            )}
-          </DataPanel>
-        ))}
+      <div className={s.cardsRow}>
+        {tarjetaProyecto(propuestaA, 'A')}
+        {tarjetaProyecto(propuestaB, 'B')}
       </div>
+
+      <DataPanel title="Detalle de las propuestas" icon={<FileText />}>
+        <div className={s.detailsGrid}>
+          {[['A', propuestaA], ['B', propuestaB]].map(([tag, p]) => (
+            <section key={tag} className={s.detalle} aria-label={`Detalles del proyecto ${tag}`}>
+              <header className={s.detalleHead}>
+                <Tag variant={tag === 'A' ? 'a' : 'b'}>Proyecto {tag}</Tag>
+                <h3 className={s.detalleTitulo}>{p?.titulo || 'Proyecto no disponible'}</h3>
+              </header>
+              {p ? (
+                <dl className={s.fields}>
+                  {p.resumen && (
+                    <div className={s.field}>
+                      <dt>Resumen</dt>
+                      <dd>{p.resumen}</dd>
+                    </div>
+                  )}
+                  {p.objetivo_general && (
+                    <div className={s.field}>
+                      <dt>Objetivo general</dt>
+                      <dd>{p.objetivo_general}</dd>
+                    </div>
+                  )}
+                  {objetivosDe(p).length > 0 && (
+                    <div className={s.field}>
+                      <dt>Objetivos específicos</dt>
+                      <dd>
+                        <ul className={s.lista}>
+                          {objetivosDe(p).map((objetivo, i) => (
+                            <li key={`${tag}-obj-${i}`}>{objetivo}</li>
+                          ))}
+                        </ul>
+                      </dd>
+                    </div>
+                  )}
+                  {listaClaves(p.palabras_clave).length > 0 && (
+                    <div className={s.field}>
+                      <dt>Palabras clave</dt>
+                      <dd className={s.tags}>
+                        {listaClaves(p.palabras_clave).map((clave, i) => (
+                          <span key={`${tag}-kw-${i}`} className={s.kw}>{clave}</span>
+                        ))}
+                      </dd>
+                    </div>
+                  )}
+                  {p.area_aplicacion && (
+                    <div className={s.field}>
+                      <dt>Área de aplicación</dt>
+                      <dd>{p.area_aplicacion}</dd>
+                    </div>
+                  )}
+                  {fichaDe(p) && (
+                    <div className={s.field}>
+                      <dt>Ficha</dt>
+                      <dd>{fichaDe(p)}</dd>
+                    </div>
+                  )}
+                </dl>
+              ) : (
+                <p className={s.muted}>Este proyecto ya no está disponible.</p>
+              )}
+            </section>
+          ))}
+        </div>
+      </DataPanel>
+
+      {(detalles || terminos.length > 0 || pasajes.length > 0) && (
+        <DataPanel title="Coincidencias detectadas por el motor" icon={<MagnifyingGlass />}>
+          <p className={s.detailsNote}>
+            Resultado del análisis de texto de ProyecTwin (palabras, caracteres, tema y cobertura).
+            No representa porcentajes por campo ni una prueba de plagio.
+          </p>
+          <dl className={s.metrics}>
+            {detalles?.palabras != null && (
+              <div className={s.metric}><dt>Palabras</dt><dd className="mono">{detalles.palabras}%</dd></div>
+            )}
+            {detalles?.caracteres != null && (
+              <div className={s.metric}><dt>Caracteres</dt><dd className="mono">{detalles.caracteres}%</dd></div>
+            )}
+            {detalles?.tema != null && (
+              <div className={s.metric}><dt>Tema</dt><dd className="mono">{detalles.tema}%</dd></div>
+            )}
+            {detalles?.cobertura != null && (
+              <div className={s.metric}><dt>Cobertura</dt><dd className="mono">{detalles.cobertura}%</dd></div>
+            )}
+          </dl>
+          {terminos.length > 0 && (
+            <div className={s.detailBlock}>
+              <p className={s.detailTitle}>Términos compartidos ({terminos.length})</p>
+              <div className={s.tags}>
+                {terminos.map((termino, i) => (
+                  <span key={`term-${i}`} className={s.kw}>{termino}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {pasajes.length > 0 && (
+            <div className={s.detailBlock}>
+              <p className={s.detailTitle}>Fragmentos coincidentes ({pasajes.length})</p>
+              <ul className={s.pasajes}>
+                {pasajes.slice(0, 6).map((pasaje, i) => (
+                  <li key={`pasaje-${i}`} className={s.pasaje}>
+                    <p className={s.pasajeTexto}>{pasaje.a}</p>
+                    <span className={s.pasajeSep} aria-hidden="true" />
+                    <p className={s.pasajeTexto}>{pasaje.b}</p>
+                    {pasaje.score != null && (
+                      <span className={`mono ${s.pasajeScore}`}>{pasaje.score}%</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </DataPanel>
+      )}
 
       {otras.length > 0 && (
         <DataPanel title={`Otras coincidencias relacionadas (${otras.length})`} icon={<MagnifyingGlass />}>

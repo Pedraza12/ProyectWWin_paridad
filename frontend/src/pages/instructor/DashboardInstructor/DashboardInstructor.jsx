@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bell, CaretRight, ClipboardText, PlusCircle, BookOpen, MagnifyingGlass } from 'phosphor-react'
 import DashboardLayout from '../../../layouts/DashboardLayout/DashboardLayout'
 import DashboardHero from '../../../components/DashboardHero/DashboardHero'
+import DashboardMetrics from '../../../components/DashboardMetrics/DashboardMetrics'
 import StatChip from '../../../components/StatChip/StatChip'
 import SectionHeader from '../../../components/SectionHeader/SectionHeader'
 import ActivityList from '../../../components/ActivityList/ActivityList'
@@ -14,10 +15,11 @@ import EmptyState from '../../../components/EmptyState/EmptyState'
 import ApiState from '../../../components/ApiState/ApiState'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi } from '../../../lib/useApi'
-import { proyectos, similitudes as similitudesApi, notificaciones, fichas, instructores, INCLUDE_PROYECTOS } from '../../../lib/recursos'
+import { proyectos, similitudes as similitudesApi, notificaciones, fichas, instructores, INCLUDE_PROYECTOS, metricas } from '../../../lib/recursos'
 import { PROJECT_ESTADO_VARIANT, PROJECT_ESTADO_LABEL as ESTADO_LABEL } from '../../../constants/badgeVariants'
 import { fechaDesdeApi, nombreCompleto, infoSimilitud } from '../../../utils/helpers'
 import { RECIENTES } from '../../../constants/pagination'
+import { RUTA_ALERTAS_POR_ROL } from '../../../constants/routes'
 import s from './DashboardInstructor.module.css'
 
 // Relaciones que la lista de propuestas debe traer para mostrar creador y ficha.
@@ -28,6 +30,9 @@ import s from './DashboardInstructor.module.css'
 
 export default function DashboardInstructor() {
   const { user } = useAuth()
+
+  // Métricas agregadas en el backend (una sola carga para las gráficas).
+  const { data: metricasData } = useApi(() => metricas.obtener(), [user?.id], { inicial: null })
 
   // Fuente única: la API. Catálogos e instructor propio para resolver el alcance.
   const { data: instructoresApi } = useApi(() => instructores.listar(), [], { inicial: [] })
@@ -133,7 +138,7 @@ export default function DashboardInstructor() {
               <Link to="/instructor/similitudes" viewTransition className={s.chipLink}>
                 <StatChip icon={<MagnifyingGlass size={14} />} label="Similitudes" value={similitudesPropias} />
               </Link>
-              <Link to="/instructor/alertas" viewTransition className={s.chipLink}>
+              <Link to={RUTA_ALERTAS_POR_ROL.instructor} viewTransition className={s.chipLink}>
                 <StatChip icon={<Bell size={14} />} label="Alertas" value={sinLeer} />
               </Link>
             </>
@@ -151,6 +156,8 @@ export default function DashboardInstructor() {
             </>
           }
         />
+
+        <DashboardMetrics rol="instructor" data={metricasData} />
 
         <ApiState cargando={cargando} error={error} onReintentar={recargar}>
           <section aria-label="Pendientes del turno">

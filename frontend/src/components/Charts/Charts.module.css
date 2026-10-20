@@ -1,0 +1,211 @@
+/* Paneles de gráfica con estética cyberpunk (solo las gráficas). */
+.cyber {
+  --cy-font: 'Share Tech Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --cy-bg: #04120c;
+  --cy-panel: #071a12;
+  --cy-line: #103526;
+  --cy-line-soft: #0b281c;
+  --cy-text: #dcf7e8;
+  --cy-dim: #7fa895;
+  --cy-green: #39ff88;
+  --cy-cyan: #22e0ff;
+  --cy-magenta: #ff3fd8;
+  --cy-red: #ff5964;
+
+  font-family: var(--cy-font);
+  color: var(--cy-text);
+  background:
+    linear-gradient(rgba(34, 224, 255, .028) 1px, transparent 1px) 0 0 / 100% 22px,
+    radial-gradient(130% 170% at 0% 0%, #0a2418 0%, var(--cy-bg) 62%);
+  border: 1px solid var(--cy-line);
+  border-radius: var(--r-lg);
+  box-shadow:
+    inset 0 0 0 1px rgba(57, 255, 136, .04),
+    inset 0 0 28px rgba(34, 224, 255, .05);
+}
+
+.empty {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  padding: var(--sp-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--cy-dim);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ------ Donut ------ */
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+}
+.donutBox {
+  position: relative;
+  flex: 0 0 auto;
+}
+.donutTrack {
+  stroke: var(--cy-line);
+}
+.donutCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.donutValue {
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--cy-text);
+  text-shadow: 0 0 10px rgba(34, 224, 255, .35);
+}
+.donutLabel {
+  margin-top: 3px;
+  font-size: .62rem;
+  color: var(--cy-dim);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 140px;
+  flex: 1;
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .76rem;
+  color: var(--cy-dim);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+.legendText {
+  flex: 1;
+}
+.legendValue {
+  color: var(--cy-text);
+}
+
+/* ------ Barras horizontales ------ */
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  list-style: none;
+  min-height: 150px;
+  justify-content: center;
+}
+.barRow {
+  display: grid;
+  grid-template-columns: 104px 1fr 34px;
+  align-items: center;
+  gap: 10px;
+}
+.barLabel {
+  font-size: .72rem;
+  color: var(--cy-dim);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.barTrack {
+  height: 8px;
+  border-radius: 2px;
+  background: var(--cy-line-soft);
+  border: 1px solid var(--cy-line);
+  overflow: hidden;
+}
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+.barValue {
+  text-align: right;
+  font-size: .78rem;
+  color: var(--cy-text);
+}
+
+/* ------ Línea ------ */
+.lineWrap {
+  width: 100%;
+  max-width: 680px;
+  margin-inline: auto;
+  padding: var(--sp-2) var(--sp-3) var(--sp-1);
+}
+.lineSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gridLine {
+  stroke: var(--cy-line-soft);
+  stroke-width: 1;
+}
+.axisText {
+  fill: var(--cy-dim);
+  font-size: 10px;
+  font-family: var(--cy-font);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.lineArea {
+  fill: var(--cy-cyan);
+  opacity: .07;
+}
+.linePath {
+  fill: none;
+  stroke: var(--cy-cyan);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(34, 224, 255, .45));
+}
+.lineDot {
+  fill: var(--cy-bg);
+  stroke: var(--cy-green);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 4px rgba(57, 255, 136, .5));
+}
+
+@media (max-width: 640px) {
+  .donutWrap {
+    justify-content: center;
+  }
+  .barRow {
+    grid-template-columns: 86px 1fr 28px;
+    gap: 8px;
+  }
+  .legendItem {
+    font-size: .7rem;
+  }
+  .lineWrap {
+    padding-inline: var(--sp-2);
+  }
+}
