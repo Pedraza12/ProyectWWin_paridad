@@ -10,6 +10,7 @@ use App\Similarity\Recomputador;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class SimilarityController extends Controller
@@ -40,10 +41,6 @@ class SimilarityController extends Controller
                 return response()->json(['message' => 'No tienes acceso a esa propuesta.'], 403);
             }
 
-            // Si es solo contraparte (no propia), se limita a los pares que tocan
-            // una propuesta del usuario: no se exponen otras coincidencias ajenas.
-            $esPropia = Project::where('id', $proyectoId)->deAutor($user)->exists();
-
             $query = Similarity::included()
                 ->where(function (Builder $q) use ($proyectoId) {
                     $q->where('id_proyecto_1', $proyectoId)->orWhere('id_proyecto_2', $proyectoId);
@@ -53,24 +50,36 @@ class SimilarityController extends Controller
             // analizado ya no es el vigente, así que no aplica la regla de
             // contraparte aprobada; manda la visibilidad del par.
             if ($request->boolean('historial')) {
-                return $query->historicos()->visibleDetalle($user)->orderByDesc('id')->get();
+                return $this->responder(
+                    $request,
+                    $query->historicos()->visibleDetalle($user)->orderByDesc('id')->get()
+                );
             }
 
             $consulta = $query->vigentes()->contraparteAprobada((int) $proyectoId);
-            if (!$esPropia) {
+
+            // El alcance se aplica también cuando la propuesta es propia: un par
+            // manual puede tocar la ficha del instructor y una contraparte de
+            // otro programa (contenido que no puede abrir). El admin conserva
+            // la vista completa.
+            if (optional($user)->rol !== 'admin') {
                 $consulta = $consulta->visibleDetalle($user);
             }
-            return $consulta->get();
+
+            return $this->responder($request, $consulta->get());
         }
 
-        return Similarity::included()
-            ->vigentes()
-            ->paraUsuario($user)
-            ->relatedTo($request->query('related_to'))
-            ->search($request->query('search'))
-            ->byFicha($request->query('ficha_id'))
-            ->byPrograma($request->query('programa'))
-            ->get();
+        return $this->responder(
+            $request,
+            Similarity::included()
+                ->vigentes()
+                ->paraUsuario($user)
+                ->relatedTo($request->query('related_to'))
+                ->search($request->query('search'))
+                ->byFicha($request->query('ficha_id'))
+                ->byPrograma($request->query('programa'))
+                ->get()
+        );
     }
 
     public function store(Request $request)
@@ -116,7 +125,7 @@ class SimilarityController extends Controller
             return response()->json(['message' => 'No tienes acceso a esta similitud.'], 403);
         }
 
-        return $item;
+        return $this->responder($request, $item);
     }
 
     public function update(Request $request, Similarity $similarity)
@@ -219,6 +228,39 @@ class SimilarityController extends Controller
     }
 
     // ---------------------------------------------------------------- Internos
+
+    // Respuesta de similitudes: el código de la ficha es la credencial de unión
+    // y solo lo recibe la administración. Para el resto de roles se elimina del
+    // `classGroup` anidado (project1/project2 y cualquier nivel), conservando
+    // los demás campos que usa la UI. Los endpoints de fichas autorizados
+    // (ClassGroupController) siguen entregando el código a su dueño.
+    private function responder(Request $request, $resultado)
+    {
+        if (optional($request->user())->rol === 'admin') {
+            return $resultado;
+        }
+
+        $datos = $resultado instanceof Collection
+            ? $resultado->map(fn ($item) => $item->toArray())->all()
+            : $resultado->toArray();
+
+        return response()->json($this->ocultarCodigoFicha($datos));
+    }
+
+    private function ocultarCodigoFicha(array $datos): array
+    {
+        foreach ($datos as $clave => $valor) {
+            if (!is_array($valor)) continue;
+
+            if ($clave === 'classGroup') {
+                unset($valor['codigo']);
+            }
+
+            $datos[$clave] = $this->ocultarCodigoFicha($valor);
+        }
+
+        return $datos;
+    }
 
     // Misma regla que la escritura: admin siempre; aprendiz solo dentro de su
     // ficha activa (creador o equipo); instructor de la ficha o asignado.

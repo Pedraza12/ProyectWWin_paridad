@@ -3,6 +3,13 @@
 Guía del despliegue del MVP completo (**SPA React + API Laravel**) en un solo
 servicio de Railway, con MySQL como base de datos.
 
+> **Aviso sobre el APK Android (19-oct-2026):** el APK servido actualmente en
+> `/apk/proyecttwin.apk` es un **build de pruebas (debug)** —`versionName` 1.2.0,
+> `versionCode` 3, marcado `application-debuggable` y firmado con la clave
+> debug—, **no** una distribución oficial. Para publicar una versión firmada
+> sigue [`release-android.md`](release-android.md); `assembleDebug` no es un
+> artefacto publicable.
+
 ## Arquitectura
 
 ```
@@ -141,39 +148,57 @@ Tras generar el dominio, define `APP_URL`, `FRONTEND_URL` y
 
 ## Notas
 
-- **App Android (`Movil/`)**: no se despliega en Railway. Antes de compilar el
-  APK define en `Movil/local.properties` la línea
-  `proyectwin.apiBaseUrl=https://<dominio>/v1/` y reconstruye (Android Studio:
-  Build → Build APK, o `gradlew.bat assembleDebug`).
+- **App Android (`Movil/`)**: no se despliega en Railway. El APK servido en
+  `/apk/proyecttwin.apk` es un build de pruebas (debug) y **no** una distribución
+  oficial. Para el APK de distribución define en `Movil/local.properties`
+  `proyectwin.apiBaseUrl.release=https://<dominio>/v1/` y sigue el plan de firma,
+  validación y publicación de [`release-android.md`](release-android.md)
+  (`assembleRelease`, nunca `assembleDebug`).
 - **Correo**: `MAIL_MAILER=log`. Para correos reales (recuperación de
   contraseña), configura un proveedor SMTP en las variables.
 - **Costos**: el servicio y MySQL consumen del crédito del plan de Railway.
 
-## Publicar una versión nueva del APK (aviso de actualización in-app)
+## Publicar una versión nueva del APK (solo release firmado)
+
+> Este procedimiento solo aplica a un APK **release firmado**. El APK de pruebas
+> (debug) no se publica. La firma, la validación con `aapt`/`apksigner`, el
+> SHA-256 y la transición desde instalaciones debug están en
+> [`release-android.md`](release-android.md).
 
 La app consulta `GET /v1/app-version/android` (público) y compara versiones
 numéricamente. Para publicar una versión:
 
-1. Sube `versionCode` y `versionName` en `Movil/app/build.gradle.kts`.
-2. Compila el APK: `cd Movil` → `gradlew.bat assembleDebug` (o Android Studio
-   → Build → Build APK).
-3. Reemplaza `backend/public/apk/proyecttwin.apk` por el APK nuevo.
-4. Actualiza las variables del servicio en Railway (dashboard → Variables, o
-   `railway variable set`):
-   - `ANDROID_APP_VERSION=1.2.0` (versión nueva que se anuncia)
+1. Sube `versionCode` (debe ser **mayor que 3**, el actual) y `versionName` en
+   `Movil/app/build.gradle.kts`.
+2. Compila el APK release firmado: `cd Movil` → `.\gradlew.bat :app:assembleRelease`
+   (requiere la firma configurada; ver [`release-android.md`](release-android.md)).
+   Android Studio: **Build → Generate Signed App Bundle / APK → APK**.
+3. Valida el APK antes de publicarlo (`aapt` sin `application-debuggable`,
+   `apksigner` con v2/v3 y el certificado esperado, SHA-256). Si falla, **no lo
+   publiques**.
+4. Reemplaza `backend/public/apk/proyecttwin.apk` por el APK validado.
+5. Actualiza las variables del servicio en Railway (dashboard → Variables, o
+   `railway variables --set ...`):
+   - `ANDROID_APP_VERSION=<versionName>` (p. ej. `1.3.0`; debe coincidir con el APK)
    - `ANDROID_APP_MIN_VERSION=1.0.0` (súbela solo si quieres aviso obligatorio)
    - `ANDROID_APP_ENFORCE_MINIMUM=false` (`true` = obligatoria, no posponible)
-   - `ANDROID_APP_DOWNLOAD_URL=https://<dominio>/apk/proyecttwin.apk`
-   - `ANDROID_APP_RELEASE_NOTES=Mejoras y ajustes`
-5. `railway up` (o redeploy desde el dashboard). La app avisa como máximo una
+   - `ANDROID_APP_DOWNLOAD_URL=https://<dominio>/apk/proyecttwin.apk` (HTTPS)
+   - `ANDROID_APP_RELEASE_NOTES=...`
+6. `railway up` (o redeploy desde el dashboard). La app avisa como máximo una
    vez cada 6 h por instalación; "Más tarde" silencia esa versión 24 h.
 
-**Probar en el dispositivo**: instala el APK actual (1.1.0) → sube
-`ANDROID_APP_VERSION` a `1.2.0` → abre la app con sesión iniciada: aparece el
-aviso (Actualizar abre el APK del servidor; Más tarde lo oculta).
+**Probar en el dispositivo**: instala el APK de pruebas actual (1.2.0/versionCode
+3) → sube `ANDROID_APP_VERSION` a `1.3.0` → abre la app con sesión iniciada:
+aparece el aviso (Actualizar abre el APK del servidor; Más tarde lo oculta). Si
+mantienes el `applicationId`, la instalación del release firmado **fallará sobre
+el debug** por firma distinta: desinstala el debug (pierdes la sesión local) o
+instala antes un release firmado anterior (p. ej., un 1.2.0 firmado con la misma
+clave) para probar una actualización real.
 
 **Probar el modo obligatorio**: `ANDROID_APP_ENFORCE_MINIMUM=true` con
-`ANDROID_APP_MIN_VERSION` por encima de la versión instalada.
+`ANDROID_APP_MIN_VERSION` por encima de la versión instalada. Hazlo con un
+release firmado ya instalado; si el dispositivo tiene el debug, el aviso será
+obligatorio pero la instalación seguirá fallando por firma distinta.
 
 ## Correo real con Brevo
 

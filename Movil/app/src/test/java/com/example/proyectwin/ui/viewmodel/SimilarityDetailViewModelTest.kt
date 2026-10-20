@@ -217,4 +217,120 @@ class SimilarityDetailViewModelTest {
         assertEquals(setOf(30), datos.observaciones.keys)
         assertEquals(listOf(2), datos.observaciones.getValue(30).comentarios.map { it.id })
     }
+
+    @Test
+    fun `retry recarga la similitud completa tras un error`() = runTest(dispatcher) {
+        every { session.currentUser } returns flowOf(usuario(7))
+        coEvery { similarities.obtener(1) } returns Result.failure(ApiException.Http(500, "Fallo temporal"))
+
+        val vm = viewModel()
+        vm.load(1)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value is SimilarityDetailUiState.Error)
+
+        val p1 = proyecto(10, studentId = 7)
+        val p2 = proyecto(20, studentId = 4)
+        coEvery { similarities.obtener(1) } returns Result.success(par(p1 = p1, p2 = p2))
+        coEvery { comments.listar(10) } returns Result.success(listOf(comentario(1, 10)))
+
+        vm.retry()
+        advanceUntilIdle()
+
+        val datos = datosDe(vm)
+        assertEquals(1, datos.similarity.id)
+        assertEquals(setOf(10), datos.observaciones.keys)
+        assertEquals(listOf(1), datos.observaciones.getValue(10).comentarios.map { it.id })
+        coVerify(exactly = 2) { similarities.obtener(1) }
+    }
+
+    @Test
+    fun `refrescar conserva el contenido visible y actualiza similitud y observaciones`() = runTest(dispatcher) {
+        every { session.currentUser } returns flowOf(usuario(7))
+        val p1 = proyecto(10, studentId = 7)
+        val p2 = proyecto(20, studentId = 4)
+        coEvery { similarities.obtener(1) } returns Result.success(par(p1 = p1, p2 = p2))
+        coEvery { comments.listar(10) } returns Result.success(listOf(comentario(1, 10, "vieja")))
+
+        val vm = viewModel()
+        vm.load(1)
+        advanceUntilIdle()
+        assertEquals(listOf("vieja"), datosDe(vm).observaciones.getValue(10).comentarios.map { it.texto })
+
+        // La recarga tarda: el contenido previo debe seguir visible mientras tanto.
+        coEvery { similarities.obtener(1) } coAnswers {
+            delay(50)
+            Result.success(par(p1 = p1, p2 = p2))
+        }
+        coEvery { comments.listar(10) } returns Result.success(listOf(comentario(2, 10, "nueva")))
+        coEvery { similarities.listar(relatedTo = any()) } returns Result.success(
+            listOf(par(3, proyecto(10, studentId = 7), proyecto(20, studentId = 4))),
+        )
+
+        vm.refrescar()
+        runCurrent()
+
+        assertTrue(vm.uiState.value is SimilarityDetailUiState.Success)
+        assertEquals(listOf("vieja"), datosDe(vm).observaciones.getValue(10).comentarios.map { it.texto })
+        assertTrue(vm.refrescando.value)
+
+        advanceUntilIdle()
+
+        val datos = datosDe(vm)
+        assertEquals(listOf("nueva"), datos.observaciones.getValue(10).comentarios.map { it.texto })
+        assertEquals(listOf(3), datos.relacionadas.map { it.id })
+        assertEquals(false, vm.refrescando.value)
+    }
+
+    @Test
+    fun `una respuesta tardia de refrescar no contamina al navegar a otro par`() = runTest(dispatcher) {
+        every { session.currentUser } returns flowOf(usuario(7))
+        coEvery { similarities.obtener(1) } returns Result.success(
+            par(1, proyecto(10, studentId = 7), proyecto(20, studentId = 4)),
+        )
+        coEvery { similarities.obtener(2) } returns Result.success(
+            par(2, proyecto(30, studentId = 7), proyecto(40, studentId = 4)),
+        )
+        coEvery { comments.listar(10) } returns Result.success(listOf(comentario(1, 10)))
+        coEvery { comments.listar(30) } returns Result.success(listOf(comentario(2, 30)))
+
+        val vm = viewModel()
+        vm.load(1)
+        advanceUntilIdle()
+
+        // El refresh del par 1 queda pendiente cuando el usuario navega al par 2.
+        coEvery { similarities.obtener(1) } coAnswers {
+            delay(50)
+            Result.success(par(1, proyecto(10, studentId = 7), proyecto(20, studentId = 4)))
+        }
+
+        vm.refrescar()
+        runCurrent()
+        vm.load(2)
+        advanceUntilIdle()
+
+        val datos = datosDe(vm)
+        assertEquals(2, datos.similarity.id)
+        assertEquals(setOf(30), datos.observaciones.keys)
+        assertEquals(listOf(2), datos.observaciones.getValue(30).comentarios.map { it.id })
+        assertEquals(false, vm.refrescando.value)
+        coVerify(exactly = 1) { comments.listar(10) }
+    }
+
+    @Test
+    fun `sin relacionadas el detalle queda con la lista vacia`() = runTest(dispatcher) {
+        every { session.currentUser } returns flowOf(usuario(7))
+        val p1 = proyecto(10, studentId = 7)
+        val p2 = proyecto(20, studentId = 4)
+        coEvery { similarities.obtener(1) } returns Result.success(par(p1 = p1, p2 = p2))
+        coEvery { similarities.listar(relatedTo = any()) } returns Result.success(emptyList())
+        coEvery { comments.listar(10) } returns Result.success(listOf(comentario(1, 10)))
+
+        val vm = viewModel()
+        vm.load(1)
+        advanceUntilIdle()
+
+        val datos = datosDe(vm)
+        assertTrue(datos.relacionadas.isEmpty())
+        assertEquals(setOf(10), datos.observaciones.keys)
+    }
 }

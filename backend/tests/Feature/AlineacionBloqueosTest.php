@@ -12,6 +12,8 @@ use App\Models\Project;
 use App\Models\Similarity;
 use App\Models\TrainingProgram;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\Process\Process;
@@ -343,11 +345,44 @@ class AlineacionBloqueosTest extends TestCase
         $this->como($admin)
             ->postJson('/v1/projects/' . $x . '/enviar')
             ->assertStatus(422)
-            ->assertJsonPath('message', 'La propuesta ya fue enviada y está en revisión.');
+            ->assertJsonPath('message', 'La propuesta ya no existe o fue modificada; actualiza la lista e inténtalo de nuevo.');
 
         $proceso->wait();
         $this->assertTrue($proceso->isSuccessful(), 'El hijo no debe recibir 1213: ' . $proceso->getErrorOutput());
         $this->assertSame(0, (int) $aux->selectOne('SELECT COUNT(*) AS c FROM projects WHERE id = ?', [$x])->c);
+    }
+
+    // Variante determinista de la carrera anterior: el modelo cargado por el
+    // binding se elimina antes de que `enviar` adquiera el lock (el borrado
+    // ganó la ventana). Debe responder 422 con el mensaje de la carrera,
+    // nunca 500 ni el mensaje de un envío ya en revisión.
+    public function test_enviar_una_propuesta_eliminada_entre_la_carga_y_el_envio_responde_422(): void
+    {
+        [$inst, $ap1, $ap2] = $this->escenario();
+
+        $creada = $this->como($ap2)
+            ->postJson('/v1/projects', $this->contenido('Inventarios eliminados antes del envío') + ['id_creador' => $ap2->id])
+            ->assertCreated();
+        $project = Project::findOrFail((int) $creada->json('id'));
+
+        // La fila desaparece entre la carga (binding) y el envío (lock).
+        $project->delete();
+
+        $request = Request::create('/v1/projects/' . $project->id . '/enviar', 'POST');
+        $request->setUserResolver(fn () => $ap2);
+
+        try {
+            app(\App\Http\Controllers\Api\ProjectController::class)->enviar($request, $project);
+            $this->fail('El envío de una propuesta eliminada debía abortar con 422.');
+        } catch (HttpResponseException $e) {
+            $this->assertSame(422, $e->getResponse()->getStatusCode());
+            $this->assertSame(
+                'La propuesta ya no existe o fue modificada; actualiza la lista e inténtalo de nuevo.',
+                $e->getResponse()->getData(true)['message'] ?? null
+            );
+        }
+
+        $this->assertDatabaseMissing('projects', ['id' => $project->id]);
     }
 
     public function test_el_reenvio_gana_y_el_borrado_responde_409_con_evidencia(): void

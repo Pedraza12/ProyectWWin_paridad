@@ -1,6 +1,6 @@
 # Plan de versionado Android (Movil) y limpieza de `.idea`
 
-> **Estado: APLICADO (18-oct-2026, Lote 8)** — pasos 1-2 ejecutados: reglas añadidas a `Movil/.gitignore` (líneas 10-13) y 4 `git rm --cached` (4 `D` staged; copias locales conservadas). El paso 3 (commit conjunto) sigue pendiente de autorización. Repo raíz: `MVP/` (rama `master`, HEAD `3a3d9b4`).
+> **Estado: APLICADO (18-oct-2026, Lote 8)** — pasos 1-2 ejecutados: reglas añadidas a `Movil/.gitignore` (líneas 10-13) y 4 `git rm --cached` (4 `D` staged; copias locales conservadas). El paso 3 quedó **ejecutado** (commit `d327b10`, 19-oct-2026, publicado en `master`). Repo raíz: `MVP/` (rama `master`).
 > Fecha: 2026-10-18. Alcance: exclusivamente el conjunto de cambios Android pendientes en `git status` (`Movil/` + `docs/ejecutar-android.md`) y la reclasificación de `Movil/.idea`.
 > Los cambios pendientes de `backend/`, `frontend/` y demás `docs/` quedan **fuera** de este plan.
 
@@ -173,7 +173,7 @@ En el clon resultante: los 4 `.idea` excluidos no existen; las 9 restantes de `.
 
 ---
 
-## 5. Pasos de ejecución (pasos 1-2 aplicados en el Lote 8; el paso 3 — commit — sigue pendiente)
+## 5. Pasos de ejecución (pasos 1-3 aplicados; el commit se ejecutó el 19-oct-2026)
 
 Orden prescrito, todo desde la raíz `MVP/`:
 

@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.model.Project
 import com.example.proyectwin.data.model.Similarity
 import com.example.proyectwin.navigation.AppNavigation
@@ -38,6 +38,7 @@ fun SimilarityDetailScreen(
     similarityDetailViewModel: SimilarityDetailViewModel = hiltViewModel(),
 ) {
     val uiState by similarityDetailViewModel.uiState.collectAsState()
+    val refrescando by similarityDetailViewModel.refrescando.collectAsState()
 
     LaunchedEffect(similarityId) {
         similarityId.toIntOrNull()?.let { similarityDetailViewModel.load(it) }
@@ -78,10 +79,14 @@ fun SimilarityDetailScreen(
                     par.project2?.let { "Observaciones · ${it.title}" to it },
                 )
 
+                SenaPullRefresh(
+                    isRefreshing = refrescando,
+                    onRefresh = { similarityDetailViewModel.refrescar() },
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
                         .verticalScroll(rememberScrollState())
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -208,6 +213,7 @@ fun SimilarityDetailScreen(
                     }
 
                     Spacer(Modifier.height(40.dp))
+                }
                 }
             }
         }

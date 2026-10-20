@@ -7,6 +7,7 @@ use App\Models\ApprenticeProject;
 use App\Models\ClassGroup;
 use App\Models\Comment;
 use App\Models\GeneralUser;
+use App\Models\Instructor;
 use App\Models\Notification;
 use App\Models\Project;
 use App\Models\ProjectHistory;
@@ -15,6 +16,7 @@ use App\Services\NotificacionesService;
 use App\Similarity\Recomputador;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
@@ -29,7 +31,7 @@ class ProjectController extends Controller
             'programa' => 'nullable|string',
         ]);
 
-        return Project::included()
+        $proyectos = Project::included()
             ->paraUsuario($request->user())
             ->search($request->query('search'))
             ->byEstado($request->query('estado'))
@@ -37,6 +39,8 @@ class ProjectController extends Controller
             ->byPrograma($request->query('programa'))
             ->orderByDesc('id')
             ->get();
+
+        return $this->respuestaProyectos($proyectos, $request->user());
     }
 
     public function store(Request $request)
@@ -116,7 +120,7 @@ class ProjectController extends Controller
             return $item;
         });
 
-        return response()->json($item, 201);
+        return $this->respuestaProyectos($item, $request->user(), 201);
     }
 
     // Envío explícito del borrador (o reenvío tras un rechazo): valida la
@@ -171,11 +175,13 @@ class ProjectController extends Controller
             \App\Models\MotorConfig::whereKey($config->id)->lockForUpdate()->first();
 
             // Lock de la fila: dos envíos concurrentes no pueden pasar la
-            // transición; el segundo espera y recibe 422 al re-validar.
+            // transición; el segundo espera y recibe 422 al re-validar. La
+            // fila pudo desaparecer (borrado en carrera) o cambiar de estado:
+            // el mensaje cubre ambos casos sin afirmar un estado concreto.
             $bloqueado = Project::whereKey($project->id)->lockForUpdate()->first();
             if (!$bloqueado || !in_array($bloqueado->estado, ['borrador', 'rechazado'], true)) {
                 throw new \Illuminate\Http\Exceptions\HttpResponseException(
-                    response()->json(['message' => 'La propuesta ya fue enviada y está en revisión.'], 422)
+                    response()->json(['message' => 'La propuesta ya no existe o fue modificada; actualiza la lista e inténtalo de nuevo.'], 422)
                 );
             }
 
@@ -213,7 +219,7 @@ class ProjectController extends Controller
             return $project->fresh();
         });
 
-        return $item;
+        return $this->respuestaProyectos($item, $usuario);
     }
 
     public function show(Request $request, $id)
@@ -228,7 +234,9 @@ class ProjectController extends Controller
             return response()->json(['message' => 'No tienes acceso a esta propuesta.'], 403);
         }
 
-        return Project::included()->findOrFail($id);
+        $proyecto = Project::included()->findOrFail($id);
+
+        return $this->respuestaProyectos($proyecto, $user);
     }
 
     public function update(Request $request, Project $project)
@@ -442,7 +450,7 @@ class ProjectController extends Controller
             }
         });
 
-        return $project;
+        return $this->respuestaProyectos($project, $usuario);
     }
 
     // Historial de la propuesta (participantes y staff con alcance).
@@ -493,7 +501,7 @@ class ProjectController extends Controller
             return response()->json(['message' => $mensajeEvidencia], 409);
         }
 
-        return DB::transaction(function () use ($project, $mensajeEvidencia) {
+        $item = DB::transaction(function () use ($project, $mensajeEvidencia) {
             // Re-verificación serializada con el motor (mismo mutex que
             // Recomputador::detectar) y como LECTURA DE BLOQUEO (actual, no la
             // instantánea de REPEATABLE READ): ve cualquier par confirmado antes
@@ -522,9 +530,79 @@ class ProjectController extends Controller
 
             return $project;
         });
+
+        return $this->respuestaProyectos($item, $request->user());
     }
 
     // ---------------------------------------------------------------- Internos
+
+    // Respuesta de propuestas: el código de la ficha es la credencial de unión
+    // y solo se entrega a quien puede gestionar esa ficha. El admin conserva
+    // todos; el instructor, los de las fichas que instrueye; el aprendiz, el de
+    // su ficha actual. Se recorre todo el árbol para que un `included` anidado
+    // (p. ej. `classGroup.program` o una relación futura) no recupere el código
+    // por otra ruta. Se usa en TODAS las respuestas que serializan propuestas,
+    // incluidas las de escritura (la relación puede quedar cargada al validar).
+    private function respuestaProyectos($resultado, $usuario, int $estado = 200)
+    {
+        return response()->json($this->datosProyecto($resultado, $usuario), $estado);
+    }
+
+    private function datosProyecto($resultado, $usuario)
+    {
+        if (optional($usuario)->rol === 'admin') {
+            return $resultado;
+        }
+
+        $datos = $resultado instanceof Collection
+            ? $resultado->map(fn ($item) => $item->toArray())->all()
+            : $resultado->toArray();
+
+        return $this->redactarCodigoFicha($datos, $this->fichasConCodigoVisible($usuario));
+    }
+
+    // Fichas cuyo código puede ver el usuario en una respuesta de propuestas.
+    private function fichasConCodigoVisible($usuario): array
+    {
+        if (!$usuario) return [];
+
+        if ($usuario->rol === 'instructor') {
+            $instructorId = Instructor::where('id_usuario', $usuario->id)->value('id');
+            if (!$instructorId) return [];
+
+            return ClassGroup::where('id_instructor', $instructorId)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+
+        if ($usuario->rol === 'aprendiz') {
+            $fichaId = Apprentice::where('id_usuario', $usuario->id)->value('id_class_group');
+            return $fichaId ? [(int) $fichaId] : [];
+        }
+
+        return [];
+    }
+
+    // Elimina `codigo` de cualquier nodo `classGroup` cuya ficha no esté en la
+    // lista autorizada, sin importar la profundidad del `included`.
+    private function redactarCodigoFicha(array $datos, array $fichasPermitidas): array
+    {
+        foreach ($datos as $clave => $valor) {
+            if (!is_array($valor)) continue;
+
+            if ($clave === 'classGroup') {
+                $fichaId = isset($valor['id']) ? (int) $valor['id'] : null;
+                if ($fichaId === null || !in_array($fichaId, $fichasPermitidas, true)) {
+                    unset($valor['codigo']);
+                }
+            }
+
+            $datos[$clave] = $this->redactarCodigoFicha($valor, $fichasPermitidas);
+        }
+
+        return $datos;
+    }
 
     // ¿La propuesta es del aprendiz (creador o integrante del equipo)?
     private function esPropiaDelAprendiz(Project $project, $usuario): bool

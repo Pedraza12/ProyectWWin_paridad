@@ -75,6 +75,18 @@ class UserManagementViewModel @Inject constructor(
     private val _errorAccion = MutableStateFlow<String?>(null)
     val errorAccion: StateFlow<String?> = _errorAccion.asStateFlow()
 
+    /** Modo selección múltiple para el PDF de credenciales por lote. */
+    private val _seleccionActiva = MutableStateFlow(false)
+    val seleccionActiva: StateFlow<Boolean> = _seleccionActiva.asStateFlow()
+
+    /** Ids marcados: persisten al cambiar de página y se limpian al filtrar. */
+    private val _seleccionados = MutableStateFlow<Set<Int>>(emptySet())
+    val seleccionados: StateFlow<Set<Int>> = _seleccionados.asStateFlow()
+
+    /** `true` mientras se recarga conservando la lista (pull-to-refresh). */
+    private val _refrescando = MutableStateFlow(false)
+    val refrescando: StateFlow<Boolean> = _refrescando.asStateFlow()
+
     private var paginaActual = 1
     private var ultimaPagina = 1
 
@@ -94,6 +106,7 @@ class UserManagementViewModel @Inject constructor(
     /** Búsqueda con retardo (evita una petición por tecla, como la web). */
     fun buscar(texto: String) {
         _filtros.update { it.copy(search = texto) }
+        limpiarSeleccion()
         trabajoBusqueda?.cancel()
         trabajoBusqueda = viewModelScope.launch {
             delay(DEBOUNCE_BUSQUEDA_MS)
@@ -110,6 +123,7 @@ class UserManagementViewModel @Inject constructor(
     fun limpiarFiltros() {
         trabajoBusqueda?.cancel()
         _filtros.value = UserFilters()
+        limpiarSeleccion()
         paginaActual = 1
         cargar()
     }
@@ -119,6 +133,7 @@ class UserManagementViewModel @Inject constructor(
         // búsqueda pendiente (el texto ya vive en `_filtros`).
         trabajoBusqueda?.cancel()
         _filtros.update(cambio)
+        limpiarSeleccion()
         paginaActual = 1
         cargar()
     }
@@ -135,14 +150,16 @@ class UserManagementViewModel @Inject constructor(
     fun paginaSiguiente() = irAPagina(paginaActual + 1)
     fun paginaAnterior() = irAPagina(paginaActual - 1)
 
-    /** Reintento/recarga de la página y filtros actuales. */
-    fun recargar() = cargar()
+    /** Reintento/recarga de la página y filtros actuales (sin perder la lista). */
+    fun recargar() = cargar(conservarLista = true)
 
     /** Elimina un usuario y recarga la página actual (como la lista web). */
     fun eliminarUsuario(id: Int) {
         viewModelScope.launch {
             usersRepository.eliminar(id).fold(
                 onSuccess = {
+                    // Un usuario eliminado no debe viajar en un PDF por lote.
+                    _seleccionados.update { it - id }
                     // Si era la última fila de una página interior, retrocede una.
                     val pagina = (_uiState.value as? UserManagementUiState.Success)?.pagina
                     if (pagina != null && pagina.items.size == 1 && paginaActual > 1) {
@@ -161,44 +178,95 @@ class UserManagementViewModel @Inject constructor(
         _errorAccion.value = null
     }
 
+    // -------------------------------------------------- Selección múltiple
+
+    fun activarSeleccion() {
+        _seleccionActiva.value = true
+    }
+
+    /** Cancela el modo selección y descarta los ids marcados. */
+    fun desactivarSeleccion() {
+        _seleccionActiva.value = false
+        _seleccionados.value = emptySet()
+    }
+
+    /** Alterna la marca de un usuario (la selección persiste entre páginas). */
+    fun toggleSeleccion(id: Int) {
+        _seleccionados.update { if (id in it) it - id else it + id }
+    }
+
+    /** Marca/desmarca todos los usuarios de la página visible. */
+    fun toggleTodosEnPagina(ids: List<Int>) {
+        val actuales = _seleccionados.value
+        val todosMarcados = ids.isNotEmpty() && ids.all { it in actuales }
+        _seleccionados.value = if (todosMarcados) actuales - ids.toSet() else actuales + ids
+    }
+
+    /** Ids listos para el request del PDF por lote (orden estable). */
+    fun idsSeleccionados(): List<Int> = _seleccionados.value.sorted()
+
+    /** Vacía la marca sin salir del modo (cambios de filtro/búsqueda). */
+    fun limpiarSeleccion() {
+        _seleccionados.value = emptySet()
+    }
+
+    /** Avisa por el snackbar un fallo puntual (p. ej. el PDF por lote). */
+    fun reportarError(mensaje: String) {
+        _errorAccion.value = mensaje
+    }
+
     // -------------------------------------------------------------- Carga
 
-    private fun cargar() {
+    private fun cargar(conservarLista: Boolean = false) {
         val version = ++versionSolicitud
         trabajoCarga?.cancel()
+        // Con datos ya en pantalla (pull-to-refresh) la lista se queda visible
+        // y solo gira el indicador; el skeleton es para la carga inicial.
+        val mantenerLista = conservarLista && _uiState.value is UserManagementUiState.Success
         trabajoCarga = viewModelScope.launch {
-            _uiState.value = UserManagementUiState.Loading
-            // Si la página pedida ya no existe (p. ej. otro admin borró filas),
-            // el servidor la devuelve vacía con `last_page` menor. Se corrige
-            // UNA sola vez hacia la última página válida y se reintenta.
-            var correccionUsada = false
-            while (true) {
-                val f = _filtros.value
-                val resultado = usersRepository.listarPaginado(
-                    page = paginaActual,
-                    porPagina = POR_PAGINA,
-                    search = f.search.trim().ifBlank { null },
-                    role = f.role,
-                    estado = f.estado,
-                    fichaId = f.fichaId,
-                    programa = f.programa,
-                )
-                // Una respuesta vieja jamás pisa el estado de una más reciente.
-                if (version != versionSolicitud) return@launch
-                val pagina = resultado.getOrElse { e ->
-                    _uiState.value = UserManagementUiState.Error(
-                        e.message ?: "No se pudieron cargar los usuarios.",
+            if (mantenerLista) {
+                _refrescando.value = true
+            } else {
+                _refrescando.value = false
+                _uiState.value = UserManagementUiState.Loading
+            }
+            try {
+                // Si la página pedida ya no existe (p. ej. otro admin borró filas),
+                // el servidor la devuelve vacía con `last_page` menor. Se corrige
+                // UNA sola vez hacia la última página válida y se reintenta.
+                var correccionUsada = false
+                while (true) {
+                    val f = _filtros.value
+                    val resultado = usersRepository.listarPaginado(
+                        page = paginaActual,
+                        porPagina = POR_PAGINA,
+                        search = f.search.trim().ifBlank { null },
+                        role = f.role,
+                        estado = f.estado,
+                        fichaId = f.fichaId,
+                        programa = f.programa,
                     )
+                    // Una respuesta vieja jamás pisa el estado de una más reciente.
+                    if (version != versionSolicitud) return@launch
+                    val pagina = resultado.getOrElse { e ->
+                        _uiState.value = UserManagementUiState.Error(
+                            e.message ?: "No se pudieron cargar los usuarios.",
+                        )
+                        return@launch
+                    }
+                    if (pagina.items.isEmpty() && pagina.currentPage > pagina.lastPage && !correccionUsada) {
+                        correccionUsada = true
+                        paginaActual = pagina.lastPage.coerceAtLeast(1)
+                        continue
+                    }
+                    ultimaPagina = pagina.lastPage.coerceAtLeast(1)
+                    _uiState.value = UserManagementUiState.Success(pagina)
                     return@launch
                 }
-                if (pagina.items.isEmpty() && pagina.currentPage > pagina.lastPage && !correccionUsada) {
-                    correccionUsada = true
-                    paginaActual = pagina.lastPage.coerceAtLeast(1)
-                    continue
-                }
-                ultimaPagina = pagina.lastPage.coerceAtLeast(1)
-                _uiState.value = UserManagementUiState.Success(pagina)
-                return@launch
+            } finally {
+                // Un descarte por versión no debe apagar el indicador del
+                // refresco más reciente.
+                if (version == versionSolicitud) _refrescando.value = false
             }
         }
     }

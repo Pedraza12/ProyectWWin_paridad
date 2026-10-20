@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.model.CredencialesUsuario
 import com.example.proyectwin.data.model.GeneralUser
 import com.example.proyectwin.ui.components.*

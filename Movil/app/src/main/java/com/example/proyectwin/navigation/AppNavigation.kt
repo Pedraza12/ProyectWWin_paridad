@@ -103,6 +103,8 @@ object AppNavigation {
     const val ADMIN_BUG_DETAIL = "admin/bug/{bugId}"
     const val ADMIN_ALERTS = "admin/alerts"
     const val ADMIN_FICHAS = "admin/fichas"
+    /** Detalle admin de una ficha: información, roster y propuestas. */
+    const val ADMIN_FICHA_DETAIL = "admin/ficha/{fichaId}"
     const val ADMIN_CATALOGOS = "admin/catalogos"
     const val ADMIN_BITACORA = "admin/bitacora"
     const val ADMIN_MOTOR = "admin/motor"
@@ -528,14 +530,28 @@ object AppNavigation {
                 profileRoute = ADMIN_PROFILE,
                 similitudesRoute = ADMIN_SIMILARITY_LIST_FILTRO,
                 detailRoute = "admin/project/{id}",
-                fichaRoute = ADMIN_FICHAS,
+                fichaRoute = ADMIN_FICHA_DETAIL,
                 reporteRoute = ADMIN_BUG_DETAIL,
             ) }
             composable(ADMIN_FICHAS) { AdminFichasScreen(
                 onBack = { navController.popBackStack() },
                 onCreateFicha = { navController.navigate(INSTRUCTOR_CREAR_FICHA_BASE) },
                 onNavigate = { route -> navController.navigateTo(route) },
+                onFichaDetail = { id ->
+                    navController.navigate(ADMIN_FICHA_DETAIL.replace("{fichaId}", id.toString()))
+                },
             ) }
+            composable(
+                route = ADMIN_FICHA_DETAIL,
+                arguments = listOf(navArgument("fichaId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val fichaId = backStackEntry.arguments?.getString("fichaId") ?: ""
+                AdminFichaDetailScreen(
+                    fichaId = fichaId,
+                    onBack = { navController.popBackStack() },
+                    onNavigate = { route -> navController.navigateTo(route) },
+                )
+            }
             composable(ADMIN_CATALOGOS) { AdminCatalogosScreen(onBack = { navController.popBackStack() }) }
             composable(ADMIN_BITACORA) { AdminBitacoraScreen(onBack = { navController.popBackStack() }) }
             composable(ADMIN_MOTOR) { AdminMotorScreen(onBack = { navController.popBackStack() }) }

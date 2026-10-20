@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.model.Comment
 import com.example.proyectwin.data.model.Project
 import com.example.proyectwin.navigation.AppNavigation
@@ -36,6 +37,7 @@ fun AdminSimilarityDetailScreen(
     adminSimilarityViewModel: AdminSimilarityDetailViewModel = hiltViewModel(),
 ) {
     val uiState by adminSimilarityViewModel.uiState.collectAsState()
+    val refrescando by adminSimilarityViewModel.refrescando.collectAsState()
     val accion by adminSimilarityViewModel.accion.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmarEliminar by remember { mutableStateOf(false) }
@@ -86,10 +88,14 @@ fun AdminSimilarityDetailScreen(
                 val data = estado.data
                 val par = data.similarity
 
+                SenaPullRefresh(
+                    isRefreshing = refrescando,
+                    onRefresh = { adminSimilarityViewModel.refrescar() },
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
                         .verticalScroll(rememberScrollState())
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -233,6 +239,7 @@ fun AdminSimilarityDetailScreen(
 
                     Spacer(Modifier.height(40.dp))
                 }
+                }
 
                 if (confirmarEliminar) {
                     AlertDialog(
@@ -296,7 +303,7 @@ private fun PanelProyectoAdmin(
                 text = "VER PROPUESTA",
                 onClick = onVerProyecto,
                 isPrimary = false,
-                icon = Icons.Default.OpenInNew,
+                icon = Icons.AutoMirrored.Filled.OpenInNew,
             )
             HorizontalDivider(color = senaColors().borderSoft)
             Text(

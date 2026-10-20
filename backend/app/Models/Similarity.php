@@ -139,6 +139,23 @@ class Similarity extends Model
         });
     }
 
+    // El motor solo compara propuestas del mismo programa (`Recomputador`). Un
+    // par manual puede cruzar programas y, en ese caso, no debe revelar la
+    // contraparte: quien lo consulta no puede abrir ese contenido por su
+    // alcance académico. La igualdad se evalúa con los programas actuales de
+    // ambas propuestas (no con una copia guardada en el par).
+    public function scopeMismoPrograma(Builder $query): Builder
+    {
+        return $query->whereHas('project2.classGroup', function (Builder $q) {
+            $q->whereIn('class_groups.id_programa', function ($sub) {
+                $sub->select('cg1.id_programa')
+                    ->from('class_groups as cg1')
+                    ->join('projects as p1', 'p1.id_class_group', '=', 'cg1.id')
+                    ->whereColumn('p1.id', 'similarities.id_proyecto_1');
+            });
+        });
+    }
+
     // Listados. Regla: una propuesta pendiente NUNCA figura como coincidencia
     // de otra; solo se muestra si la contraparte está aprobada.
     public function scopeParaUsuario(Builder $query, $user): Builder
@@ -155,25 +172,44 @@ class Similarity extends Model
         }
 
         if ($user->rol === 'instructor') {
+            // El par debe tocar una ficha que el instructor DICTA. Estar solo
+            // asignado (`id_instructor_asignado`) abre la propuesta en
+            // `Project::paraDetalle`, pero no habilita por sí solo listar el
+            // par: es una diferencia preexistente que requiere decisión
+            // funcional (ver informe del Lote 16 §3).
             $fichaIds = ClassGroup::whereHas('instructor', fn (Builder $q) => $q->where('id_usuario', $user->id))
                 ->pluck('id');
             return $query->where(function (Builder $q) use ($fichaIds) {
                 $q->whereHas('project1', fn (Builder $qq) => $qq->whereIn('id_class_group', $fichaIds))
                   ->orWhereHas('project2', fn (Builder $qq) => $qq->whereIn('id_class_group', $fichaIds));
-            })->where($ambasAprobadas);
+            })->where($ambasAprobadas)
+              ->where(function (Builder $q) use ($user) {
+                  // Ambas propuestas deben ser legibles por el rol (mismo
+                  // programa o asignación): un par manual que cruza programas
+                  // no debe listarse si su contenido no se puede abrir.
+                  $q->whereHas('project1', fn (Builder $qq) => $qq->paraDetalle($user))
+                    ->whereHas('project2', fn (Builder $qq) => $qq->paraDetalle($user));
+              });
         }
 
-        // Aprendiz: la contraparte (el lado ajeno) debe estar aprobada; si ambas
-        // propuestas del par son suyas, se muestra.
+        // Aprendiz: la contraparte (el lado ajeno) debe estar aprobada y ser del
+        // mismo programa; si ambas propuestas del par son suyas, se muestra.
+        // La restricción de programa aplica solo al lado ajeno: un par manual
+        // cross-program no habilita a leer la contraparte (el motor nunca lo
+        // generaría). Los pares del motor cumplen la condición por diseño.
         $mio = fn (Builder $qq) => $qq->where('id_creador', $user->id)
             ->orWhereHas('apprentices', fn (Builder $a) => $a->where('id_usuario', $user->id));
         $aprobado = fn (Builder $p) => $p->where('estado', 'aprobado');
 
         return $query->where(function (Builder $q) use ($mio, $aprobado) {
             $q->where(function (Builder $x) use ($mio, $aprobado) {
-                $x->whereHas('project1', $mio)->whereHas('project2', $aprobado);
+                $x->whereHas('project1', $mio)
+                  ->whereHas('project2', $aprobado)
+                  ->mismoPrograma();
             })->orWhere(function (Builder $x) use ($mio, $aprobado) {
-                $x->whereHas('project2', $mio)->whereHas('project1', $aprobado);
+                $x->whereHas('project2', $mio)
+                  ->whereHas('project1', $aprobado)
+                  ->mismoPrograma();
             })->orWhere(function (Builder $x) use ($mio) {
                 $x->whereHas('project1', $mio)->whereHas('project2', $mio);
             });
@@ -181,18 +217,28 @@ class Similarity extends Model
     }
 
     // Detalle de UNA similitud. Admin cualquiera; instructor las de sus fichas
-    // (para poder abrirlas desde la revisión); aprendiz la regla de listado.
+    // cuando la contraparte también es legible (mismo programa/asignación);
+    // aprendiz la regla de listado.
     public function scopeVisibleDetalle(Builder $query, $user): Builder
     {
         if (!$user) return $query->whereRaw('1 = 0');
         if ($user->rol === 'admin') return $query;
 
         if ($user->rol === 'instructor') {
+            // Mismo alcance que el listado: fichas que el instructor DICTA.
+            // La asignación (`id_instructor_asignado`) por sí sola no abre el
+            // detalle de similitud (diferencia preexistente documentada).
             $fichaIds = ClassGroup::whereHas('instructor', fn (Builder $q) => $q->where('id_usuario', $user->id))
                 ->pluck('id');
             return $query->where(function (Builder $q) use ($fichaIds) {
                 $q->whereHas('project1', fn (Builder $qq) => $qq->whereIn('id_class_group', $fichaIds))
                   ->orWhereHas('project2', fn (Builder $qq) => $qq->whereIn('id_class_group', $fichaIds));
+            })->where(function (Builder $q) use ($user) {
+                // La contraparte también debe ser legible (mismo programa o
+                // asignación). Así el detalle nunca expone contenido de una
+                // propuesta que el instructor no puede abrir.
+                $q->whereHas('project1', fn (Builder $qq) => $qq->paraDetalle($user))
+                  ->whereHas('project2', fn (Builder $qq) => $qq->paraDetalle($user));
             });
         }
 
@@ -205,8 +251,21 @@ class Similarity extends Model
             $q->where(function (Builder $qq) use ($user) {
                 $qq->paraUsuario($user);
             })->orWhere(function (Builder $qq) use ($mio) {
+                // Misma regla de programa que el listado: la evidencia
+                // histórica de un par cross-program no se expone a quien no
+                // puede abrir la contraparte. Si ambas propuestas son suyas,
+                // sigue siendo su propia evidencia.
                 $qq->historicos()->where(function (Builder $x) use ($mio) {
-                    $x->whereHas('project1', $mio)->orWhereHas('project2', $mio);
+                    $x->where(function (Builder $ambas) use ($mio) {
+                        $ambas->whereHas('project1', $mio)
+                               ->whereHas('project2', $mio);
+                    })->orWhere(function (Builder $una) use ($mio) {
+                        $una->where(function (Builder $lado) use ($mio) {
+                            $lado->whereHas('project1', $mio)->mismoPrograma();
+                        })->orWhere(function (Builder $lado) use ($mio) {
+                            $lado->whereHas('project2', $mio)->mismoPrograma();
+                        });
+                    });
                 });
             });
         });

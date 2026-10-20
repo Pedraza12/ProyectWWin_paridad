@@ -90,6 +90,8 @@ Advertencias:
   - `proyectwin_test` y `proyectwin_e2e` creadas y migradas.
   - `php artisan test` con la guarda activa: **314/314 pruebas, 1797 aserciones** (certificación histórica de ese punto — Lote 1; `proyectwin_test` limpia al terminar).
   - **Resultado posterior (misma fecha, Lote 6): 324/324 pruebas, 1883 aserciones**, tras añadir las pruebas de D-01 (borrado de usuarios con evidencia).
+  - **Re-certificación (19-oct-2026, Lote 12):** `php artisan test` → **341/341 pruebas, 1985 aserciones** (exit 0, ~27 s), tras añadir C-02/C-03/C-06/C-09/M5; suite Android **169/169** + `assembleDebug` OK.
+  - **Lote 13 (19-oct-2026):** `php artisan test` → **344/344 pruebas, 1998 aserciones** (exit 0, ~26 s; P-03/P-01); Android unit **175/175** + `assembleDebug` + `assembleDebugAndroidTest` OK; smoke instrumentado de arranque OK en dispositivo físico (componentes pendientes de corrida en dispositivo libre).
   - Gate E2E integral: **5/5 etapas, 347 pruebas** (53 archivos aislados + agentes/cobertura/negativos/volumen), con backend E2E en `:8001` y reseed contra `proyectwin_e2e`.
   - Los 4 specs E2E nuevos del Lote 2 (`doble-submit-completo`, `fechas-formato`, `notificacion-ficha-navegacion`, `red-evidencia-409`) se ejecutaron y aprobaron en el gate.
   - Guardas probadas en negativo: sin `E2E_ALLOW_RESET` o apuntando a `:8000` la corrida falla; PHPUnit aborta fuera de `testing` + `proyectwin_test`.

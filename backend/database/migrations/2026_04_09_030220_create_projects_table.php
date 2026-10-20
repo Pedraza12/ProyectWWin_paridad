@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('area_aplicacion')->nullable();
             $table->text('objetivo_general')->nullable();
             $table->json('objetivos_especificos')->nullable();
-            $table->enum('estado', ['borrador', 'pendiente', 'aprobado', 'rechazado'])->default('pendiente')->index();
+            $table->enum('estado', ['borrador', 'pendiente', 'aprobado', 'rechazado'])->default('borrador')->index();
             $table->string('huella_envio', 40)->nullable();
 
             $table->foreignId('id_creador')->constrained('general_users')->onDelete('cascade');

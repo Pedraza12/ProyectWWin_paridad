@@ -21,6 +21,8 @@ sealed class FichasUiState {
 data class FichasActionState(
     val selectedFicha: Ficha? = null,
     val codigoValido: Boolean? = null,
+    /** Código que el usuario digitó y que el servidor confirmó en la preview. */
+    val codigoValidado: String? = null,
     val joinSuccess: Boolean = false,
     val leftSuccess: Boolean = false,
     val message: String? = null,
@@ -108,17 +110,25 @@ class FichasViewModel @Inject constructor(
     /** Valida el código contra el servidor (misma preview que el frontend). */
     fun validarCodigo(codigo: String) {
         viewModelScope.launch {
-            _actionState.value = _actionState.value.copy(codigoValido = null, selectedFicha = null)
+            _actionState.value = _actionState.value.copy(
+                codigoValido = null,
+                codigoValidado = null,
+                selectedFicha = null,
+            )
             fichasRepository.fichaPorCodigo(codigo).fold(
                 onSuccess = { ficha ->
                     _actionState.value = _actionState.value.copy(
                         codigoValido = true,
+                        // Se conserva el texto digitado: la preview puede no
+                        // incluir `codigo` y no debemos unirnos con vacío.
+                        codigoValidado = codigo,
                         selectedFicha = ficha,
                     )
                 },
                 onFailure = {
                     _actionState.value = _actionState.value.copy(
                         codigoValido = false,
+                        codigoValidado = null,
                         selectedFicha = null,
                     )
                 },
@@ -126,10 +136,13 @@ class FichasViewModel @Inject constructor(
         }
     }
 
-    fun joinFicha(fichaId: Int) {
+    /**
+     * Une a la ficha usando el código ya validado en la preview. No depende de
+     * `selectedFicha.codigo` (el backend puede omitirlo en la respuesta).
+     */
+    fun joinFicha(codigo: String) {
         viewModelScope.launch {
-            val codigo = _actionState.value.selectedFicha?.codigo
-            if (codigo == null) {
+            if (codigo.isBlank() || _actionState.value.selectedFicha == null) {
                 _actionState.value = _actionState.value.copy(
                     message = "Valida el código de la ficha antes de unirte.",
                 )

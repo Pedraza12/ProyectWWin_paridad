@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 class Project extends Model
 {
@@ -59,11 +60,45 @@ class Project extends Model
                 $relationship === '' ||
                 !$allowIncluded->contains($relationship)
             ) {
+                // P-04: el descarte silencioso ocultaba `included` mal escritos
+                // o no autorizados. Se registra un aviso sin PII: solo el
+                // nombre de relación si tiene forma de identificador.
+                Log::warning('Filtro included: relación no autorizada descartada.', [
+                    'modelo' => static::class,
+                    'include' => preg_match('/^[A-Za-z0-9_.]{1,60}$/', $relationship) === 1
+                        ? $relationship
+                        : '[valor no identificador]',
+                ]);
                 unset($relations[$key]);
             }
         }
 
-        $query->with($relations);
+        // Las similitudes incluidas no deben exponer pares que el rol no puede
+        // abrir (p. ej. un par manual cross-program creado por un admin). Se
+        // cargan acotadas por `visibleDetalle`; el admin conserva la vista
+        // completa. Sin usuario autenticado no se incluyen.
+        $usuario = request()->user();
+        $acotadas = [];
+
+        if (!$usuario || $usuario->rol !== 'admin') {
+            foreach (['similaritiesAsOrigin', 'similaritiesAsDestination'] as $rel) {
+                $pos = array_search($rel, $relations, true);
+                if ($pos === false) {
+                    continue;
+                }
+
+                unset($relations[$pos]);
+                if ($usuario) {
+                    $acotadas[$rel] = fn ($q) => $q->visibleDetalle($usuario);
+                }
+            }
+        }
+
+        $query->with(array_values($relations));
+
+        if (!empty($acotadas)) {
+            $query->with($acotadas);
+        }
     }
 
     // ---------------------------------------------------------------- Filtros de listado

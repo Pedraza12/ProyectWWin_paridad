@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('motor_configs', function (Blueprint $table) {
             $table->id();
-            $table->float('umbral')->default(0.2);
+            $table->float('umbral')->default(0.30);
             $table->integer('meses')->default(12);
             $table->timestamps();
         });

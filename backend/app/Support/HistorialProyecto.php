@@ -23,7 +23,9 @@ class HistorialProyecto
                 'detalle' => $detalle ?: null,
             ]);
         } catch (\Throwable $e) {
-            // Silencio deliberado.
+            // Silencio deliberado para la acción principal (P-02): el historial
+            // nunca la rompe, pero la traza queda registrada para diagnóstico.
+            report($e);
         }
     }
 }

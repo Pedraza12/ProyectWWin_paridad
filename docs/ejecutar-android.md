@@ -42,7 +42,7 @@ Verificación rápida: `http://127.0.0.1:8000/v1/config-similitud` debe responde
 - El `debug` apunta por defecto a **`http://10.0.2.2:8000/v1/`** (definido una sola vez en `app/build.gradle.kts` → `BuildConfig.API_BASE_URL`; todos los servicios la leen desde `NetworkModule`).
 - En el emulador, `10.0.2.2` es **el equipo anfitrión**. `localhost`/`127.0.0.1` dentro del emulador es el propio teléfono: no usarlos.
 - El tráfico HTTP sin cifrar solo está permitido en **debug** y solo para `10.0.2.2`, `localhost` y `127.0.0.1` (`app/src/debug/res/xml/network_security_config.xml`). En **release** solo se permite HTTPS (`app/src/main/res/xml/network_security_config.xml`).
-- Para apuntar a otra dirección sin tocar código: `local.properties` (`proyectwin.apiBaseUrl[.debug|.release]`) o `-Pproyectwin.apiBaseUrl…` en Gradle.
+- Para apuntar a otra dirección sin tocar código: `local.properties` (`proyectwin.apiBaseUrl[.debug|.release]`) o `-Pproyectwin.apiBaseUrl…` en Gradle. Plantilla comentada con todos los escenarios: `Movil/local.properties.example` (copiar como `local.properties`; el archivo real no se versiona).
 
 ## 6. Ejecutar con Run ▶
 
@@ -55,12 +55,22 @@ No hacen falta `-P…`, comandos de instalación ni editar archivos.
 
 ## 7. Dispositivo físico (opcional)
 
-El teléfono debe alcanzar el equipo donde corre el backend. Dos variantes:
+El teléfono debe alcanzar el equipo donde corre el backend. Resumen de diferencias con el emulador:
+
+| | Emulador | Dispositivo físico |
+|---|---|---|
+| URL de la API | `http://10.0.2.2:8000/v1/` (por defecto; no hay que configurar nada) | `http://127.0.0.1:8000/v1/` (USB) o `http://192.168.X.X:8000/v1/` (Wi-Fi), definida en `local.properties` |
+| Red | `10.0.2.2` es el equipo anfitrión visto desde el AVD | USB: túnel inverso `adb reverse`; Wi-Fi: teléfono y PC en la misma red local |
+| Pasos únicos (una vez por equipo) | Crear/seleccionar el AVD | Activar depuración USB; en Wi-Fi, añadir la IP a la config de debug |
+| Pasos por sesión | Ninguno: pulsar Run ▶ | USB: `adb reverse tcp:8000 tcp:8000` (o `Movil\scripts\preparar-fisico.ps1`) |
+| Cuándo re-ejecutar `adb reverse` | — | Tras reconectar el cable, reiniciar el teléfono o `adb kill-server`: el túnel no persiste |
+
+Dos variantes:
 
 **A. Con cable (recomendada, sin tocar red):**
 1. Conectar el teléfono por USB con depuración activada.
-2. `adb reverse tcp:8000 tcp:8000` (el teléfono podrá usar `127.0.0.1:8000`).
-3. Añadir en `Movil/local.properties` (archivo local, no versionado):
+2. `adb reverse tcp:8000 tcp:8000` (el teléfono podrá usar `127.0.0.1:8000`). Atajo: `Movil\scripts\preparar-fisico.ps1` (localiza adb, crea el túnel y comprueba el backend; solo lectura, no escribe nada).
+3. Añadir en `Movil/local.properties` (archivo local, no versionado; plantilla: `Movil/local.properties.example`):
    `proyectwin.apiBaseUrl.debug=http://127.0.0.1:8000/v1/`
 
 **B. Por Wi-Fi (IP LAN):**
@@ -72,9 +82,11 @@ El teléfono debe alcanzar el equipo donde corre el backend. Dos variantes:
 
 | | Debug (desarrollo) | Release (distribución) |
 |---|---|---|
-| URL | `10.0.2.2:8000` o la definida en `local.properties`/`-P` | `proyectwin.apiBaseUrl.release` (HTTPS real) |
+| URL | `10.0.2.2:8000` o la definida en `local.properties`/`-P` | `proyectwin.apiBaseUrl.release` (HTTPS obligatorio) |
 | HTTP sin cifrar | Solo dominios locales (network_security_config de debug) | Prohibido (solo HTTPS) |
 | Logging HTTP | Básico (método/URL/estado; cabeceras sensibles redactadas) | Desactivado |
+
+Para distribuir, define `proyectwin.apiBaseUrl.release=https://<dominio>/v1/` (en `local.properties` — plantilla: `Movil/local.properties.example` — o con `-Pproyectwin.apiBaseUrl.release…`). **HTTPS es obligatorio**: si no se define, el build usa el fallback de emulador (`http://10.0.2.2:8000/v1/`), que el `network_security_config` de release bloquea (solo permite HTTPS) y la app no podrá conectar. El dominio real es el del despliegue de Railway: ver `docs/deploy-railway.md`.
 
 ## 9. Errores comunes
 

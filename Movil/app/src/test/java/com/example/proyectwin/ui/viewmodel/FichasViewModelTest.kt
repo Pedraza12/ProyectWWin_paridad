@@ -1,6 +1,7 @@
 package com.example.proyectwin.ui.viewmodel
 
 import com.example.proyectwin.data.api.ApiException
+import com.example.proyectwin.data.model.Ficha
 import com.example.proyectwin.data.model.ResultadoFichaEliminada
 import com.example.proyectwin.domain.repository.FichasRepository
 import io.mockk.coEvery
@@ -16,10 +17,11 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** Eliminación/anulación de fichas por parte del instructor (Fase 5, M2). */
+/** Acciones de fichas: eliminación/anulación y unión por código. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FichasViewModelTest {
 
@@ -82,5 +84,68 @@ class FichasViewModelTest {
         )
         assertFalse(vm.actionState.value.eliminando)
         coVerify(exactly = 0) { repo.listar() }
+    }
+
+    @Test
+    fun `unirse usa el codigo digitado aunque la preview no devuelva codigo`() = runTest(dispatcher) {
+        // Simula una preview cuyo DTO omite `codigo` (se mapea como "").
+        coEvery { repo.fichaPorCodigo("abc-defg") } returns Result.success(
+            Ficha(id = 42, codigo = "", programa = "ADSO"),
+        )
+        coEvery { repo.unirmeAFicha("abc-defg") } returns Result.success(
+            Ficha(id = 42, codigo = "abc-defg", programa = "ADSO"),
+        )
+
+        val vm = FichasViewModel(repo)
+        vm.validarCodigo("abc-defg")
+        advanceUntilIdle()
+
+        assertEquals(true, vm.actionState.value.codigoValido)
+        assertEquals("abc-defg", vm.actionState.value.codigoValidado)
+
+        vm.joinFicha("abc-defg")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { repo.unirmeAFicha("abc-defg") }
+        coVerify(exactly = 0) { repo.unirmeAFicha("") }
+        assertTrue(vm.actionState.value.joinSuccess)
+    }
+
+    @Test
+    fun `unirse propaga el error del backend`() = runTest(dispatcher) {
+        coEvery { repo.fichaPorCodigo("abc-defg") } returns Result.success(
+            Ficha(id = 42, codigo = "", programa = "ADSO"),
+        )
+        coEvery { repo.unirmeAFicha("abc-defg") } returns Result.failure(
+            ApiException.Http(422, "Esa ficha no acepta nuevos integrantes."),
+        )
+
+        val vm = FichasViewModel(repo)
+        vm.validarCodigo("abc-defg")
+        advanceUntilIdle()
+
+        vm.joinFicha("abc-defg")
+        advanceUntilIdle()
+
+        assertEquals(
+            "Esa ficha no acepta nuevos integrantes.",
+            vm.actionState.value.message,
+        )
+        assertFalse(vm.actionState.value.joinSuccess)
+        coVerify(exactly = 1) { repo.unirmeAFicha("abc-defg") }
+    }
+
+    @Test
+    fun `unirse con codigo en blanco no llama al backend`() = runTest(dispatcher) {
+        val vm = FichasViewModel(repo)
+
+        vm.joinFicha("   ")
+        advanceUntilIdle()
+
+        assertEquals(
+            "Valida el código de la ficha antes de unirte.",
+            vm.actionState.value.message,
+        )
+        coVerify(exactly = 0) { repo.unirmeAFicha(any()) }
     }
 }

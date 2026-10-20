@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.local.DescargasArchivos
 import com.example.proyectwin.data.model.Ficha
 import com.example.proyectwin.navigation.AppNavigation
@@ -28,7 +28,8 @@ import com.example.proyectwin.ui.viewmodel.AdminFichasViewModel
 /**
  * Fichas (admin): listado completo con roster expandible (solo lectura) y
  * accesos. La gestión de integrantes vive en "Editar ficha", donde agregar o
- * quitar no reinicia la pantalla ni pierde la posición del usuario.
+ * quitar no reinicia la pantalla ni pierde la posición del usuario. Tocar la
+ * tarjeta abre el detalle (información, roster y propuestas de la ficha).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +37,7 @@ fun AdminFichasScreen(
     onBack: () -> Unit,
     onCreateFicha: () -> Unit,
     onNavigate: (String) -> Unit,
+    onFichaDetail: (Int) -> Unit,
     adminFichasViewModel: AdminFichasViewModel = hiltViewModel(),
 ) {
     val uiState by adminFichasViewModel.uiState.collectAsState()
@@ -146,6 +148,7 @@ fun AdminFichasScreen(
                                 ficha = ficha,
                                 detalle = detalle,
                                 expandida = fichaExpandida == ficha.id,
+                                onVerDetalle = { onFichaDetail(ficha.id) },
                                 onExpandir = {
                                     fichaExpandida = if (fichaExpandida == ficha.id) -1 else ficha.id
                                 },
@@ -212,12 +215,13 @@ private fun TarjetaFichaAdmin(
     ficha: Ficha,
     detalle: Ficha?,
     expandida: Boolean,
+    onVerDetalle: () -> Unit,
     onExpandir: () -> Unit,
     onEditar: () -> Unit,
     onCredenciales: () -> Unit,
     onEliminar: () -> Unit,
 ) {
-    SenaCard(elevation = 1.dp) {
+    SenaCard(elevation = 1.dp, onClick = onVerDetalle) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -232,6 +236,12 @@ private fun TarjetaFichaAdmin(
                     }
                 }
                 SenaStatusBadge(status = ficha.statusDisplay)
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = "Ver detalle",
+                    tint = senaColors().textMuted,
+                    modifier = Modifier.size(20.dp),
+                )
             }
 
             HorizontalDivider(color = senaColors().borderSoft)

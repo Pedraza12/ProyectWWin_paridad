@@ -36,6 +36,11 @@ function nombreUsuario(u) {
 
 // Una propuesta es del aprendiz si la creó o si figura en su equipo.
 const esMia = esPropietarioProyecto
+
+// Campos del formulario que muestran su error bajo el campo; un 422 con claves
+// fuera de esta lista (p. ej. relaciones del payload) no tiene dónde verse.
+const CAMPOS_CON_ERROR = ['titulo', 'resumen', 'objetivo_general', 'objetivos_especificos', 'area_aplicacion']
+
 export default function DetalleProyecto() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -246,11 +251,13 @@ export default function DetalleProyecto() {
           ? 'Propuesta actualizada. Sigue en revisión; el instructor verá los cambios.'
           : 'Propuesta actualizada correctamente.')
     } catch (err) {
-      // Errores 422 por campo (mismas claves que el formulario); si no hay,
-      // se conserva el mensaje general bajo el título.
+      // Errores 422 por campo (mismas claves que el formulario). Si el 422 solo
+      // trae claves sin campo visible, se conserva el mensaje general bajo el
+      // título; si trae alguna clave visible, se comporta como antes.
       const campos = toFieldErrors(err?.data)
+      const hayCampoVisible = CAMPOS_CON_ERROR.some((k) => campos[k])
       setErrores(
-        Object.keys(campos).length > 0
+        hayCampoVisible
           ? campos
           : { titulo: err?.data?.message || 'No se pudo actualizar la propuesta.' }
       )
@@ -334,7 +341,7 @@ export default function DetalleProyecto() {
       <div className={s.page}>
         <PageHeader
           title={project.titulo}
-          subtitle={`Enviado el ${fechaDesdeApi(project.created_at)} por ${nombreUsuario(project.creator)} · Ficha ${project.classGroup?.codigo || '—'}${project.classGroup?.program?.nombre ? ` (${project.classGroup.program.nombre})` : ''}`}
+          subtitle={`Enviado el ${fechaDesdeApi(project.created_at)} por ${nombreUsuario(project.creator)} · Ficha ${project.classGroup?.nombre || '—'}${project.classGroup?.program?.nombre ? ` (${project.classGroup.program.nombre})` : ''}`}
           icon={<FolderOpen />}
           breadcrumb={[
             { label: 'Dashboard', to: '/aprendiz/dashboard' },

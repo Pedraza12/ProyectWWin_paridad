@@ -630,7 +630,7 @@ export default function Propuestas() {
                           <footer className={s.cardFooter}>
                             <span className={s.cardMeta}><CalendarBlank size={14} /> {fechaDesdeApi(p.created_at)}</span>
                             <span className={s.cardMeta}>
-                              <GraduationCap size={14} /> {p.classGroup?.codigo || 'Sin ficha'}
+                              <GraduationCap size={14} /> {p.classGroup?.nombre || 'Sin ficha'}
                               {p.classGroup?.program?.nombre ? ` · ${p.classGroup.program.nombre}` : ''}
                               {Number(p.id_class_group) !== Number(miFicha?.id) ? ' · ficha anterior' : ''}
                             </span>

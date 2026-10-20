@@ -31,7 +31,8 @@ return new class extends Migration
             // reintentar sin perder la cuenta si el correo falla).
             $table->timestamp('credenciales_enviadas_en')->nullable();
             $table->string('credenciales_error', 500)->nullable();
-            // text: admite data URL (foto subida desde el navegador) o URL externa.
+            // text: solo data URL de imagen (png/jpg/jpeg/webp/gif) generada
+            // por los clientes; máximo 65.000 caracteres. No admite URLs externas.
             $table->text('foto_url')->nullable();
             $table->enum('rol', ['aprendiz', 'instructor', 'admin']);
             $table->boolean('estado')->default(true);

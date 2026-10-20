@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.local.ImagenUtils
 import com.example.proyectwin.data.model.ProjectStatus
 import com.example.proyectwin.navigation.AppNavigation
@@ -61,8 +61,10 @@ fun InstructorProfileScreen(
     val fichasState by fichasViewModel.uiState.collectAsState()
 
     var isEditing by remember { mutableStateOf(false) }
-    var name by remember(user) { mutableStateOf(user?.name?.split(" ")?.firstOrNull() ?: "") }
-    var lastName by remember(user) { mutableStateOf(user?.name?.split(" ")?.getOrNull(1) ?: "") }
+    // Usa los campos del modelo (nombre/apellido) y solo divide `name` como
+    // fallback de cuentas antiguas, conservando apellidos compuestos.
+    var name by remember(user) { mutableStateOf(user?.nombre ?: user?.name?.substringBefore(' ') ?: "") }
+    var lastName by remember(user) { mutableStateOf(user?.apellido ?: user?.name?.substringAfter(' ', "") ?: "") }
     var email by remember(user) { mutableStateOf(user?.email ?: "") }
 
     LaunchedEffect(Unit) {
@@ -222,8 +224,8 @@ fun InstructorProfileScreen(
                             SenaButton(
                                 text = "Editar Información",
                                 onClick = {
-                                    name = user?.name?.split(" ")?.firstOrNull() ?: ""
-                                    lastName = user?.name?.split(" ")?.getOrNull(1) ?: ""
+                                    name = user?.nombre ?: user?.name?.substringBefore(' ') ?: ""
+                                    lastName = user?.apellido ?: user?.name?.substringAfter(' ', "") ?: ""
                                     email = user?.email ?: ""
                                     isEditing = true
                                 },

@@ -44,8 +44,10 @@ export default function InformacionProyecto({ proyecto, ficha, fichaHref }) {
 
   // Ficha: preferimos la relación completa; si no, el classGroup del proyecto.
   const fichaInfo = ficha || proyecto.classGroup || null
+  // Sin `codigo`: la ficha puede ser ajena o anterior y el código es la
+  // credencial de unión; en el detalle de la propuesta basta el nombre.
   const fichaTexto = fichaInfo
-    ? `${fichaInfo.codigo} · ${fichaInfo.nombre}`
+    ? (fichaInfo.nombre || '—')
     : `#${proyecto.id_class_group || '—'}`
 
   return (

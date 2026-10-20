@@ -16,7 +16,26 @@ import { exigirEntornoE2E } from './guardas-e2e.mjs'
 exigirEntornoE2E('aislado')
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-// Uso: node e2e/run-aislado.mjs [-- <args playwright>] | [filtro...]
+const backend = path.resolve(here, '..', '..', 'backend')
+
+// Restauración final del seed, igual que en los otros runners del gate
+// completo (`test:full`): solo vía `php artisan e2e:reset --env=e2e` (guardas
+// server-side: autorización E2E_ALLOW_RESET, APP_ENV=e2e, nombre de BD y lock).
+function reseed(motivo) {
+  console.log(`[aislado] reseed E2E (${motivo})…`)
+  const r = spawnSync('php', ['artisan', 'e2e:reset', '--env=e2e'], {
+    cwd: backend,
+    stdio: 'inherit',
+    shell: true,
+    timeout: 180000,
+  })
+  if (r.status !== 0) {
+    console.error('[aislado] ABORTADO: el reseed E2E falló o fue rechazado por las guardas.')
+    process.exit(2)
+  }
+}
+
+// Uso: node e2e/run-aisolado.mjs [-- <args playwright>] | [filtro...]
 // Con filtros, solo corren los archivos que contengan algún filtro.
 const argv = process.argv.slice(2)
 const sep = argv.indexOf('--')
@@ -49,6 +68,9 @@ for (const archivo of archivos) {
     fallidos.push(archivo)
   }
 }
+
+console.log('\n[aislado] restableciendo el seed E2E…')
+reseed('restauración final')
 
 const min = ((Date.now() - t0) / 60000).toFixed(1)
 console.log(`[aislado] ${ok} archivos OK, ${mal} con fallos en ${min} min`)

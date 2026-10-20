@@ -26,7 +26,9 @@ class Auditoria
                 'ip' => $request->ip(),
             ]);
         } catch (\Throwable $e) {
-            // Silencio deliberado.
+            // Silencio deliberado para la acción principal (P-02): la bitácora
+            // nunca la rompe, pero la traza queda registrada para diagnóstico.
+            report($e);
         }
     }
 }

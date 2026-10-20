@@ -1,0 +1,40 @@
+# Plantilla de configuración local para compilar la app Android de ProyecTwin.
+# Copiar este archivo como `local.properties` (misma carpeta) y ajustar solo lo
+# que corresponda. `local.properties` es local y NO se versiona.
+#
+# Claves que lee Gradle (app/build.gradle.kts), por orden de prioridad:
+#   1) proyectwin.apiBaseUrl.debug / proyectwin.apiBaseUrl.release
+#   2) proyectwin.apiBaseUrl (común a ambos build types)
+#   3) -Pproyectwin.apiBaseUrl[.debug|.release] al invocar Gradle
+# Si no se define ninguna, el fallback es http://10.0.2.2:8000/v1/ (emulador).
+
+# --- SDK de Android (obligatorio para compilar) -----------------------------
+# Ruta del SDK instalado. Ejemplo en Windows (con barras escapadas):
+sdk.dir=C\:\\Users\\<usuario>\\AppData\\Local\\Android\\Sdk
+# En macOS/Linux: sdk.dir=/home/<usuario>/Android/Sdk
+
+# --- Escenario 1: emulador (no hace falta ninguna línea) --------------------
+# El valor por defecto http://10.0.2.2:8000/v1/ ya apunta al PC anfitrión
+# (10.0.2.2 es "el equipo anfitrión" visto desde el emulador; localhost NO sirve).
+
+# --- Escenario 2: dispositivo físico por USB --------------------------------
+# 1) Conectar el teléfono con depuración USB y crear el túnel inverso:
+#      adb reverse tcp:8000 tcp:8000
+#    (o ejecutar: Movil\scripts\preparar-fisico.ps1)
+# 2) Descomentar esta línea:
+# proyectwin.apiBaseUrl.debug=http://127.0.0.1:8000/v1/
+# Nota: el túnel se pierde al desconectar el cable o reiniciar el teléfono;
+#       re-ejecutar `adb reverse` (o el script) tras reconectar.
+
+# --- Escenario 3: dispositivo físico por Wi-Fi (IP LAN) ---------------------
+# 1) Obtener la IP del PC (ipconfig, p. ej. 192.168.1.50) y descomentar:
+# proyectwin.apiBaseUrl.debug=http://192.168.X.X:8000/v1/
+# 2) Añadir esa misma IP como <domain> en:
+#      Movil/app/src/debug/res/xml/network_security_config.xml
+#    (solo debug; sin esa excepción el HTTP sin cifrar se bloquea)
+
+# --- Escenario 4: release / producción (HTTPS obligatorio) ------------------
+# El dominio real es el del despliegue; ver docs/deploy-railway.md.
+# proyectwin.apiBaseUrl.release=https://<dominio>/v1/
+# En release el tráfico HTTP sin cifrar está prohibido por
+# network_security_config: una URL http:// aquí deja la app sin conexión.

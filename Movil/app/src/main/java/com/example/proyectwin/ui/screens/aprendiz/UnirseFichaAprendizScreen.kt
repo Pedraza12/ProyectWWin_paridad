@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
 import com.example.proyectwin.ui.viewmodel.AuthViewModel
@@ -39,9 +39,10 @@ fun UnirseFichaAprendizScreen(
     val scrollState = rememberScrollState()
     val actionState by fichasViewModel.actionState.collectAsState()
 
-    LaunchedEffect(actionState.codigoValido) {
-        if (actionState.codigoValido == true && actionState.selectedFicha != null) {
-            fichasViewModel.joinFicha(actionState.selectedFicha!!.id)
+    LaunchedEffect(actionState.codigoValido, actionState.codigoValidado) {
+        val codigo = actionState.codigoValidado
+        if (actionState.codigoValido == true && actionState.selectedFicha != null && codigo != null) {
+            fichasViewModel.joinFicha(codigo)
         }
     }
 

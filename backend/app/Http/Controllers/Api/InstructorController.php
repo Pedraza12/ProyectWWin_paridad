@@ -8,6 +8,7 @@ use App\Models\GeneralUser;
 use App\Models\Instructor;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class InstructorController extends Controller
 {
@@ -17,17 +18,21 @@ class InstructorController extends Controller
 
         // Admin ve todos; instructor su propia fila; aprendiz los de su ficha.
         if (optional($user)->rol === 'admin') {
-            return Instructor::included()->get();
-        }
-        if ($user && $user->rol === 'instructor') {
+            $resultado = Instructor::included()->get();
+        } elseif ($user && $user->rol === 'instructor') {
             // Sin auto-creación: la verificación se resuelve en el registro.
-            return Instructor::included()->where('id_usuario', $user->id)->get();
+            $resultado = Instructor::included()->where('id_usuario', $user->id)->get();
+        } else {
+            $fichaIds = Apprentice::where('id_usuario', optional($user)->id)->pluck('id_class_group')->filter();
+            $instructorIds = ClassGroup::whereIn('id', $fichaIds)->pluck('id_instructor')->filter();
+
+            $resultado = Instructor::included()->whereIn('id', $instructorIds)->get();
         }
 
-        $fichaIds = Apprentice::where('id_usuario', optional($user)->id)->pluck('id_class_group')->filter();
-        $instructorIds = ClassGroup::whereIn('id', $fichaIds)->pluck('id_instructor')->filter();
-
-        return Instructor::included()->whereIn('id', $instructorIds)->get();
+        // El alcance de arriba decide qué instructores se ven; aquí se limita
+        // la relación `classGroups` para que `included` no exponga fichas (y
+        // códigos) fuera del alcance del rol.
+        return $this->limitarClassGroups($resultado, $user);
     }
 
     public function store(Request $request)
@@ -69,12 +74,12 @@ class InstructorController extends Controller
             return $item;
         }
         if ($user && $user->rol === 'instructor' && (int) $item->id_usuario === (int) $user->id) {
-            return $item;
+            return $this->limitarClassGroups($item, $user);
         }
         if ($user && $user->rol === 'aprendiz') {
             $fichaIds = Apprentice::where('id_usuario', $user->id)->pluck('id_class_group')->filter();
             if (ClassGroup::whereIn('id', $fichaIds)->where('id_instructor', $item->id)->exists()) {
-                return $item;
+                return $this->limitarClassGroups($item, $user);
             }
         }
 
@@ -115,5 +120,63 @@ class InstructorController extends Controller
             $instructor->delete();
         });
         return $instructor;
+    }
+
+    // ---------------------------------------------------------------- Internos
+
+    // Limita la relación `classGroups` cuando el cliente la pidió con
+    // `included`. No cambia qué instructores son visibles (eso lo resuelve el
+    // alcance de index/show), solo las fichas anidadas: admin todas, instructor
+    // las que instrueye y aprendiz su ficha actual. Así cambiar `included` no
+    // permite recuperar fichas ni códigos fuera del alcance del rol.
+    private function limitarClassGroups($resultado, $usuario)
+    {
+        if (optional($usuario)->rol === 'admin') {
+            return $resultado;
+        }
+
+        $permitidas = $this->fichasPermitidas($usuario);
+        $items = $resultado instanceof Collection ? $resultado : collect([$resultado]);
+
+        foreach ($items as $item) {
+            if (!$item->relationLoaded('classGroups')) continue;
+
+            $item->setRelation(
+                'classGroups',
+                $item->classGroups
+                    ->filter(fn ($ficha) => in_array((int) $ficha->id, $permitidas, true))
+                    ->values()
+            );
+        }
+
+        return $resultado;
+    }
+
+    // Fichas que el rol puede recibir anidadas en un instructor.
+    private function fichasPermitidas($usuario): array
+    {
+        if (!$usuario) return [];
+
+        if ($usuario->rol === 'instructor') {
+            $instructorId = Instructor::where('id_usuario', $usuario->id)->value('id');
+            if (!$instructorId) return [];
+
+            return ClassGroup::where('id_instructor', $instructorId)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+
+        if ($usuario->rol === 'aprendiz') {
+            return Apprentice::where('id_usuario', $usuario->id)
+                ->pluck('id_class_group')
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        return [];
     }
 }

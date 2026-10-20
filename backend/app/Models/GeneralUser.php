@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\HasApiTokens;
 
 class GeneralUser extends Model implements AuthenticatableContract, CanResetPasswordContract
@@ -105,6 +106,15 @@ class GeneralUser extends Model implements AuthenticatableContract, CanResetPass
                 $relationship === '' ||
                 !$allowIncluded->contains($relationship)
             ) {
+                // P-04: el descarte silencioso ocultaba `included` mal escritos
+                // o no autorizados. Se registra un aviso sin PII: solo el
+                // nombre de relación si tiene forma de identificador.
+                Log::warning('Filtro included: relación no autorizada descartada.', [
+                    'modelo' => static::class,
+                    'include' => preg_match('/^[A-Za-z0-9_.]{1,60}$/', $relationship) === 1
+                        ? $relationship
+                        : '[valor no identificador]',
+                ]);
                 unset($relations[$key]);
             }
         }

@@ -47,6 +47,10 @@ class AdminSimilarityDetailViewModel @Inject constructor(
     private val _accion = MutableStateFlow<AdminSimilarityAction>(AdminSimilarityAction.Idle)
     val accion: StateFlow<AdminSimilarityAction> = _accion.asStateFlow()
 
+    /** Refresco silencioso en curso (pull-to-refresh), sin reemplazar el contenido. */
+    private val _refrescando = MutableStateFlow(false)
+    val refrescando: StateFlow<Boolean> = _refrescando.asStateFlow()
+
     private var idPar: Int = 0
 
     fun resetAccion() {
@@ -55,32 +59,54 @@ class AdminSimilarityDetailViewModel @Inject constructor(
 
     fun load(id: Int) {
         idPar = id
-        viewModelScope.launch {
-            _uiState.value = AdminSimilarityUiState.Loading
-            val par = similaritiesRepository.obtener(id).getOrElse { e ->
-                _uiState.value = AdminSimilarityUiState.Error(e.message ?: "No se pudo cargar la similitud.")
-                return@launch
-            }
-            val relacionadas = similaritiesRepository
-                .listar(relatedTo = "${par.projectId1},${par.projectId2}")
-                .getOrDefault(emptyList())
-                .filter { it.id != par.id }
-            val comentarios1 = commentsRepository.listar(par.projectId1).getOrDefault(emptyList())
-            val comentarios2 = commentsRepository.listar(par.projectId2).getOrDefault(emptyList())
-
-            _uiState.value = AdminSimilarityUiState.Success(
-                AdminSimilarityData(
-                    similarity = par,
-                    relacionadas = relacionadas,
-                    comentarios1 = comentarios1,
-                    comentarios2 = comentarios2,
-                ),
-            )
-        }
+        viewModelScope.launch { cargar(id, mostrarCarga = true) }
     }
 
     fun recargar() {
         if (idPar != 0) load(idPar)
+    }
+
+    /** Refresco silencioso (pull-to-refresh): mantiene el contenido visible. */
+    fun refrescar() {
+        val id = idPar
+        if (id == 0 || _refrescando.value) return
+        viewModelScope.launch {
+            _refrescando.value = true
+            try {
+                cargar(id, mostrarCarga = false)
+            } finally {
+                _refrescando.value = false
+            }
+        }
+    }
+
+    private suspend fun cargar(id: Int, mostrarCarga: Boolean) {
+        if (mostrarCarga) _uiState.value = AdminSimilarityUiState.Loading
+
+        val par = similaritiesRepository.obtener(id).getOrElse { e ->
+            if (mostrarCarga && idPar == id) {
+                _uiState.value = AdminSimilarityUiState.Error(e.message ?: "No se pudo cargar la similitud.")
+            }
+            return
+        }
+        val relacionadas = similaritiesRepository
+            .listar(relatedTo = "${par.projectId1},${par.projectId2}")
+            .getOrDefault(emptyList())
+            .filter { it.id != par.id }
+        val comentarios1 = commentsRepository.listar(par.projectId1).getOrDefault(emptyList())
+        val comentarios2 = commentsRepository.listar(par.projectId2).getOrDefault(emptyList())
+
+        // Si el usuario ya navegó a otro par, la respuesta tardía se descarta.
+        if (idPar != id) return
+
+        _uiState.value = AdminSimilarityUiState.Success(
+            AdminSimilarityData(
+                similarity = par,
+                relacionadas = relacionadas,
+                comentarios1 = comentarios1,
+                comentarios2 = comentarios2,
+            ),
+        )
     }
 
     fun comentar(idProyecto: Int, texto: String) {

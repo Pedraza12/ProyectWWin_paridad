@@ -2,11 +2,9 @@ package com.example.proyectwin.data.api.service
 
 import com.example.proyectwin.data.api.dto.NotificationDto
 import com.example.proyectwin.data.api.dto.NotificationReadRequest
-import com.example.proyectwin.data.api.dto.NotificationRequest
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -22,9 +20,6 @@ interface NotificationsApi {
 
     @GET("notifications/{id}")
     suspend fun obtener(@Path("id") id: Int): NotificationDto
-
-    @POST("notifications")
-    suspend fun crear(@Body body: NotificationRequest): NotificationDto
 
     /** Marcar como leída = PUT parcial `{leida}` (contrato del backend). */
     @PUT("notifications/{id}")

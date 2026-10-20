@@ -20,3 +20,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Lock del reseed E2E (e2e:reset): artefacto local, no se versiona.
+/storage/framework/e2e-reset.lock

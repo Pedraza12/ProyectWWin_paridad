@@ -13,6 +13,7 @@ import {
   REPORTE_PRIORIDAD_META as PRIORIDAD_META,
   REPORTE_PRIORIDAD_POR_TIPO as PRIORIDAD_POR_TIPO,
 } from '../../../constants/estadoStatus'
+import { RUTA_SOPORTE_POR_ROL } from '../../../constants/routes'
 import Avatar from '../../../components/Avatar/Avatar'
 import Button from '../../../components/Button/Button'
 import { Select, Textarea } from '../../../components/Input/Input'
@@ -78,7 +79,7 @@ export default function DetalleReporte() {
               title="Solicitud no encontrada"
               message="La solicitud de soporte que buscas no existe."
               actionLabel="Volver a soporte"
-              onAction={() => navigate('/admin/reportes-fallas')}
+              onAction={() => navigate(RUTA_SOPORTE_POR_ROL.admin)}
             />
           )}
         </div>
@@ -126,7 +127,7 @@ export default function DetalleReporte() {
           icon={<Bug />}
           breadcrumb={[
             { label: 'Dashboard', to: '/admin/dashboard', icon: <ChartBar size={14} /> },
-            { label: 'Soporte', to: '/admin/reportes-fallas', icon: <Bug size={14} /> },
+            { label: 'Soporte', to: RUTA_SOPORTE_POR_ROL.admin, icon: <Bug size={14} /> },
             { label: `#${reporte.id}` },
           ]}
         />

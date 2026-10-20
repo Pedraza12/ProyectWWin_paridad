@@ -50,6 +50,10 @@ class SimilarityDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<SimilarityDetailUiState>(SimilarityDetailUiState.Loading)
     val uiState: StateFlow<SimilarityDetailUiState> = _uiState.asStateFlow()
 
+    /** Refresco silencioso en curso (pull-to-refresh), sin reemplazar el contenido. */
+    private val _refrescando = MutableStateFlow(false)
+    val refrescando: StateFlow<Boolean> = _refrescando.asStateFlow()
+
     private var idActual: Int = 0
 
     fun load(id: Int) {
@@ -59,42 +63,23 @@ class SimilarityDetailViewModel @Inject constructor(
 
             // Autorización real: el backend responde 403 si no puede ver el par.
             val par = similaritiesRepository.obtener(id).getOrElse { e ->
-                _uiState.value = SimilarityDetailUiState.Error(e.message ?: "No se pudo cargar la similitud.")
+                if (idActual == id) {
+                    _uiState.value = SimilarityDetailUiState.Error(e.message ?: "No se pudo cargar la similitud.")
+                }
                 return@launch
             }
+            // Si el usuario ya navegó a otro par, la respuesta tardía se descarta.
+            if (idActual != id) return@launch
 
-            val relacionadas = similaritiesRepository
-                .listar(relatedTo = "${par.projectId1},${par.projectId2}")
-                .getOrDefault(emptyList())
-                .filter { it.id != par.id }
+            val data = ensamblar(par)
+            if (idActual != id) return@launch
 
-            val usuarioId = sessionManager.currentUser.first()?.id
-            val mio1 = esPropia(par.project1, usuarioId)
-            val mio2 = esPropia(par.project2, usuarioId)
-            val miProyecto = if (mio1) par.project1 else if (mio2) par.project2 else null
-
-            // Observaciones (paridad con la web `DetalleSimilitud`): se consultan
-            // solo las de LA propuesta del usuario en el par. Sin propuesta propia
-            // (p. ej. instructor), se consulta cada propuesta por separado para no
-            // mezclar observaciones de proyectos distintos.
-            val idsObservaciones = if (miProyecto != null) {
-                listOf(miProyecto.id)
-            } else {
-                listOfNotNull(par.project1?.id, par.project2?.id)
-            }
-
+            val ids = idsObservaciones(data)
             _uiState.value = SimilarityDetailUiState.Success(
-                SimilarityDetailData(
-                    similarity = par,
-                    relacionadas = relacionadas,
-                    miProyecto = miProyecto,
-                    contraparte = if (mio1) par.project2 else if (mio2) par.project1 else null,
-                    ambasMias = mio1 && mio2,
-                    observaciones = idsObservaciones.associateWith { EstadoObservaciones(cargando = true) },
-                ),
+                data.copy(observaciones = ids.associateWith { EstadoObservaciones(cargando = true) }),
             )
 
-            idsObservaciones.forEach { cargarObservaciones(par.id, it) }
+            ids.forEach { cargarObservaciones(par.id, it) }
         }
     }
 
@@ -102,15 +87,84 @@ class SimilarityDetailViewModel @Inject constructor(
         if (idActual != 0) load(idActual)
     }
 
+    /**
+     * Refresco silencioso (pull-to-refresh): mantiene el contenido visible, vuelve
+     * a pedir el par, sus relacionadas y las observaciones, y descarta la respuesta
+     * si el usuario ya navegó a otro par (guard por id).
+     */
+    fun refrescar() {
+        val actual = _uiState.value as? SimilarityDetailUiState.Success ?: return
+        val id = actual.data.similarity.id
+        if (id != idActual || _refrescando.value) return
+
+        viewModelScope.launch {
+            _refrescando.value = true
+            try {
+                val par = similaritiesRepository.obtener(id).getOrElse { return@launch }
+                if (idActual != id) return@launch
+
+                val data = ensamblar(par)
+                if (idActual != id) return@launch
+
+                val ids = idsObservaciones(data)
+                // Las observaciones ya visibles se conservan hasta que llegue la
+                // respuesta nueva; solo las que no existían muestran cargador.
+                val previas = (_uiState.value as? SimilarityDetailUiState.Success)
+                    ?.data?.observaciones.orEmpty()
+                _uiState.value = SimilarityDetailUiState.Success(
+                    data.copy(
+                        observaciones = ids.associateWith { proyectoId ->
+                            previas[proyectoId] ?: EstadoObservaciones(cargando = true)
+                        },
+                    ),
+                )
+
+                ids.forEach { cargarObservaciones(par.id, it, mostrarCarga = false) }
+            } finally {
+                _refrescando.value = false
+            }
+        }
+    }
+
+    /** Arma el detalle (relacionadas + propiedad) sin consultar observaciones. */
+    private suspend fun ensamblar(par: Similarity): SimilarityDetailData {
+        val relacionadas = similaritiesRepository
+            .listar(relatedTo = "${par.projectId1},${par.projectId2}")
+            .getOrDefault(emptyList())
+            .filter { it.id != par.id }
+
+        val usuarioId = sessionManager.currentUser.first()?.id
+        val mio1 = esPropia(par.project1, usuarioId)
+        val mio2 = esPropia(par.project2, usuarioId)
+
+        return SimilarityDetailData(
+            similarity = par,
+            relacionadas = relacionadas,
+            miProyecto = if (mio1) par.project1 else if (mio2) par.project2 else null,
+            contraparte = if (mio1) par.project2 else if (mio2) par.project1 else null,
+            ambasMias = mio1 && mio2,
+        )
+    }
+
+    // Observaciones (paridad con la web `DetalleSimilitud`): se consultan
+    // solo las de LA propuesta del usuario en el par. Sin propuesta propia
+    // (p. ej. instructor), se consulta cada propuesta por separado para no
+    // mezclar observaciones de proyectos distintos.
+    private fun idsObservaciones(data: SimilarityDetailData): List<Int> =
+        data.miProyecto?.let { listOf(it.id) }
+            ?: listOfNotNull(data.similarity.project1?.id, data.similarity.project2?.id)
+
     /** Reintenta las observaciones de una propuesta tras un error recuperable. */
     fun reintentarObservaciones(proyectoId: Int) {
         val actual = _uiState.value as? SimilarityDetailUiState.Success ?: return
         cargarObservaciones(actual.data.similarity.id, proyectoId)
     }
 
-    private fun cargarObservaciones(similarityId: Int, proyectoId: Int) {
+    private fun cargarObservaciones(similarityId: Int, proyectoId: Int, mostrarCarga: Boolean = true) {
         viewModelScope.launch {
-            actualizarObservaciones(similarityId, proyectoId, EstadoObservaciones(cargando = true))
+            if (mostrarCarga) {
+                actualizarObservaciones(similarityId, proyectoId, EstadoObservaciones(cargando = true))
+            }
             commentsRepository.listar(idProyecto = proyectoId).fold(
                 onSuccess = { comentarios ->
                     actualizarObservaciones(
