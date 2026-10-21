@@ -20,7 +20,7 @@ import { toFieldErrors } from '../../lib/api'
 import { resolverFotoPerfil } from '../../utils/foto'
 import s from './PerfilBase.module.css'
 import { esEmailValido, esPasswordValida } from '../../utils/validation'
-import { payloadCuenta } from '../../utils/helpers'
+import { payloadPerfil } from '../../utils/helpers'
 import { ROL_LABEL } from '../../constants/badgeVariants'
 
 const SUBTITULOS = {
@@ -60,6 +60,17 @@ export default function PerfilBase({
   const rol = String(perfil.rol || perfil.role || role || '').toLowerCase()
   const rolLabel = ROL_LABEL[rol] || rol || role
   const foto = perfil.foto_url || perfil.fotoPerfil || null
+  const tipoDocumento = perfil.tipo_documento || ''
+  const numeroDocumento = perfil.numero_documento || ''
+  const documento = tipoDocumento && numeroDocumento
+    ? `${tipoDocumento} ${numeroDocumento}`
+    : ''
+  const documentoVisible = documento || 'No registrado'
+  // El documento solo se muestra en el perfil propio; los perfiles públicos
+  // usan el endpoint de perfil, que no expone estos campos.
+  const detallesVisibles = !soloLectura
+    ? [...detalles, { label: 'Documento', value: documentoVisible }]
+    : detalles
 
   const [editando, setEditando] = useState(false)
   const [guardado, setGuardado] = useState(false)
@@ -159,12 +170,11 @@ export default function PerfilBase({
     setGuardando(true)
     try {
       const nombreCompleto = `${form.nombre.trim()} ${form.apellido.trim()}`.trim()
-      const cuenta = await usuarios.obtener(user.id)
-      await usuarios.actualizar(user.id, payloadCuenta(cuenta, {
+      await usuarios.actualizar(user.id, payloadPerfil({
         nombre: form.nombre.trim(),
         apellido: form.apellido.trim(),
       }))
-      sincronizarSesion(nombreCompleto, cuenta.correo)
+      sincronizarSesion(nombreCompleto, correo)
       await recargarPerfil()
       setEditando(false)
       setGuardado(true)
@@ -388,9 +398,9 @@ export default function PerfilBase({
                 <p className={s.profileEmail}>{correo}</p>
               </>
             )}
-            {!editando && detalles.length > 0 && (
+            {!editando && detallesVisibles.length > 0 && (
               <dl className={s.detailList}>
-                {detalles.map((d) => (
+                {detallesVisibles.map((d) => (
                   <div key={d.label} className={s.detailRow}>
                     <dt>{d.label}</dt>
                     <dd>{d.value}</dd>
@@ -402,6 +412,9 @@ export default function PerfilBase({
               <form className={`${s.form} ${s.formGrow}`} onSubmit={guardar} noValidate>
                 <FormField label="Rol">
                   <Input type="text" value={rolLabel} readOnly />
+                </FormField>
+                <FormField label="Documento de identidad">
+                  <Input type="text" value={documentoVisible} readOnly />
                 </FormField>
                 <FormField label="Nombres" required error={errors.nombre}>
                   <Input

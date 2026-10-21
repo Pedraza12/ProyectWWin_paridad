@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { iniciales, formatearFecha, parseFecha, agruparObservaciones } from './helpers'
+import { iniciales, formatearFecha, parseFecha, agruparObservaciones, payloadCuenta, payloadPerfil } from './helpers'
 
 describe('iniciales', () => {
   it('genera iniciales del primer apellido y nombre', () => {
@@ -67,5 +67,58 @@ describe('agruparObservaciones', () => {
     const resultado = agruparObservaciones(lista)
     expect(resultado).toHaveLength(1)
     expect(resultado[0].respuestas.map((r) => r.id)).toEqual([3, 4])
+  })
+})
+
+describe('payloadPerfil', () => {
+  const perfil = {
+    nombre: 'Ana',
+    apellido: 'Pérez',
+    correo: 'ana@test.local',
+    rol: 'aprendiz',
+    estado: true,
+    tipo_documento: 'CC',
+    numero_documento: '12345678',
+    username: 'ana123',
+    foto_url: 'data:image/jpeg;base64,abc',
+  }
+
+  it('devuelve exclusivamente nombre y apellido', () => {
+    expect(payloadPerfil(perfil)).toEqual({
+      nombre: 'Ana',
+      apellido: 'Pérez',
+    })
+  })
+
+  it('no propaga campos adicionales del perfil', () => {
+    const resultado = payloadPerfil(perfil)
+
+    expect(Object.keys(resultado)).toEqual(['nombre', 'apellido'])
+    expect(resultado).not.toHaveProperty('correo')
+    expect(resultado).not.toHaveProperty('rol')
+    expect(resultado).not.toHaveProperty('estado')
+    expect(resultado).not.toHaveProperty('tipo_documento')
+    expect(resultado).not.toHaveProperty('numero_documento')
+    expect(resultado).not.toHaveProperty('username')
+    expect(resultado).not.toHaveProperty('foto_url')
+  })
+})
+
+describe('payloadCuenta', () => {
+  const cuenta = {
+    nombre: 'Ana',
+    apellido: 'Pérez',
+    correo: 'ana@test.local',
+    rol: 'aprendiz',
+    estado: true,
+  }
+
+  it('conserva el contrato de edición administrativa', () => {
+    expect(payloadCuenta(cuenta)).toEqual(cuenta)
+    expect(payloadCuenta(cuenta, { estado: false, tipo_documento: 'CC' })).toEqual({
+      ...cuenta,
+      estado: false,
+      tipo_documento: 'CC',
+    })
   })
 })

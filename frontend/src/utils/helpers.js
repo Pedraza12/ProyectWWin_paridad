@@ -109,4 +109,13 @@ export function payloadCuenta(cuenta, extra = {}) {
   }
 }
 
+// Payload mínimo del perfil propio: el correo, el rol, el estado y el
+// documento tienen flujos o permisos separados. No acepta extras a propósito.
+export function payloadPerfil(perfil = {}) {
+  return {
+    nombre: perfil.nombre,
+    apellido: perfil.apellido,
+  }
+}
+
 
