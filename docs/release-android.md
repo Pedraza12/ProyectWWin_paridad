@@ -1,7 +1,7 @@
 # Release Android firmado — ProyecTwin MVP
 
 > **Estado verificado el 19-oct-2026.** El APK que se sirve en
-> `/apk/proyecttwin.apk` es un **build de pruebas (debug)**: `applicationId`
+> `/apk/ProyecTWin.apk` es un **build de pruebas (debug)**: `applicationId`
 > `com.example.proyectwin`, `versionCode` 3, `versionName` 1.2.0, marcado
 > `application-debuggable` y firmado con la clave debug (`CN=Android Debug`,
 > SHA-256 `72:05:D0:E6:E6:13:58:74:A4:20:73:B0:C9:C8:EB:0D:42:D1:34:DA:63:E5:68:FA:74:F1:74:5E:88:F7:80:93`).
@@ -430,7 +430,7 @@ servido en producción. No confundir con la huella del certificado:
 
 ## 5. Publicación en Railway
 
-El APK se sirve como archivo estático desde `backend/public/apk/proyecttwin.apk`
+El APK se sirve como archivo estático desde `backend/public/apk/ProyecTWin.apk`
 (nginx lo entrega por `location /`; `.dockerignore` no lo excluye). El
 procedimiento de despliegue general está en
 [`deploy-railway.md`](deploy-railway.md); esta sección solo añade el artefacto
@@ -471,23 +471,23 @@ Desde `MVP` (archiva antes el APK anterior fuera del repo):
 $releases = "$env:USERPROFILE\proyecttwin-releases"
 New-Item -ItemType Directory -Force $releases | Out-Null
 
-Copy-Item backend\public\apk\proyecttwin.apk `
+Copy-Item backend\public\apk\ProyecTWin.apk `
   "$releases\proyecttwin-1.2.0-debug.apk" -Force
 
 Copy-Item Movil\app\build\outputs\apk\release\app-release.apk `
   "$releases\proyecttwin-1.3.0.apk" -Force
 
 Copy-Item Movil\app\build\outputs\apk\release\app-release.apk `
-  backend\public\apk\proyecttwin.apk -Force
+  backend\public\apk\ProyecTWin.apk -Force
 
-Get-FileHash backend\public\apk\proyecttwin.apk -Algorithm SHA256
+Get-FileHash backend\public\apk\ProyecTWin.apk -Algorithm SHA256
 Get-FileHash "$releases\proyecttwin-1.3.0.apk" -Algorithm SHA256
 ```
 
 Los dos hashes deben coincidir. No guardes el backup dentro de
 `backend/public/apk/`: se serviría públicamente y confundiría la descarga.
 
-> El APK está versionado en Git (`backend/public/apk/proyecttwin.apk`). Al
+> El APK está versionado en Git (`backend/public/apk/ProyecTWin.apk`). Al
 > reemplazarlo, `git status` mostrará un binario modificado. Política propuesta:
 > commitear solo el APK liberado, nunca builds intermedios. Si el equipo decide
 > dejar de versionarlo, el pipeline debe colocarlo en esa ruta antes de
@@ -501,7 +501,7 @@ Dashboard → servicio → Variables, o CLI:
 railway variables --set 'ANDROID_APP_VERSION=1.3.0' `
   --set 'ANDROID_APP_MIN_VERSION=1.0.0' `
   --set 'ANDROID_APP_ENFORCE_MINIMUM=false' `
-  --set 'ANDROID_APP_DOWNLOAD_URL=https://<dominio>/apk/proyecttwin.apk' `
+  --set 'ANDROID_APP_DOWNLOAD_URL=https://<dominio>/apk/ProyecTWin.apk' `
   --set 'ANDROID_APP_RELEASE_NOTES=Versión firmada. Si tienes la app de pruebas, desinstálala antes de instalar.' `
   --skip-deploys
 
@@ -545,7 +545,7 @@ Debe devolver, como mínimo:
   "latest_version": "1.3.0",
   "minimum_supported_version": "1.0.0",
   "enforce_minimum": false,
-  "download_url": "https://<dominio>/apk/proyecttwin.apk",
+  "download_url": "https://<dominio>/apk/ProyecTWin.apk",
   "release_notes": "..."
 }
 ```
@@ -554,7 +554,7 @@ Debe devolver, como mínimo:
 
 ```powershell
 curl.exe -fL -o "$env:TEMP\proyecttwin-remote.apk" `
-  https://<dominio>/apk/proyecttwin.apk
+  https://<dominio>/apk/ProyecTWin.apk
 
 Get-FileHash "$env:TEMP\proyecttwin-remote.apk" -Algorithm SHA256
 ```
@@ -563,7 +563,7 @@ Debe coincidir con el SHA-256 del APK local. Comprueba también el tamaño:
 
 ```powershell
 (Get-Item "$env:TEMP\proyecttwin-remote.apk").Length
-(Get-Item "backend\public\apk\proyecttwin.apk").Length
+(Get-Item "backend\public\apk\ProyecTWin.apk").Length
 ```
 
 4. Descarga e instalación reales desde la URL pública en un dispositivo limpio.
@@ -610,7 +610,7 @@ adb uninstall com.example.proyectwin
 
    o Ajustes → Aplicaciones → ProyecTwin → Desinstalar.
 
-3. Instalar el APK release (descarga desde `/apk/proyecttwin.apk` o `adb install`).
+3. Instalar el APK release (descarga desde `/apk/ProyecTWin.apk` o `adb install`).
 4. Iniciar sesión de nuevo.
 
 **Pérdida:** se borran los datos locales de la app (preferencias, token de sesión,
@@ -783,7 +783,7 @@ Reglas de seguridad del CI:
 - Verifica el SHA-256 del keystore antes de compilar; si no coincide, falla.
 - El deploy a Railway es un job separado, manual o con aprobación. Si se
   automatiza, descarga el artefacto, cópialo a
-  `backend/public/apk/proyecttwin.apk`, ejecuta `railway up` con
+  `backend/public/apk/ProyecTWin.apk`, ejecuta `railway up` con
   `RAILWAY_TOKEN` y verifica el hash remoto (sección 5.4).
 - Si el keystore o sus contraseñas se filtran, asume que la clave está
   comprometida: la clave de firma no se puede rotar para instalaciones
@@ -796,7 +796,7 @@ Reglas de seguridad del CI:
 ### 8.1 Rollback
 
 - Conserva el APK anterior y las variables anteriores fuera del repo.
-- Si el deploy falla antes de publicar, restaura `backend/public/apk/proyecttwin.apk`
+- Si el deploy falla antes de publicar, restaura `backend/public/apk/ProyecTWin.apk`
   y las variables, y redespliega.
 - Si el APK ya se publicó y los usuarios lo instalaron, **no publiques un
   `versionCode` menor**: Android rechaza el downgrade. Publica una corrección con
@@ -842,7 +842,7 @@ Reglas de seguridad del CI:
 - [ ] `aapt dump badging`: versión correcta y sin `application-debuggable`.
 - [ ] `apksigner verify --verbose --print-certs`: v2/v3 y certificado esperado.
 - [ ] SHA-256 del APK calculado y registrado.
-- [ ] `backend/public/apk/proyecttwin.apk` reemplazado y hash verificado.
+- [ ] `backend/public/apk/ProyecTWin.apk` reemplazado y hash verificado.
 - [ ] Variables de Railway actualizadas (`ANDROID_APP_VERSION`,
       `ANDROID_APP_DOWNLOAD_URL` HTTPS) y redeploy correcto.
 - [ ] `/up` y `/v1/app-version/android` verificados.
@@ -870,4 +870,4 @@ Completar solo con releases reales; no inventar hashes ni fechas.
   debug en desarrollo.
 - `Movil/app/build.gradle.kts` — `applicationId`, versiones, URL de API y firma.
 - `backend/config/app_version.php` — contrato de `/v1/app-version/android`.
-- `backend/public/apk/proyecttwin.apk` — APK servido públicamente (hoy debug).
+- `backend/public/apk/ProyecTWin.apk` — APK servido públicamente (hoy debug).

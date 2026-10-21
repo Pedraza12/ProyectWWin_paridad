@@ -4,7 +4,7 @@ Guía del despliegue del MVP completo (**SPA React + API Laravel**) en un solo
 servicio de Railway, con MySQL como base de datos.
 
 > **Aviso sobre el APK Android (19-oct-2026):** el APK servido actualmente en
-> `/apk/proyecttwin.apk` es un **build de pruebas (debug)** —`versionName` 1.2.0,
+> `/apk/ProyecTWin.apk` es un **build de pruebas (debug)** —`versionName` 1.2.0,
 > `versionCode` 3, marcado `application-debuggable` y firmado con la clave
 > debug—, **no** una distribución oficial. Para publicar una versión firmada
 > sigue [`release-android.md`](release-android.md); `assembleDebug` no es un
@@ -149,7 +149,7 @@ Tras generar el dominio, define `APP_URL`, `FRONTEND_URL` y
 ## Notas
 
 - **App Android (`Movil/`)**: no se despliega en Railway. El APK servido en
-  `/apk/proyecttwin.apk` es un build de pruebas (debug) y **no** una distribución
+  `/apk/ProyecTWin.apk` es un build de pruebas (debug) y **no** una distribución
   oficial. Para el APK de distribución define en `Movil/local.properties`
   `proyectwin.apiBaseUrl.release=https://<dominio>/v1/` y sigue el plan de firma,
   validación y publicación de [`release-android.md`](release-android.md)
@@ -176,13 +176,13 @@ numéricamente. Para publicar una versión:
 3. Valida el APK antes de publicarlo (`aapt` sin `application-debuggable`,
    `apksigner` con v2/v3 y el certificado esperado, SHA-256). Si falla, **no lo
    publiques**.
-4. Reemplaza `backend/public/apk/proyecttwin.apk` por el APK validado.
+4. Reemplaza `backend/public/apk/ProyecTWin.apk` por el APK validado.
 5. Actualiza las variables del servicio en Railway (dashboard → Variables, o
    `railway variables --set ...`):
    - `ANDROID_APP_VERSION=<versionName>` (p. ej. `1.3.0`; debe coincidir con el APK)
    - `ANDROID_APP_MIN_VERSION=1.0.0` (súbela solo si quieres aviso obligatorio)
    - `ANDROID_APP_ENFORCE_MINIMUM=false` (`true` = obligatoria, no posponible)
-   - `ANDROID_APP_DOWNLOAD_URL=https://<dominio>/apk/proyecttwin.apk` (HTTPS)
+   - `ANDROID_APP_DOWNLOAD_URL=https://<dominio>/apk/ProyecTWin.apk` (HTTPS)
    - `ANDROID_APP_RELEASE_NOTES=...`
 6. `railway up` (o redeploy desde el dashboard). La app avisa como máximo una
    vez cada 6 h por instalación; "Más tarde" silencia esa versión 24 h.
