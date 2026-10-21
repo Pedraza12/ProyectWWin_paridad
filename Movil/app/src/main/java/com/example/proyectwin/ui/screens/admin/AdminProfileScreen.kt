@@ -243,6 +243,13 @@ fun AdminProfileScreen(
                             description = "Auditoría de acciones sensibles",
                             onClick = { onNavigate(AppNavigation.ADMIN_BITACORA) }
                         )
+                        HorizontalDivider(color = senaColors().borderSoft, modifier = Modifier.padding(start = 56.dp))
+                        SenaSettingsItem(
+                            icon = Icons.Default.SystemUpdate,
+                            title = "Actualizaciones",
+                            description = "Versión instalada y nuevas versiones de ProyecTwin",
+                            onClick = { onNavigate(AppNavigation.APP_UPDATES) }
+                        )
                     }
                 }
 

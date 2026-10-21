@@ -306,6 +306,13 @@ fun InstructorProfileScreen(
                 SenaSectionHeader(title = "Soporte")
                 SenaCard(elevation = 1.dp) {
                     SenaSettingsItem(
+                        icon = Icons.Default.SystemUpdate,
+                        title = "Actualizaciones",
+                        description = "Versión instalada y nuevas versiones de ProyecTwin",
+                        onClick = { onNavigate(AppNavigation.APP_UPDATES) }
+                    )
+                    HorizontalDivider(color = senaColors().borderSoft, modifier = Modifier.padding(start = 56.dp))
+                    SenaSettingsItem(
                         icon = Icons.Default.BugReport,
                         title = "Reportar Errores",
                         description = "Informa fallas técnicas para que el equipo las revise",

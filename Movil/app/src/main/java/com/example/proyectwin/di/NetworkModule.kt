@@ -4,6 +4,7 @@ import com.example.proyectwin.BuildConfig
 import com.example.proyectwin.data.api.AuthInterceptor
 import com.example.proyectwin.data.api.service.ApprenticesApi
 import com.example.proyectwin.data.api.service.AppVersionApi
+import com.example.proyectwin.data.api.service.DashboardMetricsApi
 import com.example.proyectwin.data.api.service.AuditApi
 import com.example.proyectwin.data.api.service.AuthApi
 import com.example.proyectwin.data.api.service.BugReportsApi
@@ -117,6 +118,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAppVersionApi(retrofit: Retrofit): AppVersionApi = retrofit.create(AppVersionApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideDashboardMetricsApi(retrofit: Retrofit): DashboardMetricsApi =
+        retrofit.create(DashboardMetricsApi::class.java)
 
     @Provides
     @Singleton

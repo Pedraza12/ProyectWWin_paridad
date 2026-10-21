@@ -14,14 +14,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.model.Project
+import com.example.proyectwin.data.model.ProjectStatus
 import com.example.proyectwin.data.model.Similarity
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
 import com.example.proyectwin.ui.util.formatearFechaLocal
 import com.example.proyectwin.ui.viewmodel.EstadoObservaciones
+import com.example.proyectwin.ui.viewmodel.MotorConfigViewModel
 import com.example.proyectwin.ui.viewmodel.SimilarityDetailUiState
 import com.example.proyectwin.ui.viewmodel.SimilarityDetailViewModel
+import kotlin.math.roundToInt
 
 /**
  * Detalle de una similitud: propuesta propia vs contraparte (solo lectura).
@@ -36,13 +39,16 @@ fun SimilarityDetailScreen(
     onBack: () -> Unit,
     onNavigate: (String) -> Unit,
     similarityDetailViewModel: SimilarityDetailViewModel = hiltViewModel(),
+    motorConfigViewModel: MotorConfigViewModel = hiltViewModel(),
 ) {
     val uiState by similarityDetailViewModel.uiState.collectAsState()
     val refrescando by similarityDetailViewModel.refrescando.collectAsState()
+    val motorState by motorConfigViewModel.uiState.collectAsState()
 
     LaunchedEffect(similarityId) {
         similarityId.toIntOrNull()?.let { similarityDetailViewModel.load(it) }
     }
+    LaunchedEffect(Unit) { motorConfigViewModel.cargar() }
 
     Scaffold(
         topBar = {
@@ -113,8 +119,19 @@ fun SimilarityDetailScreen(
                         )
                     }
 
+                    // --- Paridad web: umbral real + comparación A/B ---
+                    TarjetaUmbral(
+                        umbralPct = motorState.umbralPct,
+                        cargando = motorState.cargando,
+                        error = motorState.error,
+                    )
+                    TarjetaComparacion(
+                        porcentaje = (par.similitud * 100).roundToInt().coerceIn(0, 100),
+                    )
+                    NotaSimilitud()
+
                     if (data.miProyecto != null) {
-                        SenaSectionHeader(title = if (data.ambasMias) "Tu propuesta (A)" else "Tu propuesta")
+                        SenaSectionHeader(title = "Tu propuesta (A)")
                         PanelPropuesta(
                             proyecto = data.miProyecto,
                             onClick = {
@@ -125,7 +142,7 @@ fun SimilarityDetailScreen(
 
                     if (data.contraparte != null) {
                         SenaSectionHeader(
-                            title = if (data.ambasMias) "Tu propuesta (B)" else "Contraparte · solo lectura",
+                            title = if (data.ambasMias) "Tu propuesta (B)" else "Contraparte (B) · solo lectura",
                         )
                         PanelPropuesta(
                             proyecto = data.contraparte,
@@ -136,19 +153,29 @@ fun SimilarityDetailScreen(
                     }
 
                     if (data.miProyecto == null && data.contraparte == null) {
+                        // Sin propuesta propia (instructor): A = pendiente, B = aprobada,
+                        // igual que la perspectiva de la web.
+                        val aprobado = ProjectStatus.APROBADO.value
+                        val p1Aprobada = par.project1?.estado == aprobado
+                        val p2Aprobada = par.project2?.estado == aprobado
+                        val proyectoA = if (p1Aprobada && !p2Aprobada) par.project2 else par.project1
+                        val proyectoB = if (proyectoA?.id == par.project1?.id) par.project2 else par.project1
+
                         SenaSectionHeader(title = "Propuestas comparadas")
+                        SenaSectionHeader(title = "Propuesta A")
                         PanelPropuesta(
-                            proyecto = par.project1,
+                            proyecto = proyectoA,
                             onClick = {
-                                par.project1?.let {
+                                proyectoA?.let {
                                     onNavigate(detalleProyectoRoute.replace("{projectId}", it.id.toString()))
                                 }
                             },
                         )
+                        SenaSectionHeader(title = "Propuesta B")
                         PanelPropuesta(
-                            proyecto = par.project2,
+                            proyecto = proyectoB,
                             onClick = {
-                                par.project2?.let {
+                                proyectoB?.let {
                                     onNavigate(detalleProyectoRoute.replace("{projectId}", it.id.toString()))
                                 }
                             },

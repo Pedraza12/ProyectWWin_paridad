@@ -6,6 +6,7 @@ import com.example.proyectwin.data.repository.AuthRepositoryImpl
 import com.example.proyectwin.data.repository.BugReportsRepositoryImpl
 import com.example.proyectwin.data.repository.CatalogsRepositoryImpl
 import com.example.proyectwin.data.repository.CommentsRepositoryImpl
+import com.example.proyectwin.data.repository.DashboardMetricsRepositoryImpl
 import com.example.proyectwin.data.repository.FichasRepositoryImpl
 import com.example.proyectwin.data.repository.MembersRepositoryImpl
 import com.example.proyectwin.data.repository.MotorRepositoryImpl
@@ -19,6 +20,7 @@ import com.example.proyectwin.domain.repository.AuthRepository
 import com.example.proyectwin.domain.repository.BugReportsRepository
 import com.example.proyectwin.domain.repository.CatalogsRepository
 import com.example.proyectwin.domain.repository.CommentsRepository
+import com.example.proyectwin.domain.repository.DashboardMetricsRepository
 import com.example.proyectwin.domain.repository.FichasRepository
 import com.example.proyectwin.domain.repository.MembersRepository
 import com.example.proyectwin.domain.repository.MotorRepository
@@ -65,6 +67,11 @@ internal abstract class RepositoryModule {
 
     @Binds
     abstract fun bindMotorRepository(impl: MotorRepositoryImpl): MotorRepository
+
+    @Binds
+    abstract fun bindDashboardMetricsRepository(
+        impl: DashboardMetricsRepositoryImpl,
+    ): DashboardMetricsRepository
 
     @Binds
     abstract fun bindAppUpdatesRepository(impl: AppUpdatesRepositoryImpl): AppUpdatesRepository

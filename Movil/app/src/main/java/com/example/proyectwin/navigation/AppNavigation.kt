@@ -113,6 +113,7 @@ object AppNavigation {
     const val EDIT_PROFILE = "edit_profile"
     const val REPORT_ISSUE = "report_issue"
     const val CHANGE_EMAIL = "change_email"
+    const val APP_UPDATES = "app_updates"
 
     // Containers
     const val ADMIN_MAIN = "admin_main"

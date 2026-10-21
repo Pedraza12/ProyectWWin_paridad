@@ -32,6 +32,9 @@ import com.example.proyectwin.ui.viewmodel.AdminUiState
 import com.example.proyectwin.ui.viewmodel.AdminViewModel
 import com.example.proyectwin.ui.viewmodel.AuthUiState
 import com.example.proyectwin.ui.viewmodel.AuthViewModel
+import com.example.proyectwin.ui.viewmodel.DashboardMetricsUiState
+import com.example.proyectwin.ui.viewmodel.DashboardMetricsViewModel
+import com.example.proyectwin.ui.viewmodel.MotorConfigViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,14 +43,21 @@ fun AdminDashboardScreen(
     onNavigate: (String) -> Unit,
     bottomBar: @Composable () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
-    adminViewModel: AdminViewModel = hiltViewModel()
+    adminViewModel: AdminViewModel = hiltViewModel(),
+    metricsViewModel: DashboardMetricsViewModel = hiltViewModel(),
+    motorConfigViewModel: MotorConfigViewModel = hiltViewModel(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val authState by authViewModel.uiState.collectAsState()
     val adminState by adminViewModel.uiState.collectAsState()
+    val metricsState by metricsViewModel.uiState.collectAsState()
+    val periodoMetricas by metricsViewModel.periodo.collectAsState()
+    val motorState by motorConfigViewModel.uiState.collectAsState()
     val user = (authState as? AuthUiState.LoggedIn)?.user
     var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { motorConfigViewModel.cargar() }
 
     val isLoading = adminState is AdminUiState.Loading
     LaunchedEffect(isLoading) {
@@ -92,7 +102,12 @@ fun AdminDashboardScreen(
     ) { paddingValues ->
         SenaPullRefresh(
             isRefreshing = isRefreshing,
-            onRefresh = { isRefreshing = true; adminViewModel.refresh() },
+            onRefresh = {
+                isRefreshing = true
+                adminViewModel.refresh()
+                metricsViewModel.refrescar()
+                motorConfigViewModel.cargar(forzar = true)
+            },
             modifier = Modifier.padding(paddingValues)
         ) {
         LazyColumn(
@@ -129,60 +144,123 @@ fun AdminDashboardScreen(
 
                         // Analytics Row: datos reales del panel.
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            val enRevision = adminSuccess.projects.count { it.estado == "pendiente" }
+                            val metricsActuales = (metricsState as? DashboardMetricsUiState.Success)?.metrics
+                            val enRevision = metricsActuales?.propuestas?.pendiente
+                                ?: adminSuccess.projects.count { it.estado == "pendiente" }
                             SystemStatusPill("$enRevision en revisión", senaColors().warning, Icons.Default.Pending, modifier = Modifier.weight(1f))
-                            SystemStatusPill("${adminSuccess.similarities.size} pares", senaColors().info, Icons.Default.Compare, modifier = Modifier.weight(1f))
+                            SystemStatusPill(
+                                "${metricsActuales?.propuestas?.total ?: adminSuccess.projects.size} propuestas",
+                                senaColors().info,
+                                Icons.Default.FolderSpecial,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }
             }
 
-            // --- REAL-TIME METRICS ---
+            // --- MÉTRICAS Y GRÁFICAS (paridad con el dashboard web) ---
             item {
-                Column {
-                    PaddingRow {
-                        Text("Métricas en Tiempo Real", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        item {
-                            SenaMetricCard(
-                                icon = Icons.Default.Groups,
-                                value = "${adminSuccess.users.size}",
-                                label = "Usuarios",
-                                color = senaColors().info,
-                                modifier = Modifier.width(160.dp)
+                PaddingRow {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column {
+                            Text(
+                                "Métricas",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black,
+                            )
+                            Text(
+                                "Datos reales de la plataforma",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = senaColors().textLight,
                             )
                         }
-                        item {
-                            SenaMetricCard(
-                                icon = Icons.Default.FolderSpecial,
-                                value = "${adminSuccess.projects.size}",
-                                label = "Proyectos",
-                                color = senaColors().success,
-                                modifier = Modifier.width(160.dp)
-                            )
-                        }
-                        item {
-                            SenaMetricCard(
-                                icon = Icons.Default.BugReport,
-                                value = "${adminSuccess.bugReports.size}",
-                                label = "Reportes",
-                                color = senaColors().warning,
-                                modifier = Modifier.width(160.dp)
-                            )
-                        }
-                        item {
-                            SenaMetricCard(
-                                icon = Icons.Default.Plagiarism,
-                                value = "${adminSuccess.similarities.size}",
-                                label = "Similitudes",
-                                color = senaColors().danger,
-                                modifier = Modifier.width(160.dp)
-                            )
+
+                        when (val estado = metricsState) {
+                            is DashboardMetricsUiState.Loading -> {
+                                SenaSkeletonStats(count = 2)
+                                SenaSkeletonCard(lines = 3, hasImage = true)
+                            }
+
+                            is DashboardMetricsUiState.Error -> {
+                                SenaAlertBanner(
+                                    title = "No se pudieron cargar las métricas",
+                                    message = estado.message,
+                                    icon = Icons.Default.Error,
+                                    color = senaColors().danger,
+                                    actionText = "Reintentar",
+                                    onAction = { metricsViewModel.reintentar() },
+                                )
+                            }
+
+                            is DashboardMetricsUiState.Success -> {
+                                val metrics = estado.metrics
+
+                                MetricasKpiGrid(metrics)
+
+                                // Salud del motor con el umbral real configurado.
+                                SenaCard(elevation = 1.dp) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            modifier = Modifier.size(48.dp),
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = senaColors().green.copy(alpha = 0.1f),
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Tune,
+                                                    contentDescription = null,
+                                                    tint = senaColors().green,
+                                                )
+                                            }
+                                        }
+                                        Spacer(Modifier.width(16.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                "Salud del motor",
+                                                fontWeight = FontWeight.Bold,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                            )
+                                            Text(
+                                                buildString {
+                                                    append("Umbral ")
+                                                    append(motorState.umbralPct?.let { "$it%" } ?: "—")
+                                                    append(" · corpus ")
+                                                    append(motorState.meses?.let { "$it meses" } ?: "—")
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = senaColors().textLight,
+                                            )
+                                        }
+                                        SenaButton(
+                                            text = "Ajustar",
+                                            onClick = { onNavigate(AppNavigation.ADMIN_MOTOR) },
+                                            isPrimary = false,
+                                            minWidth = 0.dp,
+                                        )
+                                    }
+                                }
+
+                                DonaPropuestas(metrics.propuestas)
+
+                                CuentasPorRol(metrics.usuarios)
+
+                                EvolucionPropuestas(
+                                    puntos = metrics.evolucion,
+                                    periodo = periodoMetricas,
+                                    actualizando = estado.actualizando,
+                                    onPeriodo = { metricsViewModel.cambiarPeriodo(it) },
+                                )
+
+                                ActividadRecienteCard(
+                                    actividad = metrics.actividad,
+                                    onProyectoClick = { id ->
+                                        onNavigate(
+                                            AppNavigation.ADMIN_PROJECT_DETAIL.replace("{projectId}", id.toString()),
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -278,20 +356,31 @@ fun AdminDashboardScreen(
                             Surface(
                                 modifier = Modifier.size(48.dp),
                                 shape = RoundedCornerShape(12.dp),
-                                color = senaColors().text.copy(alpha = 0.05f)
+                                color = senaColors().danger.copy(alpha = 0.08f),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Settings, contentDescription = null, tint = senaColors().text)
+                                    Icon(
+                                        Icons.Default.BugReport,
+                                        contentDescription = null,
+                                        tint = senaColors().danger,
+                                    )
                                 }
                             }
                             Spacer(Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Motor de Similitud", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                                Text("Umbral, ventana del corpus y recálculo", style = MaterialTheme.typography.bodySmall, color = senaColors().textLight)
+                                Text("Reportes técnicos", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    "${adminSuccess.bugReports.count { it.estado == "pendiente" || it.estado == "en_revision" }} abiertos de ${adminSuccess.bugReports.size}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = senaColors().textLight,
+                                )
                             }
-                            SenaButton(text = "Abrir", onClick = {
-                                onNavigate(AppNavigation.ADMIN_MOTOR)
-                            }, isPrimary = false)
+                            SenaButton(
+                                text = "Ver",
+                                onClick = { onNavigate(AppNavigation.ADMIN_BUGS) },
+                                isPrimary = false,
+                                minWidth = 0.dp,
+                            )
                         }
                     }
                 }

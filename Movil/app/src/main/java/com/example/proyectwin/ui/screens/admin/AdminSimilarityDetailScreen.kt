@@ -18,12 +18,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.model.Comment
 import com.example.proyectwin.data.model.Project
+import com.example.proyectwin.data.model.ProjectStatus
 import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
 import com.example.proyectwin.ui.viewmodel.AdminSimilarityAction
 import com.example.proyectwin.ui.viewmodel.AdminSimilarityDetailViewModel
 import com.example.proyectwin.ui.viewmodel.AdminSimilarityUiState
+import com.example.proyectwin.ui.viewmodel.MotorConfigViewModel
+import kotlin.math.roundToInt
 
 /**
  * Detalle admin de un par de similitud: ambas propuestas, observaciones de cada
@@ -35,10 +38,12 @@ fun AdminSimilarityDetailScreen(
     onBack: () -> Unit,
     onNavigate: (String) -> Unit = {},
     adminSimilarityViewModel: AdminSimilarityDetailViewModel = hiltViewModel(),
+    motorConfigViewModel: MotorConfigViewModel = hiltViewModel(),
 ) {
     val uiState by adminSimilarityViewModel.uiState.collectAsState()
     val refrescando by adminSimilarityViewModel.refrescando.collectAsState()
     val accion by adminSimilarityViewModel.accion.collectAsState()
+    val motorState by motorConfigViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmarEliminar by remember { mutableStateOf(false) }
     var comentarioProyecto by remember { mutableIntStateOf(0) }
@@ -47,6 +52,7 @@ fun AdminSimilarityDetailScreen(
     LaunchedEffect(similarityId) {
         similarityId.toIntOrNull()?.let { adminSimilarityViewModel.load(it) }
     }
+    LaunchedEffect(Unit) { motorConfigViewModel.cargar() }
 
     LaunchedEffect(accion) {
         when (val estado = accion) {
@@ -115,12 +121,32 @@ fun AdminSimilarityDetailScreen(
                         )
                     }
 
+                    // --- Paridad web: umbral real + comparación A/B ---
+                    TarjetaUmbral(
+                        umbralPct = motorState.umbralPct,
+                        cargando = motorState.cargando,
+                        error = motorState.error,
+                    )
+                    TarjetaComparacion(
+                        porcentaje = (par.similitud * 100).roundToInt().coerceIn(0, 100),
+                    )
+                    NotaSimilitud()
+
+                    // A = propuesta pendiente (o de la izquierda), B = aprobada.
+                    val aprobado = ProjectStatus.APROBADO.value
+                    val p1Aprobada = par.project1?.estado == aprobado
+                    val p2Aprobada = par.project2?.estado == aprobado
+                    val proyectoA = if (p1Aprobada && !p2Aprobada) par.project2 else par.project1
+                    val proyectoB = if (proyectoA?.id == par.project1?.id) par.project2 else par.project1
+                    val comentariosA = if (proyectoA?.id == par.project1?.id) data.comentarios1 else data.comentarios2
+                    val comentariosB = if (proyectoB?.id == par.project1?.id) data.comentarios1 else data.comentarios2
+
                     PanelProyectoAdmin(
                         etiqueta = "Propuesta A",
-                        proyecto = par.project1,
-                        comentarios = data.comentarios1,
+                        proyecto = proyectoA,
+                        comentarios = comentariosA,
                         onVerProyecto = {
-                            par.project1?.let {
+                            proyectoA?.let {
                                 onNavigate(AppNavigation.ADMIN_PROJECT_DETAIL.replace("{projectId}", it.id.toString()))
                             }
                         },
@@ -128,10 +154,10 @@ fun AdminSimilarityDetailScreen(
 
                     PanelProyectoAdmin(
                         etiqueta = "Propuesta B",
-                        proyecto = par.project2,
-                        comentarios = data.comentarios2,
+                        proyecto = proyectoB,
+                        comentarios = comentariosB,
                         onVerProyecto = {
-                            par.project2?.let {
+                            proyectoB?.let {
                                 onNavigate(AppNavigation.ADMIN_PROJECT_DETAIL.replace("{projectId}", it.id.toString()))
                             }
                         },
@@ -182,7 +208,7 @@ fun AdminSimilarityDetailScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf(0, 1).forEach { indice ->
-                                    val proyecto = if (indice == 0) par.project1 else par.project2
+                                    val proyecto = if (indice == 0) proyectoA else proyectoB
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -216,7 +242,7 @@ fun AdminSimilarityDetailScreen(
                             SenaButton(
                                 text = "PUBLICAR OBSERVACIÓN",
                                 onClick = {
-                                    val proyectoId = (if (comentarioProyecto == 0) par.project1 else par.project2)?.id
+                                    val proyectoId = (if (comentarioProyecto == 0) proyectoA else proyectoB)?.id
                                     if (proyectoId != null && nuevoComentario.isNotBlank()) {
                                         adminSimilarityViewModel.comentar(proyectoId, nuevoComentario.trim())
                                         nuevoComentario = ""

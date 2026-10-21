@@ -4,6 +4,7 @@ import com.example.proyectwin.data.api.dto.BugReportCreateRequest
 import com.example.proyectwin.data.api.dto.ClassGroupCreateRequest
 import com.example.proyectwin.data.api.dto.ClassGroupUpdateRequest
 import com.example.proyectwin.data.api.dto.GeneralUserDto
+import com.example.proyectwin.data.api.dto.DashboardMetricsDto
 import com.example.proyectwin.data.api.dto.NotificationDto
 import com.example.proyectwin.data.api.dto.NotificationReadRequest
 import com.example.proyectwin.data.api.dto.NotificationRequest
@@ -144,6 +145,34 @@ class DtoSerializationTest {
         assertEquals("CC", dominio.tipoDocumento)
         assertEquals("1098", dominio.documentoIdentidad)
         assertNotNull(dominio.credencialesEnviadasEn)
+    }
+
+    @Test
+    fun dashboardMetrics_parseaElContratoAdmin() {
+        val cuerpo = """
+            {
+              "rol": "admin",
+              "periodo": "30d",
+              "usuarios": {"total": 10, "aprendices": 7, "instructores": 2, "admins": 1},
+              "fichas": {"total": 3},
+              "aprendices": {"total": 7},
+              "propuestas": {"total": 5, "borrador": 1, "pendiente": 2, "aprobado": 2, "rechazado": 0},
+              "evolucion": [
+                {"clave":"2026-10-20","label":"20/10","fecha":"martes 20 de octubre","total":2,"propuestas":["A","B"],"restantes":0}
+              ],
+              "actividad": [
+                {"id":9,"titulo":"revisar_propuesta","meta":"projects #12","usuario":"Ana Pérez","proyecto_id":12,"fecha":"2026-10-20T10:00:00-05:00"}
+              ]
+            }
+        """.trimIndent()
+        val dominio = json.decodeFromString<DashboardMetricsDto>(cuerpo).toDomain()
+        assertEquals("admin", dominio.rol)
+        assertEquals(10, dominio.usuarios.total)
+        assertEquals(3, dominio.fichasTotal)
+        assertEquals(5, dominio.propuestas.total)
+        assertEquals(1, dominio.evolucion.size)
+        assertEquals(2, dominio.evolucion.first().total)
+        assertEquals(12, dominio.actividad.first().proyectoId)
     }
 
     // ------------------------------------------------- Contratos de request (Fase 1)

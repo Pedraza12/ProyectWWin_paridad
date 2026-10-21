@@ -8,6 +8,7 @@ import com.example.proyectwin.data.api.dto.BugReportDto
 import com.example.proyectwin.data.api.dto.BugReportUpdateRequest
 import com.example.proyectwin.data.api.dto.ClassGroupDto
 import com.example.proyectwin.data.api.dto.CommentDto
+import com.example.proyectwin.data.api.dto.DashboardMetricsDto
 import com.example.proyectwin.data.api.dto.DetallesSimilitud
 import com.example.proyectwin.data.api.dto.GeneralUserDto
 import com.example.proyectwin.data.api.dto.InstructorDto
@@ -24,8 +25,10 @@ import com.example.proyectwin.data.api.dto.SimilarityDto
 import com.example.proyectwin.data.api.dto.TrainingProgramDto
 import com.example.proyectwin.data.api.dto.UserUpdateRequest
 import com.example.proyectwin.data.model.AuditLog
+import com.example.proyectwin.data.model.ActividadReciente
 import com.example.proyectwin.data.model.BugReport
 import com.example.proyectwin.data.model.Comment
+import com.example.proyectwin.data.model.DashboardMetrics
 import com.example.proyectwin.data.model.DetalleSimilitud
 import com.example.proyectwin.data.model.DemoCoincidencia
 import com.example.proyectwin.data.model.DemoResultado
@@ -38,11 +41,14 @@ import com.example.proyectwin.data.model.Project
 import com.example.proyectwin.data.model.ProjectDraft
 import com.example.proyectwin.data.model.ProjectHistory
 import com.example.proyectwin.data.model.ProjectStatus
+import com.example.proyectwin.data.model.PropuestasMetricas
+import com.example.proyectwin.data.model.PuntoEvolucion
 import com.example.proyectwin.data.model.ResumenPublico
 import com.example.proyectwin.data.model.Similarity
 import com.example.proyectwin.data.model.TeamMember
 import com.example.proyectwin.data.model.TrainingProgram
 import com.example.proyectwin.data.model.UserRole
+import com.example.proyectwin.data.model.UsuariosMetricas
 import java.time.LocalDate
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -417,3 +423,46 @@ fun com.example.proyectwin.data.api.dto.AppVersionDto.toDomain(
         urlDescarga = downloadUrl?.trim()?.takeIf { it.isNotEmpty() },
         notas = releaseNotes?.trim()?.takeIf { it.isNotEmpty() },
     )
+
+// ------------------------------------------------------- Dashboard
+
+/** Respuesta agregada del panel (el backend ya acota por rol y periodo). */
+fun DashboardMetricsDto.toDomain(): DashboardMetrics = DashboardMetrics(
+    rol = rol,
+    periodo = periodo,
+    usuarios = UsuariosMetricas(
+        total = usuarios?.total ?: 0,
+        aprendices = usuarios?.aprendices ?: 0,
+        instructores = usuarios?.instructores ?: 0,
+        admins = usuarios?.admins ?: 0,
+    ),
+    fichasTotal = fichas?.total ?: 0,
+    aprendicesTotal = aprendices?.total ?: 0,
+    propuestas = PropuestasMetricas(
+        total = propuestas?.total ?: 0,
+        borrador = propuestas?.borrador ?: 0,
+        pendiente = propuestas?.pendiente ?: 0,
+        aprobado = propuestas?.aprobado ?: 0,
+        rechazado = propuestas?.rechazado ?: 0,
+    ),
+    evolucion = evolucion.map {
+        PuntoEvolucion(
+            clave = it.clave,
+            label = it.label,
+            fecha = it.fecha,
+            total = it.total,
+            propuestas = it.propuestas,
+            restantes = it.restantes,
+        )
+    },
+    actividad = actividad.map {
+        ActividadReciente(
+            id = it.id,
+            titulo = it.titulo,
+            meta = it.meta,
+            usuario = it.usuario,
+            proyectoId = it.proyectoId,
+            fecha = it.fecha,
+        )
+    },
+)

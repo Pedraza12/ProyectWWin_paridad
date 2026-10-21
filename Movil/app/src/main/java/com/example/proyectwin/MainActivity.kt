@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -35,7 +34,7 @@ import com.example.proyectwin.navigation.AppNavigation.adminGraph
 import com.example.proyectwin.navigation.NavIntent
 import com.example.proyectwin.navigation.NavIntents
 import com.example.proyectwin.ui.components.AppUpdateHost
-import com.example.proyectwin.ui.components.abrirEnlaceSeguro
+import com.example.proyectwin.ui.screens.AppUpdatesScreen
 import com.example.proyectwin.ui.screens.EditProfileScreen
 import com.example.proyectwin.ui.screens.ReportIssueScreen
 import com.example.proyectwin.ui.screens.SplashScreen
@@ -63,7 +62,6 @@ class MainActivity : ComponentActivity() {
                 // Verificación de actualización (una vez por proceso) y aviso.
                 val appUpdateViewModel: AppUpdateViewModel = hiltViewModel()
                 val estadoActualizacion by appUpdateViewModel.uiState.collectAsState()
-                val contexto = LocalContext.current
 
                 val isDark = LocalThemeIsDark.current.value
                 val view = LocalView.current
@@ -235,6 +233,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigate = { route -> navController.navigate(route) },
                             )
                         }
+                        composable(AppNavigation.APP_UPDATES) {
+                            AppUpdatesScreen(onBack = { navController.popBackStack() })
+                        }
 
                         composable(AppNavigation.CAMBIO_OBLIGATORIO) {
                             CambioObligatorioScreen(
@@ -258,9 +259,13 @@ class MainActivity : ComponentActivity() {
                         AppUpdateHost(
                             estado = estadoActualizacion,
                             onActualizar = {
-                                val url = estadoActualizacion.urlDescarga
-                                if (url != null && abrirEnlaceSeguro(contexto, url)) {
-                                    appUpdateViewModel.actualizacionAtendida()
+                                // Abre el centro de actualizaciones (descarga e
+                                // instalación verificadas), no un navegador externo.
+                                appUpdateViewModel.actualizacionAtendida()
+                                if (navController.currentDestination?.route != AppNavigation.APP_UPDATES) {
+                                    navController.navigate(AppNavigation.APP_UPDATES) {
+                                        launchSingleTop = true
+                                    }
                                 }
                             },
                             onMasTarde = { appUpdateViewModel.masTarde() },

@@ -246,6 +246,12 @@ fun ProfileScreen(
                             onClick = { onNavigate(AppNavigation.CHANGE_EMAIL) }
                         )
                         SenaSettingsItem(
+                            icon = Icons.Default.SystemUpdate,
+                            title = "Actualizaciones",
+                            description = "Versión instalada y nuevas versiones de ProyecTwin",
+                            onClick = { onNavigate(AppNavigation.APP_UPDATES) }
+                        )
+                        SenaSettingsItem(
                             icon = Icons.Default.BugReport,
                             title = "Reportar Falla",
                             description = "Informa un problema a los administradores",
