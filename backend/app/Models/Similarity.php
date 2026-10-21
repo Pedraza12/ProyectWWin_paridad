@@ -156,21 +156,21 @@ class Similarity extends Model
         });
     }
 
-    // Listados. Regla: una propuesta pendiente NUNCA es la referencia de otra;
-    // el par se muestra si AL MENOS UNO de los dos lados está aprobado. Así las
-    // propuestas pendientes (A) aparecen comparadas contra su referencia (B)
-    // tanto para admin como para instructor, sin exponer pares pendiente-pendiente.
+    // Listados generales. Regla: una propuesta pendiente NUNCA figura como
+    // coincidencia de otra en el listado; solo se muestra si ambas están
+    // aprobadas. La consulta por propuesta (`proyecto_id`) usa otro filtro y sí
+    // puede mostrar el par pendiente/aprobado al instructor o al admin.
     public function scopeParaUsuario(Builder $query, $user): Builder
     {
         if (!$user) return $query->whereRaw('1 = 0');
 
-        $alMenosUnaAprobada = function (Builder $q) {
+        $ambasAprobadas = function (Builder $q) {
             $q->whereHas('project1', fn (Builder $p) => $p->where('estado', 'aprobado'))
-              ->orWhereHas('project2', fn (Builder $p) => $p->where('estado', 'aprobado'));
+              ->whereHas('project2', fn (Builder $p) => $p->where('estado', 'aprobado'));
         };
 
         if ($user->rol === 'admin') {
-            return $query->where($alMenosUnaAprobada);
+            return $query->where($ambasAprobadas);
         }
 
         if ($user->rol === 'instructor') {
@@ -184,7 +184,7 @@ class Similarity extends Model
             return $query->where(function (Builder $q) use ($fichaIds) {
                 $q->whereHas('project1', fn (Builder $qq) => $qq->whereIn('id_class_group', $fichaIds))
                   ->orWhereHas('project2', fn (Builder $qq) => $qq->whereIn('id_class_group', $fichaIds));
-            })->where($alMenosUnaAprobada)
+            })->where($ambasAprobadas)
               ->where(function (Builder $q) use ($user) {
                   // Ambas propuestas deben ser legibles por el rol (mismo
                   // programa o asignación): un par manual que cruza programas
