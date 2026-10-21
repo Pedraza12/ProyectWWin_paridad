@@ -14,6 +14,8 @@ use App\Support\Credenciales;
 use App\Support\CredencialesPdf;
 use App\Services\AltaUsuario;
 use App\Services\CredencialesCorreo;
+use App\Services\NotificacionesService;
+use App\Support\Pii;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -234,6 +236,22 @@ class GeneralUserController extends Controller
 
     public function update(Request $request, GeneralUser $general_user)
     {
+        // El documento solo lo corrige un administrador. Se rechaza antes de
+        // validar para que una petición manual reciba siempre 403 y no pueda
+        // usar el error de unicidad como sondeo.
+        $intentaDocumento = $request->has('tipo_documento') || $request->has('numero_documento');
+        if ($intentaDocumento && optional($request->user())->rol !== 'admin') {
+            return response()->json([
+                'message' => 'Solo un administrador puede modificar el documento de identidad.',
+            ], 403);
+        }
+
+        // Normaliza el correo antes de validar: la unicidad y la comparación
+        // con el valor actual deben usar siempre la misma representación.
+        if ($request->has('correo') && is_string($request->input('correo'))) {
+            $request->merge(['correo' => strtolower(trim($request->input('correo')))]);
+        }
+
         // Actualización parcial: los campos solo se validan si vienen. Así se
         // puede guardar SOLO la foto (foto_url) sin exigir el resto.
         $request->validate([
@@ -266,7 +284,8 @@ class GeneralUserController extends Controller
         // El propio correo (identificador de acceso) solo se cambia con la
         // contraseña actual: PUT /auth/email. Un admin sí puede corregir el
         // correo de OTRO usuario desde su detalle.
-        $cambiaCorreo = $request->has('correo') && $request->correo !== $general_user->correo;
+        $correoAnterior = strtolower(trim((string) $general_user->correo));
+        $cambiaCorreo = $request->has('correo') && $request->input('correo') !== $correoAnterior;
         if ($cambiaCorreo && $esPropiaCuenta) {
             return response()->json([
                 'message' => 'Usa "Cambiar correo" e ingresa tu contraseña actual para modificar tu correo.',
@@ -329,19 +348,25 @@ class GeneralUserController extends Controller
         $cambiaNombre = $request->filled('nombre') && $request->nombre !== $general_user->nombre;
         $cambiaDocumento = ($request->filled('tipo_documento') && $request->tipo_documento !== $general_user->tipo_documento)
             || ($request->filled('numero_documento') && $request->numero_documento !== $general_user->numero_documento);
+        $documentoAnterior = Pii::documento($general_user->tipo_documento, $general_user->numero_documento);
 
         // Actualización atómica: cuenta + perfiles + auditoría (todo o nada).
-        DB::transaction(function () use ($general_user, $data, $cambiaRol, $cambiaEstado, $cambiaCorreo, $cambiaNombre, $cambiaDocumento) {
+        DB::transaction(function () use ($general_user, $data, $cambiaRol, $cambiaEstado, $cambiaCorreo, $cambiaNombre, $cambiaDocumento, $documentoAnterior) {
             $general_user->update($data);
+            $documentoNuevo = $cambiaDocumento
+                ? Pii::documento($general_user->tipo_documento, $general_user->numero_documento)
+                : null;
 
             Auditoria::registrar('actualizar_usuario', 'general_users', $general_user->id, array_filter([
                 'rol' => $cambiaRol ? $general_user->rol : null,
                 'estado' => $cambiaEstado ? (bool) $general_user->estado : null,
                 'correo' => $cambiaCorreo ? $general_user->correo : null,
                 'nombre' => $cambiaNombre ? $general_user->nombre : null,
-                'documento' => $cambiaDocumento
-                    ? $general_user->tipo_documento . ' ' . $general_user->numero_documento
-                    : null,
+                // La bitácora no guarda el documento completo. Se conserva el
+                // valor anterior y el nuevo enmascarados para trazabilidad.
+                'documento' => $documentoNuevo,
+                'documento_anterior' => $cambiaDocumento ? $documentoAnterior : null,
+                'documento_nuevo' => $documentoNuevo,
             // Solo se descartan los nulos: `estado=false` es un cambio real y
             // debe quedar registrado (el array_filter por defecto lo perdería).
             ], fn ($v) => $v !== null));
@@ -352,6 +377,16 @@ class GeneralUserController extends Controller
                 $this->limpiarPerfilesObsoletos($general_user);
             }
         });
+
+        // Aviso al usuario afectado solo si el correo cambió realmente y el
+        // cambio lo hizo un administrador sobre otra cuenta.
+        if ($cambiaCorreo && $esAdmin && !$esPropiaCuenta) {
+            app(NotificacionesService::class)->crear(
+                $general_user->id,
+                'Tu correo electrónico fue actualizado por un administrador.',
+                'sistema'
+            );
+        }
 
         return $general_user;
     }

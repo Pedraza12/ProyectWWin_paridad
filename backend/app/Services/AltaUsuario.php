@@ -6,6 +6,7 @@ use App\Models\GeneralUser;
 use App\Models\Instructor;
 use App\Support\Auditoria;
 use App\Support\Credenciales;
+use App\Support\Pii;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -44,7 +45,7 @@ class AltaUsuario
             Auditoria::registrar('crear_usuario', 'general_users', $usuario->id, [
                 'correo' => $usuario->correo,
                 'username' => $usuario->username,
-                'documento' => $usuario->tipo_documento . ' ' . $usuario->numero_documento,
+                'documento' => Pii::documento($usuario->tipo_documento, $usuario->numero_documento),
                 'rol' => $usuario->rol,
             ]);
 
