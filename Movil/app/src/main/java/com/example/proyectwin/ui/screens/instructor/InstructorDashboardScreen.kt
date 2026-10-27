@@ -136,6 +136,16 @@ fun InstructorDashboardScreen(
                 }
             }
 
+            // --- MÉTRICAS REALES (paridad con DashboardMetrics web) ---
+            item {
+                PaddingRow {
+                    DashboardMetricsSection(
+                        rol = "instructor",
+                        onProyectoClick = { id -> onNavigate("instructor_detail/$id") },
+                    )
+                }
+            }
+
             // --- INBOX FILTERS / SEARCH ---
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {

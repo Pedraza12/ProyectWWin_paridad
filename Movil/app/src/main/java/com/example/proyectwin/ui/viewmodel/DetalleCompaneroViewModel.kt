@@ -6,8 +6,11 @@ import com.example.proyectwin.data.local.SessionManager
 import com.example.proyectwin.data.model.Ficha
 import com.example.proyectwin.data.model.GeneralUser
 import com.example.proyectwin.data.model.Project
+import com.example.proyectwin.data.model.UserRole
 import com.example.proyectwin.domain.repository.FichasRepository
+import com.example.proyectwin.domain.repository.MembersRepository
 import com.example.proyectwin.domain.repository.ProjectsRepository
+import com.example.proyectwin.domain.repository.SimilaritiesRepository
 import com.example.proyectwin.domain.repository.UsersRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import javax.inject.Inject
 
 /** Vista de un compañero/instructor con lo que el backend autoriza mostrar. */
@@ -22,6 +26,8 @@ data class CompaneroData(
     val usuario: GeneralUser,
     val ficha: Ficha? = null,
     val proyectos: List<Project> = emptyList(),
+    /** Similitud máxima vigente por propuesta (mismo criterio que la web). */
+    val porcentajesSimilitud: Map<Int, Int> = emptyMap(),
 )
 
 sealed class CompaneroUiState {
@@ -35,6 +41,8 @@ class DetalleCompaneroViewModel @Inject constructor(
     private val usersRepository: UsersRepository,
     private val fichasRepository: FichasRepository,
     private val projectsRepository: ProjectsRepository,
+    private val membersRepository: MembersRepository,
+    private val similaritiesRepository: SimilaritiesRepository,
     private val sessionManager: SessionManager,
 ) : ViewModel() {
 
@@ -54,8 +62,23 @@ class DetalleCompaneroViewModel @Inject constructor(
                 return@launch
             }
 
-            val fichaId = sessionManager.currentUser.first()?.fichaId
-            val ficha = fichaId?.let { fichasRepository.obtener(it).getOrNull() }
+            // La ficha mostrada debe ser la del usuario consultado, no la del
+            // solicitante (en la web, `DetalleCompanero` resuelve la fila del
+            // aprendiz consultado). Para un instructor solo se puede mostrar la
+            // ficha compartida con el aprendiz (la API acota class-groups).
+            val ficha = when (perfil.role) {
+                UserRole.APRENDIZ.value -> membersRepository.aprendizPorUsuario(id)
+                    .getOrNull()
+                    ?.idClassGroup
+                    ?.let { fichasRepository.obtener(it).getOrNull() }
+
+                UserRole.INSTRUCTOR.value -> sessionManager.currentUser.first()
+                    ?.fichaId
+                    ?.let { fichasRepository.obtener(it).getOrNull() }
+                    ?.takeIf { it.instructorUsuarioId == id }
+
+                else -> null
+            }
 
             // Solo proyectos visibles para el solicitante; se filtra por autor/equipo.
             val proyectos = projectsRepository.listar().getOrDefault(emptyList())
@@ -63,8 +86,24 @@ class DetalleCompaneroViewModel @Inject constructor(
                     proyecto.studentId == id || proyecto.equipo.any { miembro -> miembro.id == id }
                 }
 
+            // Badge de similitud de cada propuesta (la web usa el máximo vigente).
+            val similitudes = similaritiesRepository.listar().getOrDefault(emptyList())
+            val porcentajes = proyectos.mapNotNull { proyecto ->
+                similitudes
+                    .asSequence()
+                    .filter { it.projectId1 == proyecto.id || it.projectId2 == proyecto.id }
+                    .maxOfOrNull { it.similitud }
+                    ?.let { (it * 100).roundToInt().coerceIn(0, 100) }
+                    ?.let { proyecto.id to it }
+            }.toMap()
+
             _uiState.value = CompaneroUiState.Success(
-                CompaneroData(usuario = perfil, ficha = ficha, proyectos = proyectos),
+                CompaneroData(
+                    usuario = perfil,
+                    ficha = ficha,
+                    proyectos = proyectos,
+                    porcentajesSimilitud = porcentajes,
+                ),
             )
         }
     }

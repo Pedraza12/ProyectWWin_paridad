@@ -44,6 +44,7 @@ fun FichaDetailScreen(
     val actionState by fichasViewModel.actionState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmarSalida by remember { mutableStateOf(false) }
+    var buscarCompanero by remember { mutableStateOf("") }
 
     LaunchedEffect(user?.fichaId) {
         user?.fichaId?.let { fichasViewModel.loadFichaById(it) }
@@ -110,6 +111,12 @@ fun FichaDetailScreen(
                 if (ficha == null) {
                     SenaEmptyState(message = "No se encontró la ficha.", icon = Icons.Default.Groups)
                 } else {
+                    val companerosFiltrados = ficha.estudiantes.filter { estudiante ->
+                        val q = buscarCompanero.trim()
+                        q.isEmpty() ||
+                            estudiante.name.contains(q, ignoreCase = true) ||
+                            estudiante.email.contains(q, ignoreCase = true)
+                    }
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(paddingValues),
                         contentPadding = PaddingValues(20.dp),
@@ -177,7 +184,20 @@ fun FichaDetailScreen(
 
                         item {
                             SenaSectionHeader(title = "Instructor Encargado")
-                            SenaCard(elevation = 1.dp) {
+                            SenaCard(
+                                elevation = 1.dp,
+                                // Paridad web: el instructor abre su perfil público.
+                                onClick = ficha.instructorUsuarioId?.let { instructorId ->
+                                    {
+                                        onNavigate(
+                                            AppNavigation.APRENDIZ_INSTRUCTOR_DETAIL.replace(
+                                                "{userId}",
+                                                instructorId.toString(),
+                                            ),
+                                        )
+                                    }
+                                },
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Surface(
                                         modifier = Modifier.size(48.dp),
@@ -189,7 +209,7 @@ fun FichaDetailScreen(
                                         }
                                     }
                                     Spacer(Modifier.width(16.dp))
-                                    Column {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             ficha.instructorName ?: "No asignado",
                                             style = MaterialTheme.typography.bodyMedium,
@@ -197,6 +217,13 @@ fun FichaDetailScreen(
                                             color = senaColors().text,
                                         )
                                         Text("Líder de ficha", style = MaterialTheme.typography.labelSmall, color = senaColors().textLight)
+                                    }
+                                    if (ficha.instructorUsuarioId != null) {
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = "Ver perfil del instructor",
+                                            tint = senaColors().textMuted,
+                                        )
                                     }
                                 }
                             }
@@ -206,12 +233,31 @@ fun FichaDetailScreen(
                             SenaSectionHeader(title = "Compañeros (${ficha.estudiantes.size})")
                         }
 
+                        if (ficha.estudiantes.isNotEmpty()) {
+                            item {
+                                SenaTextField(
+                                    value = buscarCompanero,
+                                    onValueChange = { buscarCompanero = it },
+                                    label = "",
+                                    placeholder = "Buscar por nombre o correo…",
+                                    leadingIcon = Icons.Default.Search,
+                                )
+                            }
+                        }
+
                         if (ficha.estudiantes.isEmpty()) {
                             item {
                                 SenaEmptyState(message = "No hay aprendices en esta ficha.", icon = Icons.Default.Groups)
                             }
+                        } else if (companerosFiltrados.isEmpty()) {
+                            item {
+                                SenaEmptyState(
+                                    message = "Ningún integrante coincide con \"${buscarCompanero.trim()}\".",
+                                    icon = Icons.Default.SearchOff,
+                                )
+                            }
                         } else {
-                            items(ficha.estudiantes, key = { it.id }) { estudiante ->
+                            items(companerosFiltrados, key = { it.id }) { estudiante ->
                                 SenaCard(
                                     elevation = 0.5.dp,
                                     onClick = {

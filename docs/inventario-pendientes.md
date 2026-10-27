@@ -4,6 +4,14 @@
 **Refs:** `C-xx`/`P-xx`/`D-xx` (backend) y `M-x`/`O-x`/`D1` (Android) son **referencias de trabajo del Lote 3**, no IDs de auditoría. Los `BUG-xxx` provienen de `AUDITORIA-INTEGRAL.md` (snapshot histórico).
 **Regla:** ningún ítem se implementa sin autorización; las decisiones del propietario no se asumen.
 
+> **Actualización de paridad Android (27-oct-2026):** el estado funcional vigente,
+> las diferencias reales y los pendientes están en
+> [`paridad-android-web.md`](paridad-android-web.md) y
+> [`informe-calidad-paridad-2026-10-27.md`](informe-calidad-paridad-2026-10-27.md).
+> Base auditada: `8811021`. Incluye el botón público del APK en el Home, “Mi
+> Instructor”, correcciones de perfiles/ficha y 192 pruebas Android, 84 web y 395
+> backend aprobadas.
+
 **Cambios del Lote 4 (18-oct):** C-01, C-04 y C-08 **cubiertos con pruebas** (focales verdes); FE-2 y FE-8 **corregidos**; M4 **implementado** (gradle 139/139 + assembleDebug); M7 **plan presentado**; M8 y FE-7/O5 **parciales**; D-01 **investigado**.
 **Cambios del Lote 5 (cierre de entrega, 18-oct):** D-01 con **recomendación lista** (opción a: guarda 409, comparativa completa); Android con **estado de entrega y procedimientos APK + verificación manual M4** documentados (`docs/ejecutar-android.md §10-11`); FE-1 con **plan de ejecución y autorización solicitada** (requiere reset de `proyectwin_e2e` vía procedimiento oficial; NO es el gate integral); clasificación de pendientes: **nada nuevo imprescindible** más allá de M1/D-01/FE-1/M4.
 **Cambios del Lote 6 (18-oct):** **D-01 implementado y verificado** (guarda 409 en el borrado de usuarios: instructor + propuestas creadas, mutex O1, admin exento; 6 pruebas nuevas; suite backend **324/324, 1883 aserciones**); **plan de versionado Android revisable** creado (`docs/plan-versionado-android.md`: 24 archivos a versionar + exclusión de 4 `.idea` máquina-específico preservando 9 compartibles; diff exacto — aplicado después, ver M7); FE-1 quedaba pendiente de autorización de reset en ese momento (ejecutado después — ver fila FE-1).

@@ -7,6 +7,7 @@ import StatChip from '../../../components/StatChip/StatChip'
 import GradeBadge from '../../../components/GradeBadge/GradeBadge'
 import GradualBlur from '../../../components/GradualBlur/GradualBlur'
 import Button from '../../../components/Button/Button'
+import ApkDownloadButton from '../../../components/ApkDownload/ApkDownloadButton'
 import TextType from '../../../components/TextType/TextType'
 import { useApi } from '../../../lib/useApi'
 import { demo } from '../../../lib/recursos'
@@ -122,6 +123,7 @@ export default function Home() {
             </ul>
             <div className={`${s.heroCta} fx-rise`} style={{ '--fx-i': 5 }}>
               <Button as="link" to="/login" viewTransition>Iniciar sesión</Button>
+              <ApkDownloadButton />
             </div>
           </div>
 

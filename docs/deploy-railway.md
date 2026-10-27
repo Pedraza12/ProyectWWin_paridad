@@ -3,12 +3,12 @@
 Guía del despliegue del MVP completo (**SPA React + API Laravel**) en un solo
 servicio de Railway, con MySQL como base de datos.
 
-> **Aviso sobre el APK Android (19-oct-2026):** el APK servido actualmente en
-> `/apk/ProyecTWin.apk` es un **build de pruebas (debug)** —`versionName` 1.2.0,
-> `versionCode` 3, marcado `application-debuggable` y firmado con la clave
-> debug—, **no** una distribución oficial. Para publicar una versión firmada
-> sigue [`release-android.md`](release-android.md); `assembleDebug` no es un
-> artefacto publicable.
+> **Estado verificado del APK (27-oct-2026):** `/apk/ProyecTWin.apk` corresponde a
+> `versionName` **1.3.0** (`versionCode` 4), **sin** `application-debuggable` y
+> firmado con el certificado del owner (`CN=Oscar`, no la clave debug). El Home
+> público enlaza este archivo con el botón **“Descargar APK para Android”**; la
+> URL anterior `/apk/proyecttwin.apk` se conserva como alias en `docker/nginx.conf`.
+> Para publicar una versión nueva sigue [`release-android.md`](release-android.md).
 
 ## Arquitectura
 

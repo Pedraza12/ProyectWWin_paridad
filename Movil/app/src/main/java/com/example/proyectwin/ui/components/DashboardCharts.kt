@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -83,6 +84,45 @@ fun MetricasKpiGrid(metrics: DashboardMetrics, modifier: Modifier = Modifier) {
                 valor = metrics.fichasTotal,
                 icon = Icons.Default.Groups,
                 color = senaColors().accent,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** KPIs del panel del instructor (paridad con `DashboardMetrics` web). */
+@Composable
+fun MetricasKpiInstructor(metrics: DashboardMetrics, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            KpiCard(
+                titulo = "Fichas a cargo",
+                valor = metrics.fichasTotal,
+                icon = Icons.AutoMirrored.Filled.MenuBook,
+                color = senaColors().green,
+                modifier = Modifier.weight(1f),
+            )
+            KpiCard(
+                titulo = "Aprendices",
+                valor = metrics.aprendicesTotal,
+                icon = Icons.Default.School,
+                color = senaColors().info,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            KpiCard(
+                titulo = "Propuestas",
+                valor = metrics.propuestas.total,
+                icon = Icons.Default.FolderOpen,
+                color = senaColors().success,
+                modifier = Modifier.weight(1f),
+            )
+            KpiCard(
+                titulo = "Por revisar",
+                valor = metrics.propuestas.pendiente,
+                icon = Icons.AutoMirrored.Filled.FactCheck,
+                color = senaColors().warning,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -304,6 +344,7 @@ fun EvolucionPropuestas(
     actualizando: Boolean,
     onPeriodo: (PeriodoMetricas) -> Unit,
     modifier: Modifier = Modifier,
+    titulo: String = "Propuestas por mes",
 ) {
     var seleccionado by remember(puntos) { mutableStateOf<Int?>(null) }
     // Los colores del tema se leen una vez en contexto composable y se usan
@@ -317,7 +358,7 @@ fun EvolucionPropuestas(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Propuestas por mes",
+                        titulo,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = senaColors().text,
@@ -614,12 +655,13 @@ fun ActividadRecienteCard(
     actividad: List<ActividadReciente>,
     modifier: Modifier = Modifier,
     onProyectoClick: ((Int) -> Unit)? = null,
+    titulo: String = "Actividad reciente",
 ) {
     SenaCard(modifier = modifier, elevation = 1.dp) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Actividad reciente",
+                    titulo,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = senaColors().text,

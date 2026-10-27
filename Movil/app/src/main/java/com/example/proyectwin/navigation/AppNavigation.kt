@@ -67,6 +67,8 @@ object AppNavigation {
     const val APRENDIZ_FICHA_DETAIL = "aprendiz/ficha"
     const val APRENDIZ_JOIN_FICHA = "aprendiz/join-ficha"
     const val APRENDIZ_COMPANERO_DETAIL = "aprendiz/companero/{userId}"
+    /** Perfil del instructor de la ficha (equivalente a /aprendiz/perfil-instructor). */
+    const val APRENDIZ_INSTRUCTOR_DETAIL = "aprendiz/instructor/{userId}"
 
     // Instructor Graph
     const val INSTRUCTOR_GRAPH = "instructor_graph"
@@ -85,6 +87,8 @@ object AppNavigation {
     const val INSTRUCTOR_MANAGE_FICHAS = "instructor/fichas/manage"
     const val INSTRUCTOR_ALERTS = "instructor/alerts"
     const val INSTRUCTOR_FICHA_DETAIL = "instructor_ficha_detail/{fichaId}"
+    /** Perfil de un aprendiz de sus fichas (equivalente a /instructor/perfil-companero). */
+    const val INSTRUCTOR_COMPANERO_DETAIL = "instructor/companero/{userId}"
 
     // Admin Graph
     const val ADMIN_GRAPH = "admin_graph"
@@ -300,7 +304,22 @@ object AppNavigation {
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
                 DetalleCompaneroScreen(
                     userId = userId,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onNavigate = { route -> navController.navigateTo(route) },
+                )
+            }
+            composable(
+                route = APRENDIZ_INSTRUCTOR_DETAIL,
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                DetalleCompaneroScreen(
+                    userId = userId,
+                    onBack = { navController.popBackStack() },
+                    onNavigate = { route -> navController.navigateTo(route) },
+                    tituloPagina = "Mi Instructor",
                 )
             }
         }
@@ -418,6 +437,18 @@ object AppNavigation {
                     fichaId = fichaId,
                     onBack = { navController.popBackStack() },
                     onNavigate = { route -> navController.navigateTo(route) }
+                )
+            }
+            composable(
+                route = INSTRUCTOR_COMPANERO_DETAIL,
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                DetalleCompaneroScreen(
+                    userId = userId,
+                    onBack = { navController.popBackStack() },
+                    onNavigate = { route -> navController.navigateTo(route) },
+                    detalleProyectoRoute = INSTRUCTOR_DETAIL,
                 )
             }
         }

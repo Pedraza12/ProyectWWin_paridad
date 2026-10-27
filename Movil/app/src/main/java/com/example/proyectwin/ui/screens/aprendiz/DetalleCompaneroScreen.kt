@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -15,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.proyectwin.data.model.Project
+import com.example.proyectwin.data.model.UserRole
+import com.example.proyectwin.navigation.AppNavigation
 import com.example.proyectwin.ui.components.*
 import com.example.proyectwin.ui.theme.*
 import com.example.proyectwin.ui.viewmodel.CompaneroUiState
@@ -23,11 +26,17 @@ import com.example.proyectwin.ui.viewmodel.DetalleCompaneroViewModel
 /**
  * Perfil público de un compañero o instructor: datos básicos, su ficha y las
  * propuestas que el backend autoriza ver al solicitante.
+ *
+ * `tituloPagina = "Mi Instructor"` reutiliza la misma vista para el acceso
+ * directo desde "Mi Ficha", igual que la ruta web `/aprendiz/perfil-instructor`.
  */
 @Composable
 fun DetalleCompaneroScreen(
     userId: String = "",
     onBack: () -> Unit,
+    onNavigate: (String) -> Unit = {},
+    tituloPagina: String = "Perfil",
+    detalleProyectoRoute: String = AppNavigation.APRENDIZ_DETAIL,
     companeroViewModel: DetalleCompaneroViewModel = hiltViewModel(),
 ) {
     val uiState by companeroViewModel.uiState.collectAsState()
@@ -57,6 +66,7 @@ fun DetalleCompaneroScreen(
             }
             is CompaneroUiState.Success -> {
                 val data = estado.data
+                val esInstructor = data.usuario.userRole == UserRole.INSTRUCTOR
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
                     contentPadding = PaddingValues(20.dp),
@@ -64,8 +74,16 @@ fun DetalleCompaneroScreen(
                 ) {
                     item {
                         SenaPageHeader(
-                            title = data.usuario.name,
-                            subtitle = data.usuario.roleDisplayName,
+                            title = if (tituloPagina == "Mi Instructor") {
+                                "Mi Instructor"
+                            } else {
+                                data.usuario.name
+                            },
+                            subtitle = if (tituloPagina == "Mi Instructor") {
+                                "Conoce a quien acompaña tu proceso de formación"
+                            } else {
+                                data.usuario.roleDisplayName
+                            },
                             icon = Icons.Default.Person,
                         )
                     }
@@ -113,7 +131,9 @@ fun DetalleCompaneroScreen(
 
                     data.ficha?.let { ficha ->
                         item {
-                            SenaSectionHeader(title = "Ficha")
+                            SenaSectionHeader(
+                                title = if (esInstructor) "Ficha en común" else "Ficha",
+                            )
                             SenaCard(elevation = 1.dp) {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(
@@ -126,7 +146,13 @@ fun DetalleCompaneroScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                         color = senaColors().textSecondary,
                                     )
-                                    if (ficha.instructorName != null) {
+                                    if (esInstructor) {
+                                        Text(
+                                            "Programa: ${ficha.programa.ifBlank { "Sin programa" }}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = senaColors().textSecondary,
+                                        )
+                                    } else if (ficha.instructorName != null) {
                                         Text(
                                             "Instructor: ${ficha.instructorName}",
                                             style = MaterialTheme.typography.bodySmall,
@@ -139,19 +165,37 @@ fun DetalleCompaneroScreen(
                     }
 
                     item {
-                        SenaSectionHeader(title = "Propuestas (${data.proyectos.size})")
+                        SenaSectionHeader(
+                            title = if (esInstructor) {
+                                "Propuestas"
+                            } else {
+                                "Propuestas (${data.proyectos.size})"
+                            },
+                        )
                     }
 
                     if (data.proyectos.isEmpty()) {
                         item {
                             SenaEmptyState(
-                                message = "No hay propuestas visibles para este usuario.",
+                                message = if (esInstructor) {
+                                    "Las propuestas de los instructores no se muestran en esta vista."
+                                } else {
+                                    "No hay propuestas visibles para este usuario."
+                                },
                                 icon = Icons.Default.FolderOff,
                             )
                         }
                     } else {
                         items(data.proyectos, key = { it.id }) { proyecto ->
-                            ProyectoCompaneroCard(proyecto)
+                            ProyectoCompaneroCard(
+                                proyecto = proyecto,
+                                porcentaje = data.porcentajesSimilitud[proyecto.id],
+                                onClick = {
+                                    onNavigate(
+                                        detalleProyectoRoute.replace("{projectId}", proyecto.id.toString()),
+                                    )
+                                },
+                            )
                         }
                     }
 
@@ -163,8 +207,12 @@ fun DetalleCompaneroScreen(
 }
 
 @Composable
-private fun ProyectoCompaneroCard(proyecto: Project) {
-    SenaCard(elevation = 0.5.dp) {
+private fun ProyectoCompaneroCard(
+    proyecto: Project,
+    porcentaje: Int?,
+    onClick: () -> Unit,
+) {
+    SenaCard(elevation = 0.5.dp, onClick = onClick) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -174,6 +222,21 @@ private fun ProyectoCompaneroCard(proyecto: Project) {
                     color = senaColors().text,
                     modifier = Modifier.weight(1f),
                 )
+                if (porcentaje != null) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = senaColors().warning.copy(alpha = 0.15f),
+                    ) {
+                        Text(
+                            "$porcentaje%",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = senaColors().warning,
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                }
                 SenaStatusBadge(status = proyecto.estado)
             }
             Text(

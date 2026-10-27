@@ -2,6 +2,7 @@ package com.example.proyectwin.data.mapper
 
 import com.example.proyectwin.data.api.dto.BugReportCreateRequest
 import com.example.proyectwin.data.api.dto.ClassGroupCreateRequest
+import com.example.proyectwin.data.api.dto.ClassGroupDto
 import com.example.proyectwin.data.api.dto.ClassGroupUpdateRequest
 import com.example.proyectwin.data.api.dto.GeneralUserDto
 import com.example.proyectwin.data.api.dto.DashboardMetricsDto
@@ -23,8 +24,31 @@ class DtoSerializationTest {
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
     @Test
-    fun notification_parsesLeidaAsInt() {
-        val dto = json.decodeFromString<NotificationDto>(
+    fun classGroup_exponeInstructorUsuarioIdParaElPerfilPublico() {
+        val cuerpo = """
+            {
+              "id": 12,
+              "codigo": "abc-defg",
+              "nombre": "Ficha ADSO",
+              "estado": "activo",
+              "id_programa": 1,
+              "id_instructor": 99,
+              "program": {"id": 1, "nombre": "ADSO"},
+              "instructor": {
+                "id": 99,
+                "id_usuario": 7,
+                "generalUser": {"id": 7, "nombre": "Ana", "apellido": "Gómez", "correo": "ana@sena.edu.co"}
+              }
+            }
+        """.trimIndent()
+        val ficha = json.decodeFromString<ClassGroupDto>(cuerpo).toDomain()
+        assertEquals(99, ficha.instructorId)
+        assertEquals(7, ficha.instructorUsuarioId)
+        assertEquals("Ana Gómez", ficha.instructorName)
+    }
+
+    @Test
+    fun notification_parsesLeidaAsInt() {        val dto = json.decodeFromString<NotificationDto>(
             """{"id":1,"titulo":"Nuevo","tipo":"sistema","enlace":"proyecto:5","leida":0,"fecha":"2026-10-01"}""",
         )
         assertEquals(0, dto.leida)

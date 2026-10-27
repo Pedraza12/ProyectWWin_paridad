@@ -162,7 +162,7 @@ fun PlanoComparacion(
     val colorTexto = senaColors().text
     val colorTextoLight = senaColors().textLight
 
-    BoxWithConstraints(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(560f / 210f),

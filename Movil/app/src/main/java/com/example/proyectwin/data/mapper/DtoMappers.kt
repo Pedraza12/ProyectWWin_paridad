@@ -136,6 +136,7 @@ fun ClassGroupDto.toDomain(): Ficha = Ficha(
     programa = program?.nombre ?: "",
     estado = estado,
     instructorId = idInstructor.takeIf { it != 0 },
+    instructorUsuarioId = instructor?.idUsuario?.takeIf { it != 0 },
     instructorName = instructor?.nombreUsuario(),
     createdAt = createdAt,
     estudiantes = apprentices?.mapNotNull { it.toGeneralUser() } ?: emptyList(),

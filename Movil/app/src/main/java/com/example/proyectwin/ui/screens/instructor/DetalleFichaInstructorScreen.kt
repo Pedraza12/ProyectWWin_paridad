@@ -173,7 +173,17 @@ fun DetalleFichaInstructorScreen(
                             }
                         } else {
                             items(ficha.estudiantes, key = { it.id }) { estudiante ->
-                                SenaCard(elevation = 0.5.dp) {
+                                SenaCard(
+                                    elevation = 0.5.dp,
+                                    onClick = {
+                                        onNavigate(
+                                            AppNavigation.INSTRUCTOR_COMPANERO_DETAIL.replace(
+                                                "{userId}",
+                                                estudiante.id.toString(),
+                                            ),
+                                        )
+                                    },
+                                ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         SenaAvatar(
                                             fotoBase64 = estudiante.fotoPerfil,
@@ -194,6 +204,11 @@ fun DetalleFichaInstructorScreen(
                                                 color = senaColors().textLight,
                                             )
                                         }
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = "Ver perfil",
+                                            tint = senaColors().textMuted,
+                                        )
                                     }
                                 }
                             }

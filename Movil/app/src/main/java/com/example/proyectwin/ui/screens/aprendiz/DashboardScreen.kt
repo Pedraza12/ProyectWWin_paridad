@@ -146,6 +146,16 @@ fun DashboardScreen(
                     }
                 }
 
+                // --- MÉTRICAS REALES (paridad con DashboardMetrics web) ---
+                item {
+                    PaddingRow {
+                        DashboardMetricsSection(
+                            rol = "aprendiz",
+                            onProyectoClick = { id -> onNavigate("aprendiz_detail/$id") },
+                        )
+                    }
+                }
+
                 item {
                     Column {
                         PaddingRow {

@@ -13,6 +13,8 @@ const proxy = {
   '/v1': { target: API, changeOrigin: true },
   // Cookie CSRF de Sanctum (misma-origen para la sesión por cookie).
   '/sanctum': { target: API, changeOrigin: true },
+  // APK público: en producción lo sirve nginx; en desarrollo/E2E se proxya.
+  '/apk': { target: API, changeOrigin: true },
 }
 
 // https://vite.dev/config/

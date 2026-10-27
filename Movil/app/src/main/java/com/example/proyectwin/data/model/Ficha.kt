@@ -17,6 +17,8 @@ data class Ficha(
     val programa: String,
     val estado: String = ClassGroupStatus.ACTIVO.value,
     val instructorId: Int? = null,
+    /** `general_users.id` del instructor: necesario para su perfil público. */
+    val instructorUsuarioId: Int? = null,
     val instructorName: String? = null,
     val createdAt: String? = null,
     val estudiantes: List<GeneralUser> = emptyList(),
