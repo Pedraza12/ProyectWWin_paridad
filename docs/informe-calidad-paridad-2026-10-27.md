@@ -177,7 +177,10 @@ separado; no se desactivaron reglas ni pruebas para ocultarlos.
 
 ## 8. Estado final de Git
 
-- Cambios **sin commit** (no se hizo commit/push por instrucción explícita).
+- Commit de los cambios funcionales: `616de19` (`feat(paridad): apk publico, metricas y perfiles Android`).
+- Push a `origin/master`: **realizado**; `git ls-remote origin master` devuelve el mismo HEAD.
+- Working tree limpio; solo quedan archivos locales ignorados (`Movil/local.properties`, `backend/.env.testing`, `backend/.env.e2e`).
+- No se desplegó a Railway ni se publicó un APK nuevo.
 - Archivos nuevos: `frontend/src/components/ApkDownload/` (componente + test),
   `frontend/src/pages/public/Home/Home.test.jsx`,
   `frontend/e2e/home-apk.spec.js`,
@@ -185,7 +188,8 @@ separado; no se desactivaron reglas ni pruebas para ocultarlos.
   `Movil/.../DetalleCompaneroViewModelTest.kt`, `docs/paridad-android-web.md`,
   este informe.
 - Archivos modificados: Home, `vite.config.js`, navegación Android, modelo/mapper
-  de ficha, FichaDetail, DetalleCompanero (VM/UI), DetalleFichaInstructor y
+  de ficha, FichaDetail, DetalleCompanero (VM/UI), DetalleFichaInstructor,
+  dashboards de aprendiz/instructor, `DashboardCharts.kt` y
   `SimilarityCharts.kt` (lint).
 - `backend/.phpunit.result.cache` se revirtió tras las pruebas para no versionar ruido.
 - `Movil/local.properties`, `backend/.env.testing` y `backend/.env.e2e` son
